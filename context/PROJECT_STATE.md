@@ -19,6 +19,9 @@ Build a production-grade, ultra-secure, reliable, and high-performance **AI-Firs
    - Keep `context/PROJECT_STATE.md` and the `/context` documentation hub in sync with all architectural decisions, goal changes, and system rules.
    - Instantly remove deprecated architecture sections when replacement patterns are adopted.
    - Omit casual conversation; retain only technical goals, rules, and architecture specs.
+3. **Human-Centric Clean Code & Modular Feature Structure**:
+   - Every module must be intuitively grouped by feature functionality so any developer can easily understand the codebase.
+   - Code must be clean, readable, self-documenting, and free from AI-style boilerplate bloat or unnecessarily complex abstractions.
 
 ---
 

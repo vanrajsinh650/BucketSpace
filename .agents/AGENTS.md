@@ -8,3 +8,9 @@ Maintain a dedicated project state document (`context/PROJECT_STATE.md`) as part
 - Whenever architectural changes, goal shifts, new technical rules, or scope updates occur, immediately update `context/PROJECT_STATE.md` (and relevant `/context` files).
 - Remove or archive deprecated architectural assumptions and replace them with the new active decisions.
 - Do NOT record casual or conversational dialogue—record only actionable technical goals, architecture changes, rules, decisions, and production-readiness requirements.
+
+## 3. Human-Centric Clean Code & Modular Feature Structure
+Every piece of code written MUST be clear, highly readable, well-commented, and intuitively structured by domain functionality.
+- Avoid "AI-generated code bloat", overly convoluted abstractions, unnecessary boilerplate, or opaque patterns that human developers find frustrating to read.
+- Organize folders by feature capability (`modules/bucket`, `modules/storage`, `components/file`) so any engineer can instantly understand the domain flow.
+- Code should read as if crafted by a world-class human principal engineer—clean, idiomatic, self-documenting, and straightforward.

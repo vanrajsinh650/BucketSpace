@@ -38,6 +38,7 @@ if (bucket.provider === ProviderType.AWS_S3) { ... }
 > 1. **Never Infer Schemas or Paths**: Before writing or modifying any code consuming database tables or API contracts, you MUST view the exact schema definitions in [09_DATABASE.md](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/context/09_DATABASE.md) and [10_API_SPECIFICATION.md](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/context/10_API_SPECIFICATION.md).
 > 2. **Never Create Dummy Fallbacks or Swallow Errors**: Do NOT hide runtime errors using empty `try/catch {}` blocks or returning empty arrays/null objects without logging.
 > 3. **Run Verification Commands**: Always execute type checks (`pnpm type-check`) and linting (`pnpm lint`) before declaring a task complete.
+> 4. **Human-Centric Clean Code & Feature Structure**: Write clean, readable, self-documenting code structured intuitively by domain functionality. Avoid "AI-generated code bloat", opaque wrappers, or convoluted abstractions that human developers find difficult to understand.
 
 ---
 
