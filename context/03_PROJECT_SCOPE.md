@@ -18,8 +18,8 @@ pie title Phase 1 MVP Engineering Scope Allocation
 
 | Feature Area | Phase 1 MVP (IN SCOPE) | Post-MVP / Future Expansion (OUT OF SCOPE) |
 |---|---|---|
-| **Storage Providers** | AWS S3 & Cloudflare R2 | GCP Storage, Azure Blobs, On-Premise MinIO (Phase 2). |
-| **Upload Engine** | Presigned S3 Multipart Direct Uploads, Pause/Resume. | Client-side video transcoding, client-side ZIP archive creation (Phase 2). |
+| **Storage Providers** | Telegram Cloud Storage Engine (Telegram MTProto / Bot API + Private Channel Storage). | AWS S3, Cloudflare R2, GCP Storage, Azure Blobs (Phase 2). |
+| **Upload Engine** | Telegram Chunked Stream Uploads (20MB/2GB parts) & Direct Stream Pipeline. | Client-side video transcoding, client-side ZIP archive creation (Phase 2). |
 | **Search Engine** | Hybrid Exact Text + CLIP Visual Embedding Search. | Audio Whisper transcription, OCR document extraction (Phase 3). |
 | **Sync & Mirroring** | Manual file copy/move across buckets. | Automated real-time bucket replication & auto-sync rules (Phase 3). |
 | **Collaboration** | Workspace invite links, RBAC (Owner, Admin, Viewer). | Live canvas annotation on 3D objects, real-time audio chat (Phase 4). |

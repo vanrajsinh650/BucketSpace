@@ -34,15 +34,15 @@ gantt
 
 ## 3. Detailed Phase Breakdown
 
-### Phase 1: Foundation MVP (Weeks 1 - 8)
-- **Primary Objectives**: Deliver unified AWS S3 & Cloudflare R2 file browsing, direct Web Worker chunked presigned uploads, and basic visual CLIP vector search.
+### Phase 1: Foundation MVP — Telegram Cloud Drive (Weeks 1 - 8)
+- **Primary Objectives**: Deliver a high-performance visual cloud drive powered by **Telegram Private Channel Storage**, chunked file streaming via Telegram Bot/MTProto API, Next.js 15 workspace UI, and visual CLIP vector search.
 - **Key Deliverables**:
-  - `packages/storage-adapters` (S3 & R2 drivers).
-  - Fastify presign API endpoints (`POST /api/v1/files/upload/presign`).
-  - Next.js 15 App Router file workspace (`FileGrid`, `BucketTree`).
-  - `pgvector` database schema & HNSW vector indexes.
-- **Estimated Complexity**: High (Core Infrastructure).
-- **Definition of Done**: Successfully upload a 5GB file via presigned URLs and perform sub-100ms CLIP semantic search across 10,000 image assets.
+  - `packages/storage-adapters` (`TelegramStorageAdapter` driver for Telegram MTProto/Bot API).
+  - Fastify streaming & chunk mapping API endpoints (`POST /api/v1/telegram/upload`, `GET /api/v1/telegram/stream/:fileId`).
+  - Next.js 15 App Router file workspace (`FileGrid`, `BucketTree`, `UploadDropzone`).
+  - `pgvector` database schema mapping file objects to Telegram `message_id` & `file_id` chunks.
+- **Estimated Complexity**: High (Telegram Stream Proxy & Chunking Architecture).
+- **Definition of Done**: Successfully upload and stream multi-gigabyte files using Telegram Private Channel Storage and perform sub-100ms CLIP semantic search across 10,000 visual assets.
 
 ---
 

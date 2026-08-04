@@ -129,6 +129,16 @@ List alternative designs or frameworks evaluated and why they were rejected.
 
 ---
 
+### ADR-011: Telegram Cloud Storage Engine for Phase 1 MVP
+- **Date**: 2026-08-04
+- **Status**: Accepted
+- **Deciders**: Product Architect & Staff Software Engineer
+- **Context**: Delivering an immediate, zero-cost, high-capacity cloud drive experience requires integrating Telegram MTProto / Bot API as a storage backend prior to traditional cloud object stores (S3, R2).
+- **Decision**: Implement `TelegramStorageAdapter` as the primary Phase 1 MVP storage engine. Files are chunked into Telegram document attachments sent to encrypted private channel storage buckets, with chunk ID maps managed in PostgreSQL.
+- **Rationale**: Provides unlimited cloud storage capabilities, instant media streaming preview, and zero infrastructure cloud storage fees for early users.
+
+---
+
 ## 4. Cross-References
 - Master Context Hub: [00_README.md](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/context/00_README.md)
 - Product Vision: [01_PRODUCT_VISION.md](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/context/01_PRODUCT_VISION.md)
