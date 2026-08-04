@@ -71,6 +71,7 @@ graph TD
 
 | Document | Name | Core Responsibilities |
 |---|---|---|
+| [PROJECT_STATE.md](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/context/PROJECT_STATE.md) | Active Project State & Memory | Active goals, current architectural baseline, rules, roadmap status. |
 | [00_README.md](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/context/00_README.md) | Master Index & Operating System | Navigation graph, document contracts, AI operating guidelines. |
 | [01_PRODUCT_VISION.md](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/context/01_PRODUCT_VISION.md) | Product Vision & Mission | Product pillars, target personas, 10-year technical roadmap. |
 | [02_PRODUCT_REQUIREMENTS.md](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/context/02_PRODUCT_REQUIREMENTS.md) | PRD & Business Rules | User stories, functional & non-functional requirements. |
