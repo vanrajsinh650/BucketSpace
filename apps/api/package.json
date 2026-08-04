@@ -4,7 +4,7 @@
   "private": true,
   "main": "./dist/server.js",
   "scripts": {
-    "dev": "tsc --watch",
+    "dev": "tsx watch src/server.ts",
     "build": "tsc --build",
     "start": "node dist/server.js",
     "type-check": "tsc --noEmit"
@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "typescript": "^5.5.0",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "tsx": "^4.16.0"
   }
 }

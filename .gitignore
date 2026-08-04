@@ -7,11 +7,13 @@ dist/
 .next/
 out/
 build/
+*.tsbuildinfo
 
 # Environment Secrets
 .env
 .env.local
 .env.production
+.env.development
 *.pem
 
 # IDE & System

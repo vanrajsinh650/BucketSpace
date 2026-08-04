@@ -47,7 +47,14 @@ graph TD
 
 ## 4. Current Milestone & Focus
 - **Active Phase**: Phase 1 MVP — **Telegram Cloud Drive System**.
-- **Current Objectives**: Monorepo initialization, Telegram Bot/MTProto storage driver implementation (`packages/storage-adapters`), Fastify Telegram stream proxy endpoints, Next.js visual workspace, and CLIP vector search.
+- **Phase 1 Audit**: ✅ COMPLETED. All 4 critical bugs fixed, 7 edge-case gaps closed, 5 readability issues resolved, 3 config/infra fixes applied.
+- **Key Audit Changes**:
+  - `IStorageProvider` interface is now provider-agnostic (`providerRef` / `providerMeta` instead of Telegram-specific fields)
+  - Upload flow is complete: initiate → persist FileObject → chunk upload → persist FileChunk → auto-transition to PROCESSED
+  - Telegram adapter has retry-with-backoff (429), 50MB size guard, and memory-capped stream buffering
+  - API server registers `@fastify/multipart`, uses env-driven CORS, and handles graceful shutdown
+  - `tsx watch` replaces bare `tsc --watch` for proper dev server auto-restart
+- **Current Objectives**: Integration testing with a real Telegram bot token, CLIP vector search indexing pipeline, and end-to-end upload flow validation.
 
 ---
 
@@ -55,3 +62,6 @@ graph TD
 - **Telegram Channel Storage Isolation**: Each user/workspace maps to encrypted private Telegram storage channels.
 - **Credentials Protection**: AES-256-GCM envelope encryption for Telegram Bot Tokens and API Hashes.
 - **Immutable Audit Logging**: Every administrative action, file chunking event, and permission mutation logged to `audit_logs`.
+- **Rate Limit Resilience**: Telegram adapter automatically retries on 429 errors with `retry_after` backoff.
+- **Memory Safety**: Stream-to-buffer operations are capped at 52 MB to prevent OOM crashes.
+- **Graceful Shutdown**: API server handles SIGTERM/SIGINT, drains inflight requests, and disconnects Prisma cleanly.

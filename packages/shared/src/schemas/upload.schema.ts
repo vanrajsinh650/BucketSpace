@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { ProviderType } from '../constants/providers.enum';
 
 export const DirectUploadPresignSchema = z.object({
   workspaceId: z.string().uuid(),
