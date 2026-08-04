@@ -1,0 +1,122 @@
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector")]
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+enum ProviderType {
+  TELEGRAM_DRIVE
+  AWS_S3
+  CLOUDFLARE_R2
+  GCP_STORAGE
+  AZURE_BLOB
+  MINIO
+}
+
+enum ObjectStatus {
+  PENDING_UPLOAD
+  UPLOADING
+  PROCESSED
+  QUARANTINED
+  DELETED
+}
+
+model Workspace {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @db.VarChar(255)
+  slug      String   @unique @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  buckets   Bucket[]
+  files     FileObject[]
+  auditLogs AuditLog[]
+
+  @@map("workspaces")
+}
+
+model Bucket {
+  id                   String       @id @default(uuid()) @db.Uuid
+  workspaceId          String       @map("workspace_id") @db.Uuid
+  name                 String       @db.VarChar(255)
+  provider             ProviderType @default(TELEGRAM_DRIVE)
+  targetChannelId      String       @map("target_channel_id") @db.VarChar(255)
+  encryptedCredentials String       @map("encrypted_credentials") @db.Text
+  createdAt            DateTime     @default(now()) @map("created_at")
+
+  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  files     FileObject[]
+
+  @@unique([workspaceId, name])
+  @@map("buckets")
+}
+
+model FileObject {
+  id          String       @id @default(uuid()) @db.Uuid
+  workspaceId String       @map("workspace_id") @db.Uuid
+  bucketId    String       @map("bucket_id") @db.Uuid
+  filename    String       @db.VarChar(512)
+  sizeBytes   BigInt       @map("size_bytes")
+  mimeType    String       @map("mime_type") @db.VarChar(255)
+  sha256Hash  String?      @map("sha256_hash") @db.Char(64)
+  status      ObjectStatus @default(PENDING_UPLOAD)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  workspace Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  bucket    Bucket        @relation(fields: [bucketId], references: [id], onDelete: Cascade)
+  chunks    FileChunk[]
+  embedding ObjectEmbedding?
+
+  @@index([bucketId, filename])
+  @@index([status])
+  @@map("file_objects")
+}
+
+model FileChunk {
+  id             String   @id @default(uuid()) @db.Uuid
+  fileId         String   @map("file_id") @db.Uuid
+  chunkIndex     Int      @map("chunk_index")
+  messageId      Int      @map("message_id")
+  telegramFileId String   @map("telegram_file_id") @db.VarChar(512)
+  partSizeBytes  BigInt   @map("part_size_bytes")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  file FileObject @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@unique([fileId, chunkIndex])
+  @@map("file_chunks")
+}
+
+model ObjectEmbedding {
+  id            String                      @id @default(uuid()) @db.Uuid
+  fileId        String                      @unique @map("file_id") @db.Uuid
+  embeddingClip Unsupported("vector(512)")? @map("embedding_clip")
+  embeddingText Unsupported("vector(1536)")?@map("embedding_text")
+  indexedAt     DateTime                    @default(now()) @map("indexed_at")
+
+  file FileObject @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@map("object_embeddings")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  actorUserId String   @map("actor_user_id") @db.Uuid
+  action      String   @db.VarChar(100)
+  resource    String   @db.VarChar(512)
+  ipAddress   String   @map("ip_address") @db.VarChar(45)
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+  @@map("audit_logs")
+}
