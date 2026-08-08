@@ -1,7 +1,25 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { prisma } from '@bucketspace/db';
-import { TelegramStorageAdapter, GCPStorageAdapter, AzureBlobStorageAdapter, S3StorageAdapter } from '@bucketspace/storage-adapters';
-import { ProviderType } from '@bucketspace/shared';
+import { StorageAdapterFactory } from './storage-adapter.factory';
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                            */
+/* ------------------------------------------------------------------ */
+
+/** UUID v4 format validator */
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Escapes special XML characters to prevent XSS injection in SVG output.
+ */
+function escapeXml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
 
 /* ------------------------------------------------------------------ */
 /*  Media Stream & HLS Transcoding Controller                          */
@@ -16,6 +34,10 @@ export function registerMediaRoutes(server: FastifyInstance): void {
     '/api/v1/media/hls/:fileId/playlist.m3u8',
     async (request: FastifyRequest<{ Params: { fileId: string } }>, reply: FastifyReply) => {
       const { fileId } = request.params;
+
+      if (!UUID_REGEX.test(fileId)) {
+        return reply.status(400).send({ error: 'INVALID_FILE_ID', message: 'fileId must be a valid UUID' });
+      }
 
       const file = await prisma.fileObject.findUnique({
         where: { id: fileId },
@@ -63,7 +85,15 @@ export function registerMediaRoutes(server: FastifyInstance): void {
       reply: FastifyReply
     ) => {
       const { fileId, chunkIndex } = request.params;
+
+      if (!UUID_REGEX.test(fileId)) {
+        return reply.status(400).send({ error: 'INVALID_FILE_ID', message: 'fileId must be a valid UUID' });
+      }
+
       const index = parseInt(chunkIndex, 10);
+      if (isNaN(index) || index < 0) {
+        return reply.status(400).send({ error: 'INVALID_CHUNK_INDEX', message: 'chunkIndex must be a non-negative integer' });
+      }
 
       const file = await prisma.fileObject.findUnique({
         where: { id: fileId },
@@ -78,37 +108,25 @@ export function registerMediaRoutes(server: FastifyInstance): void {
       }
 
       const chunk = file.chunks[0];
-      const provider = file.bucket.provider;
-
-      let stream;
-      if (provider === ProviderType.GCP_STORAGE) {
-        const adapter = new GCPStorageAdapter();
-        stream = await adapter.getChunkStream(file.bucket.targetChannelId, chunk?.telegramFileId || `${fileId}.part${index}`);
-      } else if (provider === ProviderType.AZURE_BLOB) {
-        const adapter = new AzureBlobStorageAdapter();
-        stream = await adapter.getChunkStream(file.bucket.targetChannelId, chunk?.telegramFileId || `${fileId}.part${index}`);
-      } else if (provider === ProviderType.AWS_S3 || provider === ProviderType.CLOUDFLARE_R2) {
-        const adapter = new S3StorageAdapter();
-        stream = await adapter.getChunkStream(file.bucket.targetChannelId, chunk?.telegramFileId || `${fileId}.part${index}`);
-      } else {
-        const botToken = process.env.TELEGRAM_BOT_TOKEN || 'dummy-token';
-        const adapter = new TelegramStorageAdapter({ botToken });
-        stream = chunk
-          ? await adapter.getChunkStream(file.bucket.targetChannelId, chunk.telegramFileId)
-          : null;
+      if (!chunk) {
+        return reply.status(404).send({ error: 'CHUNK_NOT_FOUND', message: `Chunk ${index} not found for file ${fileId}` });
       }
 
-      if (!stream) {
-        // Dev stream fallback snippet
+      try {
+        const adapter = StorageAdapterFactory.create(file.bucket.provider);
+        const stream = await adapter.getChunkStream(file.bucket.targetChannelId, chunk.providerRef);
+
         return reply
           .header('Content-Type', 'video/MP2T')
-          .send(Buffer.from(`[HLS TS Segment ${index} for file ${fileId}]`));
+          .header('Cache-Control', 'public, max-age=86400')
+          .send(stream);
+      } catch (err) {
+        request.log.error({ err, fileId, chunkIndex: index }, 'Failed to stream HLS segment');
+        return reply.status(502).send({
+          error: 'STREAM_ERROR',
+          message: (err as Error).message || 'Failed to stream video segment',
+        });
       }
-
-      return reply
-        .header('Content-Type', 'video/MP2T')
-        .header('Cache-Control', 'public, max-age=86400')
-        .send(stream);
     }
   );
 
@@ -121,6 +139,10 @@ export function registerMediaRoutes(server: FastifyInstance): void {
     async (request: FastifyRequest<{ Params: { fileId: string } }>, reply: FastifyReply) => {
       const { fileId } = request.params;
 
+      if (!UUID_REGEX.test(fileId)) {
+        return reply.status(400).send({ error: 'INVALID_FILE_ID', message: 'fileId must be a valid UUID' });
+      }
+
       const file = await prisma.fileObject.findUnique({
         where: { id: fileId },
       });
@@ -129,12 +151,13 @@ export function registerMediaRoutes(server: FastifyInstance): void {
         return reply.status(404).send({ error: 'FILE_NOT_FOUND' });
       }
 
-      // Generate dynamic SVG poster preview thumbnail
-      const fileExt = file.filename.split('.').pop()?.toUpperCase() || 'FILE';
+      // Escape filename for safe SVG embedding (prevents XSS)
+      const safeFilename = escapeXml(
+        file.filename.length > 28 ? file.filename.slice(0, 25) + '...' : file.filename
+      );
+      const fileExt = escapeXml(file.filename.split('.').pop()?.toUpperCase() || 'FILE');
       const isVideo = file.mimeType.startsWith('video/');
-      const bgGradient = isVideo
-        ? 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)'
-        : 'linear-gradient(135deg, #0284c7 0%, #0d9488 100%)';
+      const sizeMB = (Number(file.sizeBytes) / (1024 * 1024)).toFixed(1);
 
       const svgThumbnail = `
         <svg xmlns="http://www.w3.org/2000/svg" width="400" height="250" viewBox="0 0 400 250">
@@ -152,10 +175,10 @@ export function registerMediaRoutes(server: FastifyInstance): void {
               : '<path d="M185 95h30v30h-30z" fill="#ffffff"/>'
           }
           <text x="200" y="180" font-family="sans-serif" font-size="16" font-weight="bold" fill="#ffffff" text-anchor="middle">
-            ${file.filename.length > 28 ? file.filename.slice(0, 25) + '...' : file.filename}
+            ${safeFilename}
           </text>
           <text x="200" y="205" font-family="sans-serif" font-size="12" fill="rgba(255,255,255,0.7)" text-anchor="middle">
-            ${fileExt} • ${(Number(file.sizeBytes) / (1024 * 1024)).toFixed(1)} MB
+            ${fileExt} • ${sizeMB} MB
           </text>
         </svg>
       `.trim();

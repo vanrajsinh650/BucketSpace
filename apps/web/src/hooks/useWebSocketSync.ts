@@ -3,6 +3,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { MetadataMutationPayload } from '@bucketspace/shared';
 
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
+
 export interface ActiveUserPresence {
   id: string;
   userId: string;
@@ -18,6 +22,21 @@ export interface UseWebSocketSyncOptions {
   enabled?: boolean;
 }
 
+/* ------------------------------------------------------------------ */
+/*  Reconnection Constants                                             */
+/* ------------------------------------------------------------------ */
+
+/** Initial reconnection delay in ms */
+const INITIAL_RECONNECT_DELAY_MS = 1000;
+/** Maximum reconnection delay cap in ms (30 seconds) */
+const MAX_RECONNECT_DELAY_MS = 30_000;
+/** Maximum consecutive reconnection attempts before giving up */
+const MAX_RECONNECT_ATTEMPTS = 10;
+
+/* ------------------------------------------------------------------ */
+/*  Hook                                                               */
+/* ------------------------------------------------------------------ */
+
 export function useWebSocketSync({
   workspaceId,
   userId = 'user-current',
@@ -29,18 +48,30 @@ export function useWebSocketSync({
   const [lastMutation, setLastMutation] = useState<MetadataMutationPayload | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
+  const reconnectAttemptRef = useRef(0);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const unmountedRef = useRef(false);
 
-  useEffect(() => {
-    if (!enabled) return;
-
+  /**
+   * Builds the WebSocket URL for the given workspace.
+   */
+  const buildWsUrl = useCallback(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.hostname}:4000/api/v1/ws/workspace/${workspaceId}?userId=${encodeURIComponent(userId)}&userName=${encodeURIComponent(userName)}`;
+    return `${protocol}//${window.location.hostname}:4000/api/v1/ws/workspace/${workspaceId}?userId=${encodeURIComponent(userId)}&userName=${encodeURIComponent(userName)}`;
+  }, [workspaceId, userId, userName]);
 
-    const ws = new WebSocket(wsUrl);
+  /**
+   * Connect with exponential backoff reconnection.
+   */
+  const connect = useCallback(() => {
+    if (unmountedRef.current) return;
+
+    const ws = new WebSocket(buildWsUrl());
     wsRef.current = ws;
 
     ws.onopen = () => {
       setIsConnected(true);
+      reconnectAttemptRef.current = 0; // Reset attempts on successful connection
     };
 
     ws.onmessage = (event) => {
@@ -68,12 +99,60 @@ export function useWebSocketSync({
 
     ws.onclose = () => {
       setIsConnected(false);
+      scheduleReconnect();
     };
 
-    return () => {
-      ws.close();
+    ws.onerror = () => {
+      // onclose will fire after onerror, triggering reconnect
     };
-  }, [workspaceId, userId, userName, enabled]);
+  }, [buildWsUrl]);
+
+  /**
+   * Schedules a reconnection attempt with exponential backoff.
+   */
+  const scheduleReconnect = useCallback(() => {
+    if (unmountedRef.current) return;
+    if (reconnectAttemptRef.current >= MAX_RECONNECT_ATTEMPTS) {
+      console.warn(`[useWebSocketSync] Max reconnection attempts (${MAX_RECONNECT_ATTEMPTS}) reached. Giving up.`);
+      return;
+    }
+
+    const attempt = reconnectAttemptRef.current;
+    const delay = Math.min(
+      INITIAL_RECONNECT_DELAY_MS * Math.pow(2, attempt),
+      MAX_RECONNECT_DELAY_MS
+    );
+
+    reconnectAttemptRef.current += 1;
+
+    reconnectTimerRef.current = setTimeout(() => {
+      connect();
+    }, delay);
+  }, [connect]);
+
+  useEffect(() => {
+    unmountedRef.current = false;
+
+    if (!enabled) return;
+
+    connect();
+
+    return () => {
+      unmountedRef.current = true;
+
+      // Clear any pending reconnection timer
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+
+      // Close the active WebSocket
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, [enabled, connect]);
 
   const sendMutation = useCallback(
     (payload: MetadataMutationPayload) => {

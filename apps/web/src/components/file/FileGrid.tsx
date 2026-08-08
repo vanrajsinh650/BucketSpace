@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FileText, Image, Video, Music, HardDrive, Search, UploadCloud, CheckCircle2, Inbox, Users, Play, Shield, Cloud } from 'lucide-react';
+import { FileText, Image, Video, Music, HardDrive, Search, UploadCloud, CheckCircle2, Inbox, Users, Play, Shield } from 'lucide-react';
 import { HLSVideoPlayer } from '../media/HLSVideoPlayer';
 import { useWebSocketSync } from '../../hooks/useWebSocketSync';
 import { ProviderType } from '@bucketspace/shared';

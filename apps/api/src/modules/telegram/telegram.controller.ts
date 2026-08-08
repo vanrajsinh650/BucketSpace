@@ -175,8 +175,8 @@ export function registerTelegramRoutes(fastify: FastifyInstance): void {
         data: {
           fileId: input.fileId,
           chunkIndex: result.chunkIndex,
-          messageId: (result.providerMeta.messageId as number),
-          telegramFileId: result.providerRef,
+          providerRef: result.providerRef,
+          providerMeta: result.providerMeta as Record<string, string | number>,
           partSizeBytes: BigInt(result.sizeBytes),
         },
       });
@@ -236,7 +236,7 @@ export function registerTelegramRoutes(fastify: FastifyInstance): void {
 
         // Look up the original filename for a proper Content-Disposition header
         const chunk = await prisma.fileChunk.findFirst({
-          where: { telegramFileId },
+          where: { providerRef: telegramFileId },
           include: { file: { select: { filename: true, mimeType: true } } },
         });
 

@@ -1,5 +1,6 @@
 import { Readable } from 'stream';
 import { IStorageProvider, UploadPartPayload, UploadPartResult } from './provider.interface';
+import { streamToBuffer } from './stream.utils';
 
 /* ------------------------------------------------------------------ */
 /*  Telegram Bot API response types (replaces `as any` casts)          */
@@ -42,9 +43,6 @@ export interface TelegramAdapterConfig {
 /** Telegram Bot API hard limit for sendDocument (50 MB) */
 const TELEGRAM_MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
-/** Safety cap to prevent OOM when buffering streams (default: 52 MB) */
-const STREAM_BUFFER_MAX_BYTES = 52 * 1024 * 1024;
-
 /** Default retry count for 429 responses */
 const DEFAULT_MAX_RETRIES = 3;
 
@@ -81,7 +79,7 @@ export class TelegramStorageAdapter implements IStorageProvider {
     // Resolve the payload buffer (streams get collected first)
     const buffer = Buffer.isBuffer(payload.partBuffer)
       ? payload.partBuffer
-      : await this.streamToBuffer(payload.partBuffer);
+      : await streamToBuffer(payload.partBuffer, 52 * 1024 * 1024, 'TelegramStorageAdapter');
 
     // Guard: reject chunks exceeding Telegram's 50 MB upload limit
     if (buffer.length > TELEGRAM_MAX_UPLOAD_BYTES) {
@@ -232,31 +230,6 @@ export class TelegramStorageAdapter implements IStorageProvider {
     throw lastError ?? new Error('Telegram API request failed after max retries');
   }
 
-  /**
-   * Collects a Readable stream into a single Buffer.
-   * Throws if the accumulated size exceeds the safety cap.
-   */
-  private async streamToBuffer(stream: Readable): Promise<Buffer> {
-    const chunks: Buffer[] = [];
-    let totalBytes = 0;
-
-    for await (const chunk of stream) {
-      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-      totalBytes += buf.length;
-
-      if (totalBytes > STREAM_BUFFER_MAX_BYTES) {
-        stream.destroy();
-        throw new Error(
-          `Stream exceeded ${STREAM_BUFFER_MAX_BYTES} byte safety cap ` +
-          `(received ${totalBytes} bytes so far)`
-        );
-      }
-
-      chunks.push(buf);
-    }
-
-    return Buffer.concat(chunks);
-  }
 
   /** Promise-based sleep for retry backoff */
   private sleep(ms: number): Promise<void> {

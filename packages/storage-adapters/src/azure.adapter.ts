@@ -1,23 +1,22 @@
 import { Readable } from 'stream';
 import { IStorageProvider, UploadPartPayload, UploadPartResult } from './provider.interface';
+import { streamToBuffer } from './stream.utils';
 
 /* ------------------------------------------------------------------ */
 /*  Azure Blob Storage Adapter Configuration                          */
 /* ------------------------------------------------------------------ */
 
 export interface AzureAdapterConfig {
+  /** Azure storage account name (falls back to env AZURE_STORAGE_ACCOUNT) */
   accountName?: string;
-  accountKey?: string;
-  connectionString?: string;
+  /** Custom API endpoint override */
   apiEndpoint?: string;
 }
-
-/** Default safety cap for stream-to-buffer operations (100 MB) */
-const STREAM_BUFFER_MAX_BYTES = 100 * 1024 * 1024;
 
 /* ------------------------------------------------------------------ */
 /*  Azure Blob Storage Adapter                                         */
 /*  Implements IStorageProvider for Azure Blob Storage.                 */
+/*  Uses REST API with SAS token auth from environment.                */
 /* ------------------------------------------------------------------ */
 
 export class AzureBlobStorageAdapter implements IStorageProvider {
@@ -25,8 +24,16 @@ export class AzureBlobStorageAdapter implements IStorageProvider {
   private readonly apiEndpoint: string;
 
   constructor(config: AzureAdapterConfig = {}) {
-    this.accountName = config.accountName ?? process.env.AZURE_STORAGE_ACCOUNT ?? 'bucketspacestorage';
+    this.accountName = config.accountName ?? process.env.AZURE_STORAGE_ACCOUNT ?? '';
     this.apiEndpoint = config.apiEndpoint ?? `https://${this.accountName}.blob.core.windows.net`;
+  }
+
+  /**
+   * Build the full blob URL, appending SAS token if available.
+   */
+  private buildBlobUrl(container: string, blobName: string): string {
+    const base = `${this.apiEndpoint}/${encodeURIComponent(container)}/${encodeURIComponent(blobName)}`;
+    return process.env.AZURE_SAS_TOKEN ? `${base}?${process.env.AZURE_SAS_TOKEN}` : base;
   }
 
   /**
@@ -40,32 +47,29 @@ export class AzureBlobStorageAdapter implements IStorageProvider {
     const blobName = `${payload.filename}.part${payload.chunkIndex}`;
     const buffer = Buffer.isBuffer(payload.partBuffer)
       ? payload.partBuffer
-      : await this.streamToBuffer(payload.partBuffer);
+      : await streamToBuffer(payload.partBuffer, undefined, 'AzureBlobStorageAdapter');
 
-    const blobUrl = `${this.apiEndpoint}/${encodeURIComponent(targetId)}/${encodeURIComponent(blobName)}`;
-
-    const headers: Record<string, string> = {
-      'x-ms-blob-type': 'BlockBlob',
-      'Content-Type': payload.mimeType || 'application/octet-stream',
-      'Content-Length': buffer.length.toString(),
-      'x-ms-version': '2021-08-06',
-    };
-
-    if (process.env.AZURE_SAS_TOKEN) {
-      // Append SAS token if available
-    }
-
-    const requestUrl = process.env.AZURE_SAS_TOKEN
-      ? `${blobUrl}?${process.env.AZURE_SAS_TOKEN}`
-      : blobUrl;
+    const requestUrl = this.buildBlobUrl(targetId, blobName);
 
     const response = await fetch(requestUrl, {
       method: 'PUT',
-      headers,
+      headers: {
+        'x-ms-blob-type': 'BlockBlob',
+        'Content-Type': payload.mimeType || 'application/octet-stream',
+        'Content-Length': buffer.length.toString(),
+        'x-ms-version': '2021-08-06',
+      },
       body: new Uint8Array(buffer),
     });
 
-    const etag = response.headers.get('etag') ?? `"${blobName}-etag"`;
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'unknown error');
+      throw new Error(
+        `Azure Blob upload failed [HTTP ${response.status}]: ${errorText}`
+      );
+    }
+
+    const etag = response.headers.get('etag') ?? '';
 
     return {
       chunkIndex: payload.chunkIndex,
@@ -76,7 +80,6 @@ export class AzureBlobStorageAdapter implements IStorageProvider {
         blobName,
         etag,
         provider: 'AZURE_BLOB',
-        uploadedAt: new Date().toISOString(),
       },
     };
   }
@@ -88,24 +91,19 @@ export class AzureBlobStorageAdapter implements IStorageProvider {
     targetId: string,
     providerRef: string
   ): Promise<Readable> {
-    const blobUrl = `${this.apiEndpoint}/${encodeURIComponent(targetId)}/${encodeURIComponent(providerRef)}`;
-    const requestUrl = process.env.AZURE_SAS_TOKEN
-      ? `${blobUrl}?${process.env.AZURE_SAS_TOKEN}`
-      : blobUrl;
+    const requestUrl = this.buildBlobUrl(targetId, providerRef);
 
     const response = await fetch(requestUrl, {
-      headers: {
-        'x-ms-version': '2021-08-06',
-      },
+      headers: { 'x-ms-version': '2021-08-06' },
     });
 
-    if (response.ok && response.body) {
-      return Readable.fromWeb(response.body as import('stream/web').ReadableStream);
+    if (!response.ok || !response.body) {
+      throw new Error(
+        `Azure Blob download failed [HTTP ${response.status}] for ref "${providerRef}"`
+      );
     }
 
-    // Fallback: Simulated readable stream in dev mode
-    const simulatedBuffer = Buffer.from(`[Azure Blob Storage Stream Payload for ${providerRef}]`);
-    return Readable.from(simulatedBuffer);
+    return Readable.fromWeb(response.body as import('stream/web').ReadableStream);
   }
 
   /**
@@ -116,37 +114,13 @@ export class AzureBlobStorageAdapter implements IStorageProvider {
     providerRef: string,
     _providerMeta?: Record<string, unknown>
   ): Promise<boolean> {
-    const blobUrl = `${this.apiEndpoint}/${encodeURIComponent(targetId)}/${encodeURIComponent(providerRef)}`;
-    const requestUrl = process.env.AZURE_SAS_TOKEN
-      ? `${blobUrl}?${process.env.AZURE_SAS_TOKEN}`
-      : blobUrl;
+    const requestUrl = this.buildBlobUrl(targetId, providerRef);
 
     const response = await fetch(requestUrl, {
       method: 'DELETE',
-      headers: {
-        'x-ms-version': '2021-08-06',
-      },
+      headers: { 'x-ms-version': '2021-08-06' },
     });
 
     return response.ok || response.status === 404;
-  }
-
-  /** Collect Readable stream into Buffer safely */
-  private async streamToBuffer(stream: Readable): Promise<Buffer> {
-    const chunks: Buffer[] = [];
-    let totalBytes = 0;
-
-    for await (const chunk of stream) {
-      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-      totalBytes += buf.length;
-
-      if (totalBytes > STREAM_BUFFER_MAX_BYTES) {
-        stream.destroy();
-        throw new Error(`Stream exceeded ${STREAM_BUFFER_MAX_BYTES} byte limit in AzureBlobStorageAdapter`);
-      }
-      chunks.push(buf);
-    }
-
-    return Buffer.concat(chunks);
   }
 }

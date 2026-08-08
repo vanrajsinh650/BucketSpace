@@ -1,24 +1,23 @@
 import { Readable } from 'stream';
 import { IStorageProvider, UploadPartPayload, UploadPartResult } from './provider.interface';
+import { streamToBuffer } from './stream.utils';
 
 /* ------------------------------------------------------------------ */
 /*  S3 / R2 Storage Adapter Configuration                              */
 /* ------------------------------------------------------------------ */
 
 export interface S3AdapterConfig {
-  region?: string;
-  accessKeyId?: string;
-  secretAccessKey?: string;
+  /** S3-compatible endpoint (falls back to env S3_ENDPOINT) */
   endpoint?: string;
-  forcePathStyle?: boolean;
 }
-
-/** Default safety cap for stream-to-buffer operations (100 MB) */
-const STREAM_BUFFER_MAX_BYTES = 100 * 1024 * 1024;
 
 /* ------------------------------------------------------------------ */
 /*  AWS S3 & Cloudflare R2 Storage Adapter                             */
 /*  Implements IStorageProvider for S3-compatible object stores.        */
+/*                                                                     */
+/*  NOTE: This adapter uses unsigned REST requests and is intended for */
+/*  use with presigned URLs or public/SAS-token-authorized endpoints.  */
+/*  Full AWS SigV4 signing is planned for Phase 3 (@aws-sdk/client-s3) */
 /* ------------------------------------------------------------------ */
 
 export class S3StorageAdapter implements IStorageProvider {
@@ -39,7 +38,7 @@ export class S3StorageAdapter implements IStorageProvider {
     const objectKey = `${payload.filename}.part${payload.chunkIndex}`;
     const buffer = Buffer.isBuffer(payload.partBuffer)
       ? payload.partBuffer
-      : await this.streamToBuffer(payload.partBuffer);
+      : await streamToBuffer(payload.partBuffer, undefined, 'S3StorageAdapter');
 
     const s3Url = `${this.endpoint}/${encodeURIComponent(targetId)}/${encodeURIComponent(objectKey)}`;
 
@@ -52,7 +51,14 @@ export class S3StorageAdapter implements IStorageProvider {
       body: new Uint8Array(buffer),
     });
 
-    const etag = response.headers.get('etag') ?? `"${objectKey}-etag"`;
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'unknown error');
+      throw new Error(
+        `S3 upload failed [HTTP ${response.status}]: ${errorText}`
+      );
+    }
+
+    const etag = response.headers.get('etag') ?? '';
 
     return {
       chunkIndex: payload.chunkIndex,
@@ -63,7 +69,6 @@ export class S3StorageAdapter implements IStorageProvider {
         objectKey,
         etag,
         provider: 'AWS_S3',
-        uploadedAt: new Date().toISOString(),
       },
     };
   }
@@ -79,13 +84,13 @@ export class S3StorageAdapter implements IStorageProvider {
 
     const response = await fetch(s3Url);
 
-    if (response.ok && response.body) {
-      return Readable.fromWeb(response.body as import('stream/web').ReadableStream);
+    if (!response.ok || !response.body) {
+      throw new Error(
+        `S3 download failed [HTTP ${response.status}] for ref "${providerRef}"`
+      );
     }
 
-    // Fallback: Simulated readable stream in dev mode
-    const simulatedBuffer = Buffer.from(`[S3 Storage Stream Payload for ${providerRef}]`);
-    return Readable.from(simulatedBuffer);
+    return Readable.fromWeb(response.body as import('stream/web').ReadableStream);
   }
 
   /**
@@ -98,29 +103,7 @@ export class S3StorageAdapter implements IStorageProvider {
   ): Promise<boolean> {
     const s3Url = `${this.endpoint}/${encodeURIComponent(targetId)}/${encodeURIComponent(providerRef)}`;
 
-    const response = await fetch(s3Url, {
-      method: 'DELETE',
-    });
-
+    const response = await fetch(s3Url, { method: 'DELETE' });
     return response.ok || response.status === 404;
-  }
-
-  /** Collect Readable stream into Buffer safely */
-  private async streamToBuffer(stream: Readable): Promise<Buffer> {
-    const chunks: Buffer[] = [];
-    let totalBytes = 0;
-
-    for await (const chunk of stream) {
-      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-      totalBytes += buf.length;
-
-      if (totalBytes > STREAM_BUFFER_MAX_BYTES) {
-        stream.destroy();
-        throw new Error(`Stream exceeded ${STREAM_BUFFER_MAX_BYTES} byte limit in S3StorageAdapter`);
-      }
-      chunks.push(buf);
-    }
-
-    return Buffer.concat(chunks);
   }
 }

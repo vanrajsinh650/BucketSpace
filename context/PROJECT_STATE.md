@@ -48,19 +48,33 @@ graph TD
 ---
 
 ## 4. Current Milestone & Focus
-- **Active Phase**: Phase 2 — **Advanced Sync & Media Streaming** ✅ COMPLETED.
+- **Active Phase**: Phase 2 — **Advanced Sync & Media Streaming** ✅ COMPLETED + AUDITED.
+- **Phase 2 Audit Status**: ✅ All critical bugs, edge-case gaps, and code quality issues resolved.
 - **Key Phase 2 Deliverables**:
   - `GCPStorageAdapter`, `AzureBlobStorageAdapter`, `S3StorageAdapter` integrated in `packages/storage-adapters`.
   - HLS video transcoding & segment streaming pipeline in `apps/api/src/modules/media/media.controller.ts`.
   - Dynamic SVG thumbnail preview generator endpoint `/api/v1/media/thumbnail/:fileId`.
   - Real-time WebSocket pub/sub presence server & LWW CRDT conflict engine in `apps/api/src/modules/websocket/websocket.controller.ts`.
   - Next.js 15 UI integration with `HLSVideoPlayer` and `useWebSocketSync`.
+- **Phase 2 Audit Fixes Applied**:
+  - Provider-agnostic `FileChunk` schema (`providerRef`, `providerMeta Json`)
+  - `StorageAdapterFactory` singleton caching pattern replacing if/else chains
+  - GCP/Azure/S3 adapters now throw on upload failure (no silent swallowing)
+  - Deterministic CRDT tie-breaker (timestamp → vectorClock → userId)
+  - WebSocket heartbeat ping/pong every 30s for dead connection detection
+  - Double-removal guard on WebSocket close/error events
+  - XSS-safe SVG thumbnail rendering with XML escaping
+  - UUID + integer validation on all media route params
+  - `useWebSocketSync` reconnection with exponential backoff (max 10 retries)
+  - Shared `streamToBuffer` utility extracted to eliminate cross-adapter duplication
 
 ---
 
 ## 5. Security & Reliability Directives
 - **Multi-Cloud Isolation**: Dedicated bucket isolation for Telegram Channels, GCP Buckets, Azure Containers, and S3 Buckets.
 - **Credentials Protection**: Envelope encryption for cloud tokens and access keys.
-- **Conflict Resolution**: LWW CRDT timestamp comparison for concurrent multi-user metadata mutations.
+- **Conflict Resolution**: LWW CRDT with deterministic 3-tier tie-breaking (timestamp → vectorClock → userId).
 - **Rate Limit Resilience**: Provider-specific backoff retry mechanisms for 429 rate limit responses.
-- **Memory Safety**: Stream buffering capped at safety limits (52MB–100MB) across all storage adapters.
+- **Memory Safety**: Stream buffering capped at safety limits (52MB–100MB) via shared `streamToBuffer` utility.
+- **XSS Prevention**: All user-provided content (filenames) XML-escaped before SVG rendering.
+- **Connection Health**: Server-side WebSocket ping/pong heartbeat (30s) with dead connection cleanup.

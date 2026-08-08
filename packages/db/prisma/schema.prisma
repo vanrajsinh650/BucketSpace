@@ -79,13 +79,13 @@ model FileObject {
 }
 
 model FileChunk {
-  id             String   @id @default(uuid()) @db.Uuid
-  fileId         String   @map("file_id") @db.Uuid
-  chunkIndex     Int      @map("chunk_index")
-  messageId      Int      @map("message_id")
-  telegramFileId String   @map("telegram_file_id") @db.VarChar(512)
-  partSizeBytes  BigInt   @map("part_size_bytes")
-  createdAt      DateTime @default(now()) @map("created_at")
+  id            String   @id @default(uuid()) @db.Uuid
+  fileId        String   @map("file_id") @db.Uuid
+  chunkIndex    Int      @map("chunk_index")
+  providerRef   String   @map("provider_ref") @db.VarChar(512)
+  providerMeta  Json     @default("{}") @map("provider_meta")
+  partSizeBytes BigInt   @map("part_size_bytes")
+  createdAt     DateTime @default(now()) @map("created_at")
 
   file FileObject @relation(fields: [fileId], references: [id], onDelete: Cascade)
 
