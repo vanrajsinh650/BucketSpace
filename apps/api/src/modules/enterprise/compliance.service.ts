@@ -24,10 +24,16 @@ export class ComplianceAuditService {
     const whereClause: Record<string, unknown> = { workspaceId };
 
     if (startDate || endDate) {
-      whereClause.createdAt = {
-        ...(startDate ? { gte: new Date(startDate) } : {}),
-        ...(endDate ? { lte: new Date(endDate) } : {}),
-      };
+      const dateFilter: Record<string, Date> = {};
+      if (startDate && !isNaN(Date.parse(startDate))) {
+        dateFilter.gte = new Date(startDate);
+      }
+      if (endDate && !isNaN(Date.parse(endDate))) {
+        dateFilter.lte = new Date(endDate);
+      }
+      if (Object.keys(dateFilter).length > 0) {
+        whereClause.createdAt = dateFilter;
+      }
     }
 
     if (actorUserId) {

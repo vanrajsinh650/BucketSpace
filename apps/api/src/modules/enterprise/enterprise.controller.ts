@@ -100,12 +100,21 @@ export function registerEnterpriseRoutes(fastify: FastifyInstance): void {
         });
       }
 
-      const rules = await lifecycleEngineService.listRules(workspaceId);
-      return reply.status(200).send({
-        statusCode: 200,
-        workspaceId,
-        rules,
-      });
+      try {
+        const rules = await lifecycleEngineService.listRules(workspaceId);
+        return reply.status(200).send({
+          statusCode: 200,
+          workspaceId,
+          rules,
+        });
+      } catch (err) {
+        request.log.error({ err }, 'Failed to list lifecycle rules');
+        return reply.status(500).send({
+          statusCode: 500,
+          errorCode: 'LIST_RULES_FAILED',
+          message: (err as Error).message || 'Failed to list lifecycle rules',
+        });
+      }
     }
   );
 

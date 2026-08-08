@@ -89,17 +89,21 @@ export class MultiCloudCostService {
     // Check for paid cloud files eligible for Telegram Drive migration
     let paidCloudBytes = BigInt(0);
     let paidCloudFiles = 0;
+    let paidCloudActualCost = 0;
 
     for (const [provider, stats] of providerMap.entries()) {
       if (provider !== 'TELEGRAM_DRIVE') {
         paidCloudBytes += stats.totalSizeBytes;
         paidCloudFiles += stats.totalFiles;
+        const rate = PROVIDER_RATES[provider] ?? 0.02;
+        const gb = Number(stats.totalSizeBytes) / (1024 * 1024 * 1024);
+        paidCloudActualCost += gb * rate;
       }
     }
 
     if (paidCloudBytes > BigInt(0)) {
       const paidGb = Number(paidCloudBytes) / (1024 * 1024 * 1024);
-      const savings = parseFloat((paidGb * 0.02).toFixed(2));
+      const savings = parseFloat(paidCloudActualCost.toFixed(2));
       potentialMonthlySavingsUsd += savings;
 
       recommendations.push({

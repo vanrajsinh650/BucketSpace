@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { DollarSign, TrendingDown, Server, Sparkles, AlertCircle, ArrowUpRight, Zap, RefreshCw } from 'lucide-react';
+import { DollarSign, TrendingDown, Server, Sparkles, Zap, RefreshCw } from 'lucide-react';
 import { MultiCloudCostAnalyticsResponse } from '@bucketspace/shared';
 
 export interface CostAnalyticsPanelProps {

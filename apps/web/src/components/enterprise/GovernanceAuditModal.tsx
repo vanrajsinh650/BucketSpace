@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Download, X, FileText, CheckCircle, Lock, RefreshCw, Key } from 'lucide-react';
+import { ShieldCheck, Download, X, CheckCircle, Lock, RefreshCw } from 'lucide-react';
 import { ComplianceAuditReport } from '@bucketspace/shared';
 
 export interface GovernanceAuditModalProps {

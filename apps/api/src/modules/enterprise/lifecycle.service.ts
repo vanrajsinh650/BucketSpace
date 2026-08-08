@@ -1,6 +1,5 @@
 import { prisma } from '@bucketspace/db';
 import { CreateLifecycleRuleInput } from '@bucketspace/shared';
-import { StorageAdapterFactory } from '../media/storage-adapter.factory';
 
 /* ------------------------------------------------------------------ */
 /*  Automated Lifecycle Migration & Policy Execution Engine            */
@@ -68,17 +67,26 @@ export class LifecycleEngineService {
     });
 
     let itemsProcessed = 0;
+    let itemsFailed = 0;
     let bytesAffected = BigInt(0);
 
     if (rule.action === 'DELETE') {
+      // Soft-delete: marks files as DELETED in the database and removes chunk
+      // records. Actual provider object cleanup is deferred to a separate
+      // garbage-collection worker to preserve audit trail integrity.
       for (const file of eligibleFiles) {
-        await prisma.fileChunk.deleteMany({ where: { fileId: file.id } });
-        await prisma.fileObject.update({
-          where: { id: file.id },
-          data: { status: 'DELETED' },
-        });
-        itemsProcessed += 1;
-        bytesAffected += file.sizeBytes;
+        try {
+          await prisma.fileChunk.deleteMany({ where: { fileId: file.id } });
+          await prisma.fileObject.update({
+            where: { id: file.id },
+            data: { status: 'DELETED' },
+          });
+          itemsProcessed += 1;
+          bytesAffected += file.sizeBytes;
+        } catch (err) {
+          itemsFailed += 1;
+          console.error(`[LifecycleEngine] Failed to soft-delete file ${file.id}:`, err);
+        }
       }
     } else if (rule.action === 'MIGRATE' || rule.action === 'ARCHIVE') {
       // Find destination bucket matching targetProvider
@@ -102,17 +110,24 @@ export class LifecycleEngineService {
         });
       }
 
+      // Logical migration: reassigns the file's bucket pointer in the database.
+      // Physical chunk replication should be handled via the SyncEngineService
+      // after the logical migration completes. This separation ensures atomic
+      // DB updates while allowing async chunk streaming.
       for (const file of eligibleFiles) {
         if (file.bucketId === destBucket.id) continue;
 
-        // Move file object record to destination bucket
-        await prisma.fileObject.update({
-          where: { id: file.id },
-          data: { bucketId: destBucket.id },
-        });
-
-        itemsProcessed += 1;
-        bytesAffected += file.sizeBytes;
+        try {
+          await prisma.fileObject.update({
+            where: { id: file.id },
+            data: { bucketId: destBucket.id },
+          });
+          itemsProcessed += 1;
+          bytesAffected += file.sizeBytes;
+        } catch (err) {
+          itemsFailed += 1;
+          console.error(`[LifecycleEngine] Failed to migrate file ${file.id}:`, err);
+        }
       }
     }
 
@@ -129,6 +144,7 @@ export class LifecycleEngineService {
           action: rule.action,
           targetProvider: rule.targetProvider,
           itemsProcessed,
+          itemsFailed,
           bytesAffected: bytesAffected.toString(),
         },
       },
