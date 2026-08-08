@@ -33,10 +33,11 @@ model Workspace {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  buckets      Bucket[]
-  files        FileObject[]
-  syncPolicies SyncPolicy[]
-  auditLogs    AuditLog[]
+  buckets        Bucket[]
+  files          FileObject[]
+  syncPolicies   SyncPolicy[]
+  auditLogs      AuditLog[]
+  lifecycleRules LifecycleRule[]
 
   @@map("workspaces")
 }
@@ -171,5 +172,30 @@ model AuditLog {
 
   @@index([workspaceId, createdAt])
   @@map("audit_logs")
+}
+
+enum LifecycleAction {
+  MIGRATE
+  ARCHIVE
+  DELETE
+}
+
+model LifecycleRule {
+  id             String          @id @default(uuid()) @db.Uuid
+  workspaceId    String          @map("workspace_id") @db.Uuid
+  name           String          @db.VarChar(255)
+  sourceBucketId String?         @map("source_bucket_id") @db.Uuid
+  targetProvider ProviderType    @default(TELEGRAM_DRIVE) @map("target_provider")
+  minAgeDays     Int             @default(30) @map("min_age_days")
+  minSizeBytes   BigInt          @default(0) @map("min_size_bytes")
+  action         LifecycleAction @default(MIGRATE)
+  enabled        Boolean         @default(true)
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, name])
+  @@map("lifecycle_rules")
 }
 

@@ -5,6 +5,8 @@ import { FileText, Image, Video, Music, HardDrive, Search, UploadCloud, CheckCir
 import { HLSVideoPlayer } from '../media/HLSVideoPlayer';
 import { AISearchModal } from '../ai/AISearchModal';
 import { SyncPolicyPanel } from '../sync/SyncPolicyPanel';
+import { CostAnalyticsPanel } from '../enterprise/CostAnalyticsPanel';
+import { GovernanceAuditModal } from '../enterprise/GovernanceAuditModal';
 import { useWebSocketSync } from '../../hooks/useWebSocketSync';
 import { ProviderType } from '@bucketspace/shared';
 
@@ -122,9 +124,11 @@ export const FileGrid: React.FC = () => {
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const [activeVideoFile, setActiveVideoFile] = useState<{ id: string; filename: string } | null>(null);
 
-  // Phase 3 Modal states
+  // Phase 3 & 4 Modal states
   const [isAISearchOpen, setIsAISearchOpen] = useState(false);
   const [isSyncPanelOpen, setIsSyncPanelOpen] = useState(false);
+  const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'FILES' | 'COST_ANALYTICS'>('FILES');
 
   // WebSocket sync hook for presence and real-time collaborative cursors
   const { isConnected, activeUsers, sendFileSelection } = useWebSocketSync({
@@ -159,7 +163,7 @@ export const FileGrid: React.FC = () => {
               <span>Universal Workspace Bucket Drive</span>
               <span>•</span>
               <span className="flex items-center gap-1 text-slate-300">
-                <Shield className="w-3.5 h-3.5 text-indigo-400" /> Multimodal pgvector & Whisper OCR
+                <Shield className="w-3.5 h-3.5 text-indigo-400" /> Phase 4 Enterprise & Compliance Active
               </span>
             </p>
           </div>
@@ -172,6 +176,14 @@ export const FileGrid: React.FC = () => {
             <span className="text-slate-300 font-medium">{activeUsers.length + 1} Active</span>
             <span className={`h-2 w-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
           </div>
+
+          <button
+            onClick={() => setIsAuditModalOpen(true)}
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 font-medium rounded-xl border border-emerald-500/30 text-xs transition-all active:scale-95"
+          >
+            <Shield className="h-4 w-4 text-emerald-400" />
+            SOC2 Audit Trail
+          </button>
 
           <button
             onClick={() => setIsSyncPanelOpen(true)}
@@ -191,7 +203,35 @@ export const FileGrid: React.FC = () => {
         </div>
       </div>
 
-      {/* Search Bar & AI Semantic Search Trigger */}
+      {/* Navigation Tabs: Workspace Files vs Cost Analytics */}
+      <div className="flex items-center gap-2 border-b border-slate-800 pb-3 text-xs font-medium">
+        <button
+          onClick={() => setActiveTab('FILES')}
+          className={`px-4 py-2 rounded-xl transition-all ${
+            activeTab === 'FILES'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 font-semibold'
+              : 'bg-slate-900/60 text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          Files Workspace ({MOCK_FILES.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('COST_ANALYTICS')}
+          className={`px-4 py-2 rounded-xl transition-all ${
+            activeTab === 'COST_ANALYTICS'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 font-semibold'
+              : 'bg-slate-900/60 text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          Multi-Cloud Cost Analytics & Optimization
+        </button>
+      </div>
+
+      {activeTab === 'COST_ANALYTICS' ? (
+        <CostAnalyticsPanel workspaceId="main-workspace" />
+      ) : (
+        <>
+          {/* Search Bar & AI Semantic Search Trigger */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-3.5 h-5 w-5 text-slate-400" />
@@ -286,6 +326,8 @@ export const FileGrid: React.FC = () => {
           })}
         </div>
       )}
+      </>
+      )}
 
       {/* HLS Video Player Modal */}
       {activeVideoFile && (
@@ -307,6 +349,13 @@ export const FileGrid: React.FC = () => {
       <SyncPolicyPanel
         isOpen={isSyncPanelOpen}
         onClose={() => setIsSyncPanelOpen(false)}
+      />
+
+      {/* Phase 4 Governance & Audit Modal */}
+      <GovernanceAuditModal
+        isOpen={isAuditModalOpen}
+        onClose={() => setIsAuditModalOpen(false)}
+        workspaceId="main-workspace"
       />
     </div>
   );
