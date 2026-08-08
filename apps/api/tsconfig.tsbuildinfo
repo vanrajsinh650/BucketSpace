@@ -1,1 +1,1 @@
-{"root":["./src/server.ts","./src/modules/telegram/telegram.controller.ts"],"version":"5.9.3"}
+{"root":["./src/server.ts","./src/modules/media/media.controller.ts","./src/modules/telegram/telegram.controller.ts","./src/modules/websocket/websocket.controller.ts"],"version":"5.9.3"}

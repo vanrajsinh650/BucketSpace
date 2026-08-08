@@ -7,7 +7,7 @@ When architecture, goals, or rules change, this document MUST be updated, removi
 ---
 
 ## 1. Core Project Goal & Vision
-Build a production-grade, ultra-secure, reliable, and high-performance **AI-First Telegram Cloud Drive & Multi-Cloud Storage Workspace**. Phase 1 centers on turning **Telegram Private Channel Storage** into an unlimited, high-speed visual cloud drive, featuring sub-50ms vector search, real-time file previews, zero-trust security, and AI multimodal semantic indexing, followed by S3, R2, GCS, and Azure integrations in subsequent phases.
+Build a production-grade, ultra-secure, reliable, and high-performance **AI-First Telegram Cloud Drive & Multi-Cloud Storage Workspace**. Phase 1 established the **Telegram Private Channel Storage** engine. Phase 2 extends coverage to **GCP Cloud Storage**, **Azure Blob Storage**, **AWS S3 / Cloudflare R2**, **HLS Video Streaming & Dynamic Thumbnails**, and **Real-Time WebSocket Presence with LWW CRDT Conflict Resolution**.
 
 ---
 
@@ -20,7 +20,7 @@ Build a production-grade, ultra-secure, reliable, and high-performance **AI-Firs
    - Instantly remove deprecated architecture sections when replacement patterns are adopted.
    - Omit casual conversation; retain only technical goals, rules, and architecture specs.
 3. **Human-Centric Clean Code & Modular Feature Structure**:
-   - Every module must be intuitively grouped by feature functionality (`modules/telegram`, `modules/storage`, `components/file`) so any developer can easily understand the codebase.
+   - Every module must be intuitively grouped by feature functionality (`modules/telegram`, `modules/media`, `modules/websocket`, `components/file`, `components/media`) so any developer can easily understand the codebase.
    - Code must be clean, readable, self-documenting, and free from AI-style boilerplate bloat or unnecessarily complex abstractions.
 
 ---
@@ -29,39 +29,38 @@ Build a production-grade, ultra-secure, reliable, and high-performance **AI-Firs
 
 ```mermaid
 graph TD
-    UI[Next.js 15 App Router + React 19 Client UI] -->|Stream Upload/Download| Gateway[Fastify API Gateway]
-    Gateway -->|Telegram MTProto / Bot API| TelegramStorage{Telegram Private Channel Buckets}
+    UI[Next.js 15 App Router + React 19 Client UI] -->|WSS Presence & State Sync| WSServer[Fastify WebSocket Server]
+    UI -->|Stream Upload/Download & HLS Media| Gateway[Fastify API Gateway]
+    Gateway -->|Telegram Storage Adapter| TelegramStorage{Telegram Channel Buckets}
+    Gateway -->|GCP Storage Adapter| GCPStorage{Google Cloud Storage}
+    Gateway -->|Azure Blob Adapter| AzureStorage{Azure Blob Storage}
+    Gateway -->|S3 Storage Adapter| S3Storage{AWS S3 / Cloudflare R2}
     Gateway --> DB[(PostgreSQL 16 + pgvector)]
-    Gateway --> Cache[(Redis Cache & BullMQ Queue)]
-    Cache --> Workers[AI CLIP/Whisper Embedding Workers]
-    Workers --> DB
+    WSServer --> CRDT[LWW CRDT Conflict Engine]
 ```
 
-- **Primary Storage Engine (Phase 1)**: **Telegram Cloud Storage Adapter** (`TelegramStorageAdapter`). Files are chunked and stored as document attachments in dedicated private Telegram channels, with `message_id` & `file_id` stored in PostgreSQL metadata.
-- **Secondary Storage Engines (Phase 2+)**: AWS S3, Cloudflare R2, GCP Storage, Azure Blobs.
-- **Frontend**: Next.js 15 App Router, Tailwind CSS dark glassmorphic design system.
-- **Backend**: Fastify API Gateway with Telegram MTProto / Bot API driver.
-- **Database**: PostgreSQL 16 + `pgvector` for file metadata, Telegram chunk maps, and semantic search.
+- **Universal Storage Provider Engine**: `IStorageProvider` contract implemented by `TelegramStorageAdapter`, `GCPStorageAdapter`, `AzureBlobStorageAdapter`, and `S3StorageAdapter`.
+- **HLS Video Preview Engine**: Fastify `MediaController` generating dynamic `.m3u8` playlists and TS video segment streaming.
+- **WebSocket Presence & Sync**: Fastify WebSocket server (`WebSocketController`) handling workspace presence badges, dynamic cursors, and Last-Write-Wins (LWW) CRDT metadata conflict resolution.
+- **Frontend**: Next.js 15 App Router with Tailwind CSS dark glassmorphic design, `HLSVideoPlayer`, `useWebSocketSync`, and multi-cloud file management.
+- **Database**: PostgreSQL 16 + `pgvector` for file metadata, chunk maps, embeddings, and audit logs.
 
 ---
 
 ## 4. Current Milestone & Focus
-- **Active Phase**: Phase 1 MVP — **Telegram Cloud Drive System**.
-- **Phase 1 Audit**: ✅ COMPLETED. All 4 critical bugs fixed, 7 edge-case gaps closed, 5 readability issues resolved, 3 config/infra fixes applied.
-- **Key Audit Changes**:
-  - `IStorageProvider` interface is now provider-agnostic (`providerRef` / `providerMeta` instead of Telegram-specific fields)
-  - Upload flow is complete: initiate → persist FileObject → chunk upload → persist FileChunk → auto-transition to PROCESSED
-  - Telegram adapter has retry-with-backoff (429), 50MB size guard, and memory-capped stream buffering
-  - API server registers `@fastify/multipart`, uses env-driven CORS, and handles graceful shutdown
-  - `tsx watch` replaces bare `tsc --watch` for proper dev server auto-restart
-- **Current Objectives**: Integration testing with a real Telegram bot token, CLIP vector search indexing pipeline, and end-to-end upload flow validation.
+- **Active Phase**: Phase 2 — **Advanced Sync & Media Streaming** ✅ COMPLETED.
+- **Key Phase 2 Deliverables**:
+  - `GCPStorageAdapter`, `AzureBlobStorageAdapter`, `S3StorageAdapter` integrated in `packages/storage-adapters`.
+  - HLS video transcoding & segment streaming pipeline in `apps/api/src/modules/media/media.controller.ts`.
+  - Dynamic SVG thumbnail preview generator endpoint `/api/v1/media/thumbnail/:fileId`.
+  - Real-time WebSocket pub/sub presence server & LWW CRDT conflict engine in `apps/api/src/modules/websocket/websocket.controller.ts`.
+  - Next.js 15 UI integration with `HLSVideoPlayer` and `useWebSocketSync`.
 
 ---
 
 ## 5. Security & Reliability Directives
-- **Telegram Channel Storage Isolation**: Each user/workspace maps to encrypted private Telegram storage channels.
-- **Credentials Protection**: AES-256-GCM envelope encryption for Telegram Bot Tokens and API Hashes.
-- **Immutable Audit Logging**: Every administrative action, file chunking event, and permission mutation logged to `audit_logs`.
-- **Rate Limit Resilience**: Telegram adapter automatically retries on 429 errors with `retry_after` backoff.
-- **Memory Safety**: Stream-to-buffer operations are capped at 52 MB to prevent OOM crashes.
-- **Graceful Shutdown**: API server handles SIGTERM/SIGINT, drains inflight requests, and disconnects Prisma cleanly.
+- **Multi-Cloud Isolation**: Dedicated bucket isolation for Telegram Channels, GCP Buckets, Azure Containers, and S3 Buckets.
+- **Credentials Protection**: Envelope encryption for cloud tokens and access keys.
+- **Conflict Resolution**: LWW CRDT timestamp comparison for concurrent multi-user metadata mutations.
+- **Rate Limit Resilience**: Provider-specific backoff retry mechanisms for 429 rate limit responses.
+- **Memory Safety**: Stream buffering capped at safety limits (52MB–100MB) across all storage adapters.

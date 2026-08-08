@@ -1,7 +1,10 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
+import fastifyWebsocket from '@fastify/websocket';
 import { registerTelegramRoutes } from './modules/telegram/telegram.controller';
+import { registerMediaRoutes } from './modules/media/media.controller';
+import { registerWebSocketRoutes } from './modules/websocket/websocket.controller';
 import { prisma } from '@bucketspace/db';
 
 /* ------------------------------------------------------------------ */
@@ -37,15 +40,21 @@ async function main(): Promise<void> {
     },
   });
 
+  // --- Real-time WebSocket plugin ---
+  await server.register(fastifyWebsocket);
+
   // --- Health probe ---
   server.get('/healthz', async () => ({
     status: 'OK',
     service: 'bucketspace-api',
+    phase: 'Phase 2 - Advanced Sync & Media Streaming',
     timestamp: new Date().toISOString(),
   }));
 
   // --- Feature routes ---
   registerTelegramRoutes(server);
+  registerMediaRoutes(server);
+  registerWebSocketRoutes(server);
 
   // --- Start listening ---
   const port = Number(process.env.PORT) || 4000;
