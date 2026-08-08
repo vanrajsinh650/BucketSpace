@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Sparkles, X, FileText, Image, Video, Music, ArrowRight, ShieldCheck, Zap } from 'lucide-react';
+import { Sparkles, X, FileText, Image, Video, Music, ArrowRight, ShieldCheck, Zap } from 'lucide-react';
 import { AISearchMode, AISearchResultItem } from '@bucketspace/shared';
 
 export interface AISearchModalProps {

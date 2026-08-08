@@ -86,6 +86,7 @@ export class SyncEngineService {
       const destAdapter = StorageAdapterFactory.create(destBucket.provider);
 
       let itemsSynced = 0;
+      let itemsSkipped = 0;
       let totalBytesTransferred = BigInt(0);
 
       for (const file of sourceFiles) {
@@ -98,7 +99,14 @@ export class SyncEngineService {
         });
 
         if (existingDestFile && policy.conflictStrategy === 'SKIP') {
+          itemsSkipped += 1;
           continue;
+        }
+
+        // OVERWRITE: delete existing destination file and its chunks first
+        if (existingDestFile && policy.conflictStrategy === 'OVERWRITE') {
+          await prisma.fileChunk.deleteMany({ where: { fileId: existingDestFile.id } });
+          await prisma.fileObject.delete({ where: { id: existingDestFile.id } });
         }
 
         // Create or overwrite destination file record
@@ -106,7 +114,7 @@ export class SyncEngineService {
           data: {
             workspaceId: policy.workspaceId,
             bucketId: destBucket.id,
-            filename: `${file.filename}`,
+            filename: file.filename,
             sizeBytes: file.sizeBytes,
             mimeType: file.mimeType,
             sha256Hash: file.sha256Hash,
@@ -161,6 +169,7 @@ export class SyncEngineService {
           where: { id: jobId },
           data: {
             itemsSynced,
+            itemsTotal: sourceFiles.length - itemsSkipped,
             bytesTransferred: totalBytesTransferred,
           },
         });
@@ -193,14 +202,20 @@ export class SyncEngineService {
         },
       });
     } catch (err) {
-      await prisma.syncJob.update({
-        where: { id: jobId },
-        data: {
-          status: 'FAILED',
-          finishedAt: new Date(),
-          errorMessage: (err as Error).message || 'Cross-cloud replication error',
-        },
-      });
+      // Guard: if this DB update itself fails (e.g., connection lost),
+      // log the error but don't crash the Node process.
+      try {
+        await prisma.syncJob.update({
+          where: { id: jobId },
+          data: {
+            status: 'FAILED',
+            finishedAt: new Date(),
+            errorMessage: (err as Error).message || 'Cross-cloud replication error',
+          },
+        });
+      } catch (updateErr) {
+        console.error(`[SyncEngineService] Failed to mark job ${jobId} as FAILED:`, updateErr);
+      }
     }
   }
 }

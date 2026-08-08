@@ -89,6 +89,9 @@ export class MultimodalAIService {
       const filenameLower = file.filename.toLowerCase();
       const transcription = file.embedding?.transcriptionText || '';
       const ocr = file.embedding?.ocrText || '';
+      const transcriptionLower = transcription.toLowerCase();
+      const ocrLower = ocr.toLowerCase();
+      const queryWords = normalizedQuery.split(' ').filter((w) => w.length > 1);
 
       // Direct filename match bonus
       if (filenameLower.includes(normalizedQuery)) {
@@ -97,7 +100,7 @@ export class MultimodalAIService {
 
       // Mode-specific scoring
       if ((mode === 'HYBRID' || mode === 'TRANSCRIPT') && transcription) {
-        if (transcription.toLowerCase().includes(normalizedQuery) || normalizedQuery.split(' ').some(w => transcription.toLowerCase().includes(w))) {
+        if (transcriptionLower.includes(normalizedQuery) || queryWords.some((w) => transcriptionLower.includes(w))) {
           score += 0.45;
           matchType = 'TRANSCRIPT';
           snippet = transcription.slice(0, 160) + '...';
@@ -105,7 +108,7 @@ export class MultimodalAIService {
       }
 
       if ((mode === 'HYBRID' || mode === 'DOCUMENT') && ocr) {
-        if (ocr.toLowerCase().includes(normalizedQuery) || normalizedQuery.split(' ').some(w => ocr.toLowerCase().includes(w))) {
+        if (ocrLower.includes(normalizedQuery) || queryWords.some((w) => ocrLower.includes(w))) {
           score += 0.40;
           matchType = 'DOCUMENT';
           snippet = ocr.slice(0, 160) + '...';
@@ -118,12 +121,8 @@ export class MultimodalAIService {
         snippet = `Visual CLIP vector match for image asset ${file.filename}`;
       }
 
-      // Base relevance score guarantee for active items matching query tokens
-      if (score === 0 && (normalizedQuery.length > 2)) {
-        score = 0.32;
-      }
-
-      if (score >= minScore) {
+      // Only include files that actually matched something
+      if (score >= minScore && score > 0) {
         results.push({
           fileId: file.id,
           filename: file.filename,

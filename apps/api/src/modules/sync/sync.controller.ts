@@ -1,7 +1,10 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { CreateSyncPolicySchema, TriggerSyncJobSchema } from '@bucketspace/shared';
+import { CreateSyncPolicySchema } from '@bucketspace/shared';
 import { syncEngineService } from './sync.engine';
 import { prisma } from '@bucketspace/db';
+
+/** Regex for UUID v4 format validation */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /* ------------------------------------------------------------------ */
 /*  Cross-Cloud Bucket Sync Controller Routes                          */
@@ -68,6 +71,10 @@ export function registerSyncRoutes(fastify: FastifyInstance): void {
     ) => {
       const { workspaceId } = request.params;
 
+      if (!UUID_RE.test(workspaceId)) {
+        return reply.status(400).send({ statusCode: 400, errorCode: 'INVALID_ID', message: 'workspaceId must be a valid UUID' });
+      }
+
       const policies = await prisma.syncPolicy.findMany({
         where: { workspaceId },
         include: {
@@ -99,6 +106,10 @@ export function registerSyncRoutes(fastify: FastifyInstance): void {
     ) => {
       const { policyId } = request.params;
 
+      if (!UUID_RE.test(policyId)) {
+        return reply.status(400).send({ statusCode: 400, errorCode: 'INVALID_ID', message: 'policyId must be a valid UUID' });
+      }
+
       try {
         const jobId = await syncEngineService.executePolicy(policyId);
         return reply.status(202).send({
@@ -129,6 +140,10 @@ export function registerSyncRoutes(fastify: FastifyInstance): void {
       reply: FastifyReply
     ) => {
       const { workspaceId } = request.params;
+
+      if (!UUID_RE.test(workspaceId)) {
+        return reply.status(400).send({ statusCode: 400, errorCode: 'INVALID_ID', message: 'workspaceId must be a valid UUID' });
+      }
 
       const jobs = await prisma.syncJob.findMany({
         where: {

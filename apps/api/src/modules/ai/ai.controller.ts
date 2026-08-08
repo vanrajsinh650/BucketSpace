@@ -3,6 +3,9 @@ import { AISearchQuerySchema } from '@bucketspace/shared';
 import { multimodalAIService } from './ai.service';
 import { prisma } from '@bucketspace/db';
 
+/** Regex for UUID v4 format validation */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /* ------------------------------------------------------------------ */
 /*  Multimodal AI Controller Routes                                    */
 /* ------------------------------------------------------------------ */
@@ -68,6 +71,14 @@ export function registerAIRoutes(fastify: FastifyInstance): void {
     ) => {
       const { fileId } = request.params;
 
+      if (!UUID_RE.test(fileId)) {
+        return reply.status(400).send({
+          statusCode: 400,
+          errorCode: 'INVALID_FILE_ID',
+          message: 'fileId must be a valid UUID',
+        });
+      }
+
       try {
         const indexingResult = await multimodalAIService.indexFileObject(fileId);
         return reply.status(200).send({
@@ -98,6 +109,14 @@ export function registerAIRoutes(fastify: FastifyInstance): void {
       reply: FastifyReply
     ) => {
       const { fileId } = request.params;
+
+      if (!UUID_RE.test(fileId)) {
+        return reply.status(400).send({
+          statusCode: 400,
+          errorCode: 'INVALID_FILE_ID',
+          message: 'fileId must be a valid UUID',
+        });
+      }
 
       const embedding = await prisma.objectEmbedding.findUnique({
         where: { fileId },

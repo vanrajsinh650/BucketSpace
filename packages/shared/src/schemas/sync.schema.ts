@@ -11,7 +11,10 @@ export const CreateSyncPolicySchema = z.object({
   scheduleCron: z.string().max(100).optional(),
   conflictStrategy: SyncConflictStrategySchema.default('LWW'),
   enabled: z.boolean().default(true),
-});
+}).refine(
+  (data) => data.sourceBucketId !== data.destinationBucketId,
+  { message: 'Source and destination buckets must be different', path: ['destinationBucketId'] }
+);
 
 export type CreateSyncPolicyInput = z.infer<typeof CreateSyncPolicySchema>;
 
