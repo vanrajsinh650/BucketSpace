@@ -7,13 +7,17 @@ When architecture, goals, or rules change, this document MUST be updated, removi
 ---
 
 ## 1. Core Project Goal & Vision
-Build a production-grade, ultra-secure, reliable, and high-performance **100% Open-Source AI-First Telegram Cloud Drive & Multi-Cloud Storage Workspace**. 
-- **Project Model**: 100% Open-Source Workspace & Monorepo.
-- **Completion Status**: 100% Complete across all 4 execution phases.
-- **Phase 1**: Telegram Private Channel Storage MVP & Chunking Engine.
-- **Phase 2**: GCP Storage, Azure Blob, AWS S3 / Cloudflare R2, HLS Video Streaming & Fastify WebSocket CRDT Presence.
-- **Phase 3**: Whisper Speech-to-Text, Document OCR, pgvector Semantic Vector Search & Automated Cross-Cloud Bucket Sync.
-- **Phase 4**: Enterprise Multi-Cloud Cost Analytics, Automated Lifecycle Migration Engine & SOC 2 / HIPAA Cryptographic Audit Exporters.
+
+**BucketSpace V0** is a **local personal storage system** that uses Telegram as the storage backend.
+
+- **Project Model**: 100% Open-Source.
+- **V0 Scope**: Local desktop application that can reliably store and retrieve files via Telegram Private Channels.
+- **Core Principle**: Telegram is a **StorageProvider adapter**, not the identity of BucketSpace. The architecture must cleanly support future providers (Local Disk, S3, GCP, Azure) without refactoring — but V0 only implements Telegram.
+
+### V0 Completion Bar
+A storage system is not complete until the core data path is demonstrated reliably:
+
+> **add file → upload → metadata → close/reopen app → find file → download → verify bytes → recover from interruption → delete/restore**
 
 ---
 
@@ -26,50 +30,58 @@ Build a production-grade, ultra-secure, reliable, and high-performance **100% Op
    - Instantly remove deprecated architecture sections when replacement patterns are adopted.
    - Omit casual conversation; retain only technical goals, rules, and architecture specs.
 3. **Human-Centric Clean Code & Modular Feature Structure**:
-   - Every module must be intuitively grouped by feature functionality (`modules/telegram`, `modules/media`, `modules/websocket`, `components/file`, `components/media`) so any developer can easily understand the codebase.
+   - Every module must be intuitively grouped by feature functionality so any developer can easily understand the codebase.
    - Code must be clean, readable, self-documenting, and free from AI-style boilerplate bloat or unnecessarily complex abstractions.
+4. **Architect-Led Development Workflow**:
+   - The user is the architect. They explain what we're building, why, the algorithm, the architecture, alternatives, failure modes, and testing strategy.
+   - Antigravity is the implementation agent. No giant prompt dumps. Each significant piece is understood before it is built.
+   - Workflow: **Understand → Design → Decide → Implement → Test → Review → Continue**.
 
 ---
 
-## 3. Active System Architecture Baseline
+## 3. V0 Target Architecture
 
-```mermaid
-graph TD
-    UI[Next.js 15 App Router + React 19 Client UI] -->|WSS Presence & State Sync| WSServer[Fastify WebSocket Server]
-    UI -->|Stream Upload/Download & HLS Media| Gateway[Fastify API Gateway]
-    Gateway -->|Telegram Storage Adapter| TelegramStorage{Telegram Channel Buckets}
-    Gateway -->|GCP Storage Adapter| GCPStorage{Google Cloud Storage}
-    Gateway -->|Azure Blob Adapter| AzureStorage{Azure Blob Storage}
-    Gateway -->|S3 Storage Adapter| S3Storage{AWS S3 / Cloudflare R2}
-    Gateway --> DB[(PostgreSQL 16 + pgvector)]
-    WSServer --> CRDT[LWW CRDT Conflict Engine]
+```
+                    BUCKETSPACE V0
+                          │
+                    ┌─────▼─────┐
+                    │ Desktop UI │
+                    └─────┬─────┘
+                          │
+                    Local Application
+                          │
+             ┌────────────┼────────────┐
+             │            │            │
+          Metadata      Storage      Transfer
+           SQLite       Engine        Manager
+             │            │            │
+             │      ┌─────▼─────┐      │
+             │      │ Telegram  │      │
+             │      │ Adapter   │      │
+             │      └───────────┘      │
+             │                         │
+             └────────────┬────────────┘
+                          │
+                    Local File Index
 ```
 
-- **Universal Storage Provider Engine**: `IStorageProvider` contract implemented by `TelegramStorageAdapter`, `GCPStorageAdapter`, `AzureBlobStorageAdapter`, and `S3StorageAdapter`.
-- **HLS Video Preview Engine**: Fastify `MediaController` generating dynamic `.m3u8` playlists and TS video segment streaming.
-- **WebSocket Presence & Sync**: Fastify WebSocket server (`WebSocketController`) handling workspace presence badges, dynamic cursors, and Last-Write-Wins (LWW) CRDT metadata conflict resolution.
-- **Frontend**: Next.js 15 App Router with Tailwind CSS dark glassmorphic design, `HLSVideoPlayer`, `useWebSocketSync`, and multi-cloud file management.
-- **Database**: PostgreSQL 16 + `pgvector` for file metadata, chunk maps, embeddings, and audit logs.
+### Key Design Decisions
+- **Metadata Store**: SQLite (local, no external DB dependency).
+- **Storage Engine**: Provider-agnostic interface. V0 implements only Telegram adapter.
+- **Transfer Manager**: Handles chunking, upload/download orchestration, interruption recovery.
+- **Provider Abstraction**: `StorageProvider` contract designed so future adapters (Local Disk, S3, GCP, Azure) slot in without refactoring.
 
 ---
 
-## 4. Current Milestone & Focus
-- **Active Phase**: Phase 4 — **Enterprise Automation & Governance** ✅ COMPLETED.
-- **Key Phase 4 Deliverables**:
-  - **Multi-Cloud Cost Recommendation & Analytics Engine**: Telemetry aggregator in `apps/api/src/modules/enterprise/cost.service.ts` calculating storage breakdown across 6 storage providers with automated cost optimization algorithms.
-  - **Automated Lifecycle Policy & Migration Engine**: Rule engine in `apps/api/src/modules/enterprise/lifecycle.service.ts` processing file age/size policies for automated cross-cloud chunk tiering and soft deletion.
-  - **SOC 2 & HIPAA Compliance Audit Log Export Engine**: Tamper-evident log query engine in `apps/api/src/modules/enterprise/compliance.service.ts` generating SHA-256 HMAC cryptographic chain-of-custody audit reports (JSON/CSV).
-  - **Enterprise API Controller**: Fastify routes (`GET /api/v1/enterprise/cost-analytics/:workspaceId`, `POST /api/v1/enterprise/lifecycle`, `POST /api/v1/enterprise/lifecycle/:ruleId/execute`, `GET /api/v1/enterprise/compliance/export/:workspaceId`).
-  - **Frontend UI Components**: Next.js 15 `CostAnalyticsPanel` (multi-cloud cost breakdown & auto-optimization trigger) and `GovernanceAuditModal` (tamper-evident audit log viewer with CSV export).
+## 4. Current Status
+
+- **Active Phase**: V0 — Local Personal Storage (Architecture Reset).
+- **Prior State**: Phases 1–4 codebase exists but was never end-to-end verified against the core data path. Treated as reference material, not proven functionality.
+- **Next Step**: Awaiting architect-led design and implementation guidance for V0 foundation.
 
 ---
 
 ## 5. Security & Reliability Directives
-- **Multi-Cloud Isolation**: Dedicated bucket isolation for Telegram Channels, GCP Buckets, Azure Containers, and S3 Buckets.
-- **Credentials Protection**: Envelope encryption for cloud tokens and access keys.
-- **Conflict Resolution**: LWW CRDT with deterministic 3-tier tie-breaking (timestamp → vectorClock → userId).
-- **Rate Limit Resilience**: Provider-specific backoff retry mechanisms for 429 rate limit responses.
-- **Memory Safety**: Stream buffering capped at safety limits (52MB–100MB) via shared `streamToBuffer` utility.
-- **XSS Prevention**: All user-provided content (filenames) XML-escaped before SVG rendering.
-- **Connection Health**: Server-side WebSocket ping/pong heartbeat (30s) with dead connection cleanup.
-- **Transactional Sync Safety**: Cross-cloud sync reads source chunks stream-by-stream and commits destination records transactionally with full audit logging.
+- **Data Integrity**: Every downloaded file must be byte-identical to the uploaded original. Verified via checksums.
+- **Interruption Recovery**: Partial uploads/downloads must be resumable. No data loss on crash or network failure.
+- **Credentials Protection**: Telegram bot tokens and session data stored securely in local config.
