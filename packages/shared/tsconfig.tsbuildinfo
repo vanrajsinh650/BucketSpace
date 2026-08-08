@@ -1,1 +1,1 @@
-{"root":["./src/crdt.ts","./src/index.ts","./src/constants/providers.enum.ts","./src/schemas/upload.schema.ts"],"version":"5.9.3"}
+{"root":["./src/crdt.ts","./src/index.ts","./src/constants/providers.enum.ts","./src/schemas/ai.schema.ts","./src/schemas/sync.schema.ts","./src/schemas/upload.schema.ts"],"version":"5.9.3"}

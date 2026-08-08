@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FileText, Image, Video, Music, HardDrive, Search, UploadCloud, CheckCircle2, Inbox, Users, Play, Shield } from 'lucide-react';
+import { FileText, Image, Video, Music, HardDrive, Search, UploadCloud, CheckCircle2, Inbox, Users, Play, Shield, Sparkles, Layers } from 'lucide-react';
 import { HLSVideoPlayer } from '../media/HLSVideoPlayer';
+import { AISearchModal } from '../ai/AISearchModal';
+import { SyncPolicyPanel } from '../sync/SyncPolicyPanel';
 import { useWebSocketSync } from '../../hooks/useWebSocketSync';
 import { ProviderType } from '@bucketspace/shared';
 
@@ -120,6 +122,10 @@ export const FileGrid: React.FC = () => {
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const [activeVideoFile, setActiveVideoFile] = useState<{ id: string; filename: string } | null>(null);
 
+  // Phase 3 Modal states
+  const [isAISearchOpen, setIsAISearchOpen] = useState(false);
+  const [isSyncPanelOpen, setIsSyncPanelOpen] = useState(false);
+
   // WebSocket sync hook for presence and real-time collaborative cursors
   const { isConnected, activeUsers, sendFileSelection } = useWebSocketSync({
     workspaceId: 'main-workspace',
@@ -145,31 +151,39 @@ export const FileGrid: React.FC = () => {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-slate-100">Multi-Cloud Storage Drive</h1>
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-medium">
-                Phase 2 Engine Active
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-medium flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-indigo-400" /> Phase 3 AI Active
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
               <span>Universal Workspace Bucket Drive</span>
               <span>•</span>
               <span className="flex items-center gap-1 text-slate-300">
-                <Shield className="w-3.5 h-3.5 text-indigo-400" /> AES-256 Zero-Trust
+                <Shield className="w-3.5 h-3.5 text-indigo-400" /> Multimodal pgvector & Whisper OCR
               </span>
             </p>
           </div>
         </div>
 
         {/* Real-time Presence & Actions */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/60 border border-slate-800 text-xs">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-950/60 border border-slate-800 text-xs">
             <Users className={`h-4 w-4 ${isConnected ? 'text-emerald-400' : 'text-slate-500'}`} />
             <span className="text-slate-300 font-medium">{activeUsers.length + 1} Active</span>
             <span className={`h-2 w-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
           </div>
 
           <button
+            onClick={() => setIsSyncPanelOpen(true)}
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium rounded-xl border border-slate-700 text-xs transition-all active:scale-95"
+          >
+            <Layers className="h-4 w-4 text-indigo-400" />
+            Bucket Sync Engine
+          </button>
+
+          <button
             onClick={() => alert('Initiating Multi-Cloud Chunk Stream Upload Session...')}
-            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl shadow-lg shadow-indigo-600/25 transition-all duration-150 active:scale-95 text-sm"
+            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl shadow-lg shadow-indigo-600/25 transition-all duration-150 active:scale-95 text-xs"
           >
             <UploadCloud className="h-4 w-4" />
             Upload Asset
@@ -177,16 +191,26 @@ export const FileGrid: React.FC = () => {
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative">
-        <Search className="absolute left-4 top-3.5 h-5 w-5 text-slate-400" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search files across Telegram, GCP Storage, Azure Blob & AWS S3..."
-          className="w-full pl-12 pr-4 py-3 bg-slate-900/60 border border-slate-800 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-150 text-sm"
-        />
+      {/* Search Bar & AI Semantic Search Trigger */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-3.5 h-5 w-5 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Filter files by name across Telegram, GCP Storage, Azure Blob & AWS S3..."
+            className="w-full pl-12 pr-4 py-3 bg-slate-900/60 border border-slate-800 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all duration-150 text-sm"
+          />
+        </div>
+
+        <button
+          onClick={() => setIsAISearchOpen(true)}
+          className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold rounded-xl shadow-lg shadow-indigo-600/25 transition-all duration-150 active:scale-95 text-sm shrink-0"
+        >
+          <Sparkles className="h-4 w-4 animate-pulse text-amber-300" />
+          AI Semantic Search
+        </button>
       </div>
 
       {/* File Grid */}
@@ -271,6 +295,19 @@ export const FileGrid: React.FC = () => {
           onClose={() => setActiveVideoFile(null)}
         />
       )}
+
+      {/* Phase 3 AI Search Modal */}
+      <AISearchModal
+        isOpen={isAISearchOpen}
+        onClose={() => setIsAISearchOpen(false)}
+        onSelectFile={(id) => handleSelectFile(id)}
+      />
+
+      {/* Phase 3 Cross-Cloud Sync Panel */}
+      <SyncPolicyPanel
+        isOpen={isSyncPanelOpen}
+        onClose={() => setIsSyncPanelOpen(false)}
+      />
     </div>
   );
 };

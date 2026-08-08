@@ -33,9 +33,10 @@ model Workspace {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  buckets   Bucket[]
-  files     FileObject[]
-  auditLogs AuditLog[]
+  buckets      Bucket[]
+  files        FileObject[]
+  syncPolicies SyncPolicy[]
+  auditLogs    AuditLog[]
 
   @@map("workspaces")
 }
@@ -94,15 +95,66 @@ model FileChunk {
 }
 
 model ObjectEmbedding {
-  id            String                      @id @default(uuid()) @db.Uuid
-  fileId        String                      @unique @map("file_id") @db.Uuid
-  embeddingClip Unsupported("vector(512)")? @map("embedding_clip")
-  embeddingText Unsupported("vector(1536)")?@map("embedding_text")
-  indexedAt     DateTime                    @default(now()) @map("indexed_at")
+  id                String                      @id @default(uuid()) @db.Uuid
+  fileId            String                      @unique @map("file_id") @db.Uuid
+  embeddingClip     Unsupported("vector(512)")? @map("embedding_clip")
+  embeddingText     Unsupported("vector(1536)")?@map("embedding_text")
+  transcriptionText String?                     @map("transcription_text") @db.Text
+  ocrText           String?                     @map("ocr_text") @db.Text
+  indexedAt         DateTime                    @default(now()) @map("indexed_at")
 
   file FileObject @relation(fields: [fileId], references: [id], onDelete: Cascade)
 
   @@map("object_embeddings")
+}
+
+enum SyncConflictStrategy {
+  OVERWRITE
+  SKIP
+  LWW
+}
+
+enum SyncJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model SyncPolicy {
+  id                  String               @id @default(uuid()) @db.Uuid
+  workspaceId         String               @map("workspace_id") @db.Uuid
+  name                String               @db.VarChar(255)
+  sourceBucketId      String               @map("source_bucket_id") @db.Uuid
+  destinationBucketId String               @map("destination_bucket_id") @db.Uuid
+  scheduleCron        String?              @map("schedule_cron") @db.VarChar(100)
+  conflictStrategy    SyncConflictStrategy @default(LWW) @map("conflict_strategy")
+  enabled             Boolean              @default(true)
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  jobs      SyncJob[]
+
+  @@unique([workspaceId, name])
+  @@map("sync_policies")
+}
+
+model SyncJob {
+  id               String        @id @default(uuid()) @db.Uuid
+  policyId         String        @map("policy_id") @db.Uuid
+  status           SyncJobStatus @default(PENDING)
+  itemsTotal       Int           @default(0) @map("items_total")
+  itemsSynced      Int           @default(0) @map("items_synced")
+  bytesTransferred BigInt        @default(0) @map("bytes_transferred")
+  startedAt        DateTime      @default(now()) @map("started_at")
+  finishedAt       DateTime?     @map("finished_at")
+  errorMessage     String?       @map("error_message") @db.Text
+
+  policy SyncPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@index([policyId, startedAt])
+  @@map("sync_jobs")
 }
 
 model AuditLog {
@@ -120,3 +172,4 @@ model AuditLog {
   @@index([workspaceId, createdAt])
   @@map("audit_logs")
 }
+

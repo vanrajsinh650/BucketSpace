@@ -5,6 +5,8 @@ import fastifyWebsocket from '@fastify/websocket';
 import { registerTelegramRoutes } from './modules/telegram/telegram.controller';
 import { registerMediaRoutes } from './modules/media/media.controller';
 import { registerWebSocketRoutes } from './modules/websocket/websocket.controller';
+import { registerAIRoutes } from './modules/ai/ai.controller';
+import { registerSyncRoutes } from './modules/sync/sync.controller';
 import { prisma } from '@bucketspace/db';
 
 /* ------------------------------------------------------------------ */
@@ -47,7 +49,7 @@ async function main(): Promise<void> {
   server.get('/healthz', async () => ({
     status: 'OK',
     service: 'bucketspace-api',
-    phase: 'Phase 2 - Advanced Sync & Media Streaming',
+    phase: 'Phase 3 - Multimodal AI Intelligence & Cross-Cloud Sync',
     timestamp: new Date().toISOString(),
   }));
 
@@ -55,6 +57,8 @@ async function main(): Promise<void> {
   registerTelegramRoutes(server);
   registerMediaRoutes(server);
   registerWebSocketRoutes(server);
+  registerAIRoutes(server);
+  registerSyncRoutes(server);
 
   // --- Start listening ---
   const port = Number(process.env.PORT) || 4000;

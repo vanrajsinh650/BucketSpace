@@ -1,1 +1,1 @@
-{"root":["./src/azure.adapter.ts","./src/gcp.adapter.ts","./src/index.ts","./src/provider.interface.ts","./src/s3.adapter.ts","./src/telegram.adapter.ts"],"version":"5.9.3"}
+{"root":["./src/azure.adapter.ts","./src/gcp.adapter.ts","./src/index.ts","./src/provider.interface.ts","./src/s3.adapter.ts","./src/stream.utils.ts","./src/telegram.adapter.ts"],"version":"5.9.3"}
