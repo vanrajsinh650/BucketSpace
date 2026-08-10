@@ -120,7 +120,12 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
   - Implemented `SupabaseStorageAdapter` (`packages/storage-adapters/src/supabase/supabase-storage-provider.ts`).
   - Built `StorageRouter` (`packages/storage-adapters/src/router/storage-router.ts`) for dynamic rule-based provider resolution (Photos → Telegram, Videos → S3/R2, Documents → Supabase, Projects → Local Disk).
   - Passed 100% of all 14 unit and integration test suites.
-- **🎉 MILESTONE ACHIEVED**: **BucketSpace V1 — Multiple Storage Providers & Dynamic Storage Router Completed!**
+- **Completed V1.5**: **Unified Instant Search & Sharing Layer** ✅ ([Commit `bd47dd3`](https://github.com/vanrajsinh650/BucketSpace/commit/bd47dd3))
+  - Implemented SQLite indexed full-text search (`searchFiles`) in `SqliteMetadataRepository`.
+  - Implemented `ShareProvider` contract and `TokenShareProvider` for generating secure access links without exposing underlying storage provider references or message IDs.
+  - Added Share link modal (`ShareModal.tsx`) with expiry durations to Web UI (`apps/web`).
+  - Passed 100% of all 15 unit and integration test suites.
+- **🎉 MILESTONE ACHIEVED**: **BucketSpace V1.5 — Instant Search & Sharing Layer Completed!**
 
 ---
 
