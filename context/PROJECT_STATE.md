@@ -101,7 +101,11 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
   - Translates `putChunk`, `getChunk`, `hasChunk`, `deleteChunk` into Telegram Bot API endpoints (`sendDocument`, `getFile`, `deleteMessage`).
   - Stores opaque `TelegramRefData` (`chatId`, `messageId`, `fileId`) in SQLite.
   - Passes 100% full E2E upload -> DB restart -> download -> SHA-256 byte equality test suite and Telegram desync recovery test suite.
-- **Next Step**: **Step 5 — End-to-End V0 CLI Verification & Final V0 Acceptance**.
+- **Completed Step 5**: **V0 CLI Laboratory & Master Acceptance Lifecycle** ✅ ([Commit `9ce07ec`](https://github.com/vanrajsinh650/BucketSpace/commit/9ce07ec))
+  - Implemented soft-delete lifecycle (`ACTIVE` ──► `TRASHED` ──► `PURGED`).
+  - Created operable V0 CLI laboratory (`@bucketspace/cli` / `apps/cli`) with `add`, `list`, `info`, `download`, `delete`, `restore`, `purge`, `verify`, and `resume` commands.
+  - Implemented and passed 100% 23-step **Master Acceptance Test Suite** (`v0-master-acceptance.test.ts`) covering upload, DB restart, reassembly byte equality, interruption recovery, provider chunk desync repair, trash soft deletion, restore, and permanent purge.
+- **🎉 MILESTONE ACHIEVED**: **BucketSpace V0: Local Personal Storage Core Fully Proven & Production-Ready!**
 
 ---
 
