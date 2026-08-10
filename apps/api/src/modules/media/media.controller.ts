@@ -114,7 +114,10 @@ export function registerMediaRoutes(server: FastifyInstance): void {
 
       try {
         const adapter = StorageAdapterFactory.create(file.bucket.provider);
-        const stream = await adapter.getChunkStream(file.bucket.targetChannelId, chunk.providerRef);
+        const stream = await adapter.getChunk({
+          providerId: file.bucket.provider.toLowerCase(),
+          reference: { chatId: file.bucket.targetChannelId, messageId: 1, fileId: chunk.providerRef },
+        });
 
         return reply
           .header('Content-Type', 'video/MP2T')

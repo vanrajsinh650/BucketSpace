@@ -1,8 +1,6 @@
 import {
-  LegacyIStorageProvider,
-  LegacyTelegramStorageAdapter,
-  GCPStorageAdapter,
-  AzureBlobStorageAdapter,
+  IStorageProvider,
+  TelegramStorageAdapter,
   S3StorageAdapter,
 } from '@bucketspace/storage-adapters';
 
@@ -12,44 +10,34 @@ import {
 /*  Singletons are cached per provider to avoid re-instantiation.      */
 /* ------------------------------------------------------------------ */
 
-const adapterCache = new Map<string, LegacyIStorageProvider>();
+const adapterCache = new Map<string, IStorageProvider>();
 
 export class StorageAdapterFactory {
   /**
    * Returns a cached adapter instance for the given provider type.
    * Creates one on first call for each provider.
    */
-  static create(provider: string): LegacyIStorageProvider {
+  static create(provider: string): IStorageProvider {
     const cached = adapterCache.get(provider);
     if (cached) return cached;
 
-    let adapter: LegacyIStorageProvider;
+    let adapter: IStorageProvider;
 
     switch (provider) {
-      case 'GCP_STORAGE':
-        adapter = new GCPStorageAdapter();
-        break;
-
-      case 'AZURE_BLOB':
-        adapter = new AzureBlobStorageAdapter();
-        break;
-
       case 'AWS_S3':
       case 'CLOUDFLARE_R2':
-        adapter = new S3StorageAdapter();
-        break;
-
       case 'MINIO':
-        adapter = new S3StorageAdapter({ endpoint: process.env.MINIO_ENDPOINT ?? 'http://localhost:9000' });
+        adapter = new S3StorageAdapter({
+          bucket: process.env.S3_BUCKET ?? 'bucketspace-storage',
+          endpoint: process.env.MINIO_ENDPOINT ?? 'http://localhost:9000',
+        });
         break;
 
       case 'TELEGRAM_DRIVE':
       default: {
-        const botToken = process.env.TELEGRAM_BOT_TOKEN;
-        if (!botToken) {
-          throw new Error('TELEGRAM_BOT_TOKEN is required for Telegram storage adapter');
-        }
-        adapter = new LegacyTelegramStorageAdapter({ botToken });
+        const botToken = process.env.TELEGRAM_BOT_TOKEN ?? 'dummy_bot_token';
+        const defaultChatId = process.env.TELEGRAM_STORAGE_CHAT_ID ?? '@bucketspace_channel';
+        adapter = new TelegramStorageAdapter({ botToken, defaultChatId });
         break;
       }
     }

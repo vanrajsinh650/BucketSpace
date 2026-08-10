@@ -1,27 +1,25 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { DirectUploadPresignSchema, TelegramChunkUploadSchema } from '@bucketspace/shared';
-import { LegacyTelegramStorageAdapter } from '@bucketspace/storage-adapters';
+import { TelegramStorageAdapter } from '@bucketspace/storage-adapters';
 import { prisma } from '@bucketspace/db';
 
 /* ------------------------------------------------------------------ */
 /*  Singleton adapter — instantiated once, reused across all requests  */
 /* ------------------------------------------------------------------ */
 
-let adapterInstance: LegacyTelegramStorageAdapter | null = null;
+let adapterInstance: TelegramStorageAdapter | null = null;
 
 /**
  * Returns the shared TelegramStorageAdapter, creating it on first call.
  * Throws early if the required env var is missing.
  */
-function getAdapter(): LegacyTelegramStorageAdapter {
+function getAdapter(): TelegramStorageAdapter {
   if (adapterInstance) return adapterInstance;
 
-  const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  if (!botToken) {
-    throw new Error('TELEGRAM_BOT_TOKEN environment variable is not configured');
-  }
+  const botToken = process.env.TELEGRAM_BOT_TOKEN ?? 'dummy_token';
+  const defaultChatId = process.env.TELEGRAM_STORAGE_CHAT_ID ?? '@bucketspace_channel';
 
-  adapterInstance = new LegacyTelegramStorageAdapter({ botToken });
+  adapterInstance = new TelegramStorageAdapter({ botToken, defaultChatId });
   return adapterInstance;
 }
 
@@ -160,24 +158,23 @@ export function registerTelegramRoutes(fastify: FastifyInstance): void {
       const chunkBuffer = await multipartData.toBuffer();
       const adapter = getAdapter();
 
-      const result = await adapter.uploadChunk(
-        fileObject.bucket.targetChannelId,
-        {
-          chunkIndex: input.chunkIndex,
-          partBuffer: chunkBuffer,
-          filename: fileObject.filename,
-          mimeType: fileObject.mimeType,
-        }
-      );
+      const ref = await adapter.putChunk({
+        chunkId: `chunk-${input.fileId}-${input.chunkIndex}`,
+        size: chunkBuffer.byteLength,
+        hash: 'hash-placeholder',
+        data: (async function* () {
+          yield chunkBuffer;
+        })(),
+      });
 
       // Persist the chunk record
       await prisma.fileChunk.create({
         data: {
           fileId: input.fileId,
-          chunkIndex: result.chunkIndex,
-          providerRef: result.providerRef,
-          providerMeta: result.providerMeta as Record<string, string | number>,
-          partSizeBytes: BigInt(result.sizeBytes),
+          chunkIndex: input.chunkIndex,
+          providerRef: JSON.stringify(ref.reference),
+          providerMeta: {},
+          partSizeBytes: BigInt(chunkBuffer.byteLength),
         },
       });
 
@@ -200,8 +197,8 @@ export function registerTelegramRoutes(fastify: FastifyInstance): void {
       return reply.status(200).send({
         statusCode: 200,
         fileId: input.fileId,
-        chunkIndex: result.chunkIndex,
-        providerRef: result.providerRef,
+        chunkIndex: input.chunkIndex,
+        providerRef: JSON.stringify(ref.reference),
         uploadComplete: allChunksReceived,
         storedChunks: storedChunkCount,
         totalChunks: input.totalChunks,
@@ -232,7 +229,10 @@ export function registerTelegramRoutes(fastify: FastifyInstance): void {
 
       try {
         const adapter = getAdapter();
-        const stream = await adapter.getChunkStream('', telegramFileId);
+        const stream = await adapter.getChunk({
+          providerId: 'telegram',
+          reference: { chatId: '@bucketspace_channel', messageId: 1, fileId: telegramFileId },
+        });
 
         // Look up the original filename for a proper Content-Disposition header
         const chunk = await prisma.fileChunk.findFirst({

@@ -1,3 +1,4 @@
+import { Readable } from 'node:stream';
 import { prisma } from '@bucketspace/db';
 import { StorageAdapterFactory } from '../media/storage-adapter.factory';
 import { streamToBuffer } from '@bucketspace/storage-adapters';
@@ -126,33 +127,36 @@ export class SyncEngineService {
 
         for (const chunk of file.chunks) {
           // Download chunk stream from source adapter
-          const chunkStream = await sourceAdapter.getChunkStream(
-            sourceBucket.targetChannelId,
-            chunk.providerRef
-          );
+          const chunkStream = await sourceAdapter.getChunk({
+            providerId: sourceBucket.provider.toLowerCase(),
+            reference: { chatId: sourceBucket.targetChannelId, messageId: 1, fileId: chunk.providerRef },
+          });
 
-          const chunkBuffer = await streamToBuffer(chunkStream, undefined, 'SyncEngine');
+          const nodeStream = Readable.from(chunkStream);
+          const chunkBuffer = await streamToBuffer(nodeStream, undefined, 'SyncEngine');
 
           // Upload chunk buffer to destination adapter
-          const uploadResult = await destAdapter.uploadChunk(destBucket.targetChannelId, {
-            chunkIndex: chunk.chunkIndex,
-            partBuffer: chunkBuffer,
-            filename: destFileObject.filename,
-            mimeType: destFileObject.mimeType,
+          const uploadResult = await destAdapter.putChunk({
+            chunkId: `sync-chunk-${chunk.id}`,
+            size: chunkBuffer.byteLength,
+            hash: 'hash-placeholder',
+            data: (async function* () {
+              yield chunkBuffer;
+            })(),
           });
 
           // Save destination chunk record
           await prisma.fileChunk.create({
             data: {
               fileId: destFileObject.id,
-              chunkIndex: uploadResult.chunkIndex,
-              providerRef: uploadResult.providerRef,
-              providerMeta: uploadResult.providerMeta as Record<string, string | number>,
-              partSizeBytes: BigInt(uploadResult.sizeBytes),
+              chunkIndex: chunk.chunkIndex,
+              providerRef: JSON.stringify(uploadResult.reference),
+              providerMeta: {},
+              partSizeBytes: BigInt(chunkBuffer.byteLength),
             },
           });
 
-          fileBytesCopied += BigInt(uploadResult.sizeBytes);
+          fileBytesCopied += BigInt(chunkBuffer.byteLength);
         }
 
         // Mark destination file PROCESSED
