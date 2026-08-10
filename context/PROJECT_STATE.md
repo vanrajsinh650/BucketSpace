@@ -95,7 +95,13 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
   - `TransferOrchestrator` handling stream upload and verified reassembly download.
   - `RecoveryEngine` inspecting metadata vs provider states, resuming partial uploads cleanly (zero duplicate puts for verified chunks), and recovering from desynced provider data.
   - E2E unit & recovery test suite passing 100%.
-- **Next Step**: **Step 4 — Telegram Storage Adapter** (Bot API / Private Channel Adapter).
+- **Completed Step 4**: **Telegram Storage Adapter (`IStorageProvider`)** ✅ ([Commit `d5d0e1f`](https://github.com/vanrajsinh650/BucketSpace/commit/d5d0e1f))
+  - `TelegramStorageAdapter` implementing stream-oriented `IStorageProvider` contract using Node 22 native `fetch`/`FormData`.
+  - Configured 5MB default chunk size (respecting Bot API 20MB download limit).
+  - Translates `putChunk`, `getChunk`, `hasChunk`, `deleteChunk` into Telegram Bot API endpoints (`sendDocument`, `getFile`, `deleteMessage`).
+  - Stores opaque `TelegramRefData` (`chatId`, `messageId`, `fileId`) in SQLite.
+  - Passes 100% full E2E upload -> DB restart -> download -> SHA-256 byte equality test suite and Telegram desync recovery test suite.
+- **Next Step**: **Step 5 — End-to-End V0 CLI Verification & Final V0 Acceptance**.
 
 ---
 
