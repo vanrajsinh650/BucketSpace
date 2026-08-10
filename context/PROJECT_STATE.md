@@ -90,7 +90,12 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
   - `files` and `chunks` schema with `CONSTRAINT uq_file_chunk UNIQUE (file_id, chunk_index)` and `INDEX idx_chunks_file_id`.
   - Prepared statements and atomic transactions for metadata operations.
   - `IMetadataRepository` implementation (`SqliteMetadataRepository`) passing database closing & reopening test.
-- **Next Step**: **Step 3 — The Transfer Engine** (Chunking, Hashing, Resumability, Upload & Download Orchestration).
+- **Completed Step 3**: **The Transfer Engine & Recovery System** ✅ ([Commit `0ace85b`](https://github.com/vanrajsinh650/BucketSpace/commit/0ace85b))
+  - `FileChunker` stream chunking and dual chunk/whole-file SHA-256 digest calculations without RAM buffer inflation.
+  - `TransferOrchestrator` handling stream upload and verified reassembly download.
+  - `RecoveryEngine` inspecting metadata vs provider states, resuming partial uploads cleanly (zero duplicate puts for verified chunks), and recovering from desynced provider data.
+  - E2E unit & recovery test suite passing 100%.
+- **Next Step**: **Step 4 — Telegram Storage Adapter** (Bot API / Private Channel Adapter).
 
 ---
 
