@@ -9,6 +9,7 @@ import {
   Image as ImageIcon,
   Layers,
   Settings,
+  Sliders,
   Trash2,
 } from 'lucide-react';
 import { CategoryFilter } from '../lib/storage-store';
@@ -17,6 +18,7 @@ interface SidebarProps {
   activeCategory: CategoryFilter;
   onSelectCategory: (cat: CategoryFilter) => void;
   onOpenSettings: () => void;
+  onOpenRules: () => void;
   categoryCounts: Record<CategoryFilter, number>;
   storageUsedBytes: number;
 }
@@ -25,6 +27,7 @@ export function Sidebar({
   activeCategory,
   onSelectCategory,
   onOpenSettings,
+  onOpenRules,
   categoryCounts,
   storageUsedBytes,
 }: SidebarProps) {
@@ -106,14 +109,24 @@ export function Sidebar({
         <p className="text-[11px] text-slate-500">Byte-verified chunk integrity active</p>
       </div>
 
-      {/* Settings Button */}
-      <button
-        onClick={onOpenSettings}
-        className="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all border border-slate-800/60"
-      >
-        <Settings className="w-4 h-4" />
-        <span>Storage Providers</span>
-      </button>
+      {/* Action Buttons */}
+      <div className="mt-3 space-y-1.5">
+        <button
+          onClick={onOpenRules}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 transition-all"
+        >
+          <Sliders className="w-3.5 h-3.5" />
+          <span>Storage Policy Rules</span>
+        </button>
+
+        <button
+          onClick={onOpenSettings}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all border border-slate-800/60"
+        >
+          <Settings className="w-3.5 h-3.5" />
+          <span>Storage Providers</span>
+        </button>
+      </div>
     </aside>
   );
 }

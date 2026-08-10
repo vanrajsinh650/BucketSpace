@@ -6,11 +6,13 @@ import {
   FileMetadata,
   FileStatus,
   IStorageProvider,
+  StorageRule,
 } from '@bucketspace/shared';
 import {
   InMemoryStorageProvider,
   ProviderRegistry,
   StorageApplicationService,
+  StorageRouter,
   TelegramStorageAdapter,
 } from '@bucketspace/storage-adapters';
 
@@ -51,6 +53,7 @@ export class StorageStore {
   private files: FileMetadata[] = [];
   private activeProvider: IStorageProvider;
   private activeProviderId: string;
+  private router: StorageRouter;
 
   private constructor() {
     ProviderRegistry.clear();
@@ -70,6 +73,7 @@ export class StorageStore {
     }
 
     ProviderRegistry.register(this.activeProvider);
+    this.router = new StorageRouter(this.activeProviderId);
     this.seedInitialData();
   }
 
@@ -225,7 +229,18 @@ export class StorageStore {
       const chunkHash = await calculateSha256(chunkBytes);
       const chunkId = createChunkId(`chunk-${fileId}-${index}`);
 
-      const providerRef = await this.activeProvider.putChunk({
+      // Resolve target provider via deterministic StoragePolicyEngine router
+      const resolvedProviderId = this.router.resolveProviderId({
+        name: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        size: file.size,
+      });
+
+      const targetProvider = ProviderRegistry.has(resolvedProviderId)
+        ? ProviderRegistry.get(resolvedProviderId)
+        : this.activeProvider;
+
+      const providerRef = await targetProvider.putChunk({
         chunkId,
         size: chunkBytes.byteLength,
         hash: chunkHash,
@@ -401,9 +416,54 @@ export class StorageStore {
     return { status: result.status, latencyMs: result.latencyMs };
   }
 
-  /** Remove a provider from the registry */
+  /** Remove a provider from the registry and disable any rules targeting it */
   public removeProvider(providerId: string): boolean {
+    const rules = this.router.getRules();
+    let updated = false;
+    for (const rule of rules) {
+      if (rule.action.providerId === providerId && rule.enabled) {
+        rule.enabled = false;
+        updated = true;
+      }
+    }
+    if (updated) {
+      this.router.setRules(rules);
+    }
     return ProviderRegistry.remove(providerId);
+  }
+
+  /* ─── V2.2 Storage Policy Rules ─── */
+
+  public getRules(): StorageRule[] {
+    return this.router.getRules();
+  }
+
+  public saveRule(rule: StorageRule): void {
+    const rules = this.router.getRules();
+    const idx = rules.findIndex((r) => r.id === rule.id);
+    if (idx !== -1) {
+      rules[idx] = rule;
+    } else {
+      rules.push(rule);
+    }
+    this.router.setRules(rules);
+  }
+
+  public toggleRule(ruleId: string, enabled: boolean): void {
+    const rules = this.router.getRules();
+    const rule = rules.find((r) => r.id === ruleId);
+    if (rule) {
+      rule.enabled = enabled;
+      this.router.setRules(rules);
+    }
+  }
+
+  public deleteRule(ruleId: string): void {
+    this.router.removeRule(ruleId);
+  }
+
+  public getDefaultProviderId(): string {
+    return this.router.getDefaultProviderId();
   }
 
   /**

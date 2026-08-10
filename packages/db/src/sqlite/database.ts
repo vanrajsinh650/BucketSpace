@@ -36,6 +36,17 @@ export function createSqliteDatabase(filepath: string = ':memory:'): DatabaseSyn
     );
 
     CREATE INDEX IF NOT EXISTS idx_chunks_file_id ON chunks(file_id);
+
+    CREATE TABLE IF NOT EXISTS storage_rules (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      priority INTEGER NOT NULL DEFAULT 0,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      conditions_json TEXT NOT NULL,
+      action_json TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
   `);
 
   return db;

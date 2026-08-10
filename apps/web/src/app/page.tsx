@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { FileMetadata } from '@bucketspace/shared';
+import { FileMetadata, StorageRule } from '@bucketspace/shared';
 import { FileGrid } from '../components/FileGrid';
 import { FileInfoModal } from '../components/FileInfoModal';
 import { Header } from '../components/Header';
@@ -9,6 +9,7 @@ import { MoveFileModal } from '../components/MoveFileModal';
 import { ProviderSettings, ProviderDisplayInfo } from '../components/ProviderSettings';
 import { ShareModal } from '../components/ShareModal';
 import { Sidebar } from '../components/Sidebar';
+import { StorageRulesPanel } from '../components/storage-rules/StorageRulesPanel';
 import { UploadModal } from '../components/UploadModal';
 import {
   CategoryFilter,
@@ -32,7 +33,9 @@ export default function BucketSpaceApp() {
   const [selectedFileForShare, setSelectedFileForShare] = useState<FileMetadata | null>(null);
   const [selectedFileForMove, setSelectedFileForMove] = useState<FileMetadata | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
   const [providerList, setProviderList] = useState<ProviderDisplayInfo[]>([]);
+  const [rulesList, setRulesList] = useState<StorageRule[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
@@ -106,7 +109,6 @@ export default function BucketSpaceApp() {
   /* ─── Provider Management Handlers ─── */
 
   const handleOpenSettings = () => {
-    // Populate provider list from store
     const providers = store.getRegisteredProviders();
     setProviderList(providers);
     setSettingsOpen(true);
@@ -139,7 +141,6 @@ export default function BucketSpaceApp() {
     }
   };
 
-  /** Build available providers list for the MoveFileModal */
   const getMoveProviders = (file: FileMetadata) => {
     const currentProviderId = file.chunks?.[0]?.providerRef?.providerId ?? 'unknown';
     const allProviders = store.getRegisteredProviders();
@@ -149,6 +150,28 @@ export default function BucketSpaceApp() {
     }));
   };
 
+  /* ─── Storage Rules Handlers ─── */
+
+  const handleOpenRules = () => {
+    setRulesList(store.getRules());
+    setRulesOpen(true);
+  };
+
+  const handleSaveRule = (rule: StorageRule) => {
+    store.saveRule(rule);
+    setRulesList(store.getRules());
+  };
+
+  const handleToggleRule = (ruleId: string, enabled: boolean) => {
+    store.toggleRule(ruleId, enabled);
+    setRulesList(store.getRules());
+  };
+
+  const handleDeleteRule = (ruleId: string) => {
+    store.deleteRule(ruleId);
+    setRulesList(store.getRules());
+  };
+
   return (
     <div className="min-h-screen bg-[#0b0f19] text-slate-100 flex">
       {/* Sidebar */}
@@ -156,6 +179,7 @@ export default function BucketSpaceApp() {
         activeCategory={activeCategory}
         onSelectCategory={setActiveCategory}
         onOpenSettings={handleOpenSettings}
+        onOpenRules={handleOpenRules}
         categoryCounts={categoryCounts}
         storageUsedBytes={storageUsedBytes}
       />
@@ -239,6 +263,19 @@ export default function BucketSpaceApp() {
           onTestConnection={handleTestConnection}
           onRemoveProvider={handleRemoveProvider}
           onClose={() => setSettingsOpen(false)}
+        />
+      )}
+
+      {/* Storage Policy Rules Modal */}
+      {rulesOpen && (
+        <StorageRulesPanel
+          rules={rulesList}
+          availableProviders={store.getRegisteredProviders().map((p) => p.providerId)}
+          defaultProviderId={store.getDefaultProviderId()}
+          onSaveRule={handleSaveRule}
+          onToggleRule={handleToggleRule}
+          onDeleteRule={handleDeleteRule}
+          onClose={() => setRulesOpen(false)}
         />
       )}
     </div>

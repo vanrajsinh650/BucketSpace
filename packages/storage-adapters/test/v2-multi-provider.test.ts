@@ -67,8 +67,12 @@ test('V2 — StorageRouter wired into upload path', async () => {
   router.addRule({
     id: 'test-images-memory',
     name: 'Images to InMemory',
-    match: { mimeTypePrefix: 'image/' },
-    targetProviderId: 'in-memory',
+    priority: 10,
+    enabled: true,
+    conditions: [{ field: 'mimeType', operator: 'startsWith', value: 'image/' }],
+    action: { type: 'STORE', providerId: 'in-memory' },
+    createdAt: new Date(),
+    updatedAt: new Date(),
   });
 
   const repo = new SqliteMetadataRepository(dbPath);
