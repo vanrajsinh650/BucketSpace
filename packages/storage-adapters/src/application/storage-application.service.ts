@@ -4,12 +4,14 @@ import {
 } from '@bucketspace/db';
 import { FileId, FileMetadata } from '@bucketspace/shared';
 import { ProviderRegistry } from '../registry/provider-registry';
+import { StorageRouter } from '../router/storage-router';
 import { ShareLink, TokenShareProvider } from '../share';
 import { InspectionResult, RecoveryEngine } from '../transfer/recovery-engine';
 import { DownloadResult, TransferOrchestrator } from '../transfer/transfer-orchestrator';
 
 export interface StorageApplicationConfig {
   repository: IMetadataRepository;
+  router?: StorageRouter;
   defaultProviderId?: string;
   defaultChunkSize?: number;
 }
@@ -41,11 +43,13 @@ export interface ResumeUploadRequest {
  */
 export class StorageApplicationService {
   private repository: IMetadataRepository;
+  private router?: StorageRouter;
   private defaultProviderId: string;
   private defaultChunkSize: number;
 
   constructor(config: StorageApplicationConfig) {
     this.repository = config.repository;
+    this.router = config.router;
     this.defaultProviderId = config.defaultProviderId ?? 'in-memory';
     this.defaultChunkSize = config.defaultChunkSize ?? 5 * 1024 * 1024;
   }
@@ -75,8 +79,23 @@ export class StorageApplicationService {
     return this.repository.getFileById(fileId as FileId);
   }
 
+  /**
+   * Upload a file. Provider resolution order:
+   * 1. Explicit `request.providerId` (user override)
+   * 2. `StorageRouter.resolveProviderId()` (rule-based routing by MIME/extension)
+   * 3. `defaultProviderId` fallback
+   */
   public async uploadFile(request: UploadFileRequest): Promise<FileMetadata> {
-    const providerId = request.providerId ?? this.defaultProviderId;
+    let providerId = request.providerId;
+
+    if (!providerId && this.router) {
+      providerId = this.router.resolveProviderId({
+        name: request.name,
+        mimeType: request.mimeType,
+      });
+    }
+
+    providerId = providerId ?? this.defaultProviderId;
     const provider = ProviderRegistry.get(providerId);
 
     return TransferOrchestrator.uploadFile({
@@ -89,19 +108,19 @@ export class StorageApplicationService {
     });
   }
 
+  /**
+   * Download a file. Each chunk's provider is resolved independently from its
+   * providerRef, allowing files whose chunks span multiple providers.
+   */
   public async downloadFile(request: DownloadFileRequest): Promise<DownloadResult> {
     const metadata = await this.repository.getFileById(request.fileId as FileId);
     if (!metadata) {
       throw new Error(`File '${request.fileId}' not found in metadata repository`);
     }
 
-    const providerId = metadata.chunks[0]?.providerRef?.providerId ?? this.defaultProviderId;
-    const provider = ProviderRegistry.get(providerId);
-
-    return TransferOrchestrator.downloadFile({
+    return TransferOrchestrator.downloadFileMultiProvider({
       fileId: request.fileId as FileId,
       destinationPath: request.destinationPath,
-      provider,
       repository: this.repository,
     });
   }

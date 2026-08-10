@@ -10,6 +10,7 @@ import {
 } from '@bucketspace/shared';
 import { IMetadataRepository } from '@bucketspace/db';
 import { createFileChunker } from './file-chunker';
+import { ProviderRegistry } from '../registry/provider-registry';
 
 export interface UploadFileInput {
   filePath: string;
@@ -24,6 +25,12 @@ export interface DownloadFileInput {
   fileId: FileId;
   destinationPath: string;
   provider: IStorageProvider;
+  repository: IMetadataRepository;
+}
+
+export interface MultiProviderDownloadInput {
+  fileId: FileId;
+  destinationPath: string;
   repository: IMetadataRepository;
 }
 
@@ -82,7 +89,8 @@ export class TransferOrchestrator {
   }
 
   /**
-   * Download and reassemble a file, verifying chunk and whole-file SHA-256 digests.
+   * Download and reassemble a file using a single provider for all chunks.
+   * Retained for backward compatibility with existing tests.
    */
   public static async downloadFile(input: DownloadFileInput): Promise<DownloadResult> {
     const file = await input.repository.getFileById(input.fileId);
@@ -145,4 +153,74 @@ export class TransferOrchestrator {
       verifiedHash: computedWholeFileHash,
     };
   }
+
+  /**
+   * Download and reassemble a file, resolving each chunk's provider independently
+   * from ProviderRegistry. This enables files whose chunks span multiple providers
+   * (e.g., after a partial migration or multi-provider redundancy).
+   */
+  public static async downloadFileMultiProvider(input: MultiProviderDownloadInput): Promise<DownloadResult> {
+    const file = await input.repository.getFileById(input.fileId);
+    if (!file) {
+      throw new Error(`File metadata for id '${input.fileId}' not found in SQLite repository`);
+    }
+
+    const sortedChunks = [...file.chunks].sort((a, b) => a.index - b.index);
+    const writeStream = createWriteStream(input.destinationPath);
+    const wholeFileHasher = createHash('sha256');
+
+    try {
+      for (const chunk of sortedChunks) {
+        if (!chunk.providerRef) {
+          throw new Error(`Chunk ${chunk.index} is missing provider reference`);
+        }
+
+        // Resolve each chunk's provider independently
+        const chunkProvider = ProviderRegistry.get(chunk.providerRef.providerId);
+        const chunkByteStream = await chunkProvider.getChunk(chunk.providerRef);
+        const chunkHasher = createHash('sha256');
+
+        for await (const piece of chunkByteStream) {
+          chunkHasher.update(piece);
+          wholeFileHasher.update(piece);
+
+          const canContinue = writeStream.write(piece);
+          if (!canContinue) {
+            await new Promise<void>((resolve) => writeStream.once('drain', () => resolve()));
+          }
+        }
+
+        const computedChunkHash = chunkHasher.digest('hex');
+        if (computedChunkHash !== chunk.hash) {
+          throw new Error(
+            `Chunk ${chunk.index} hash mismatch during multi-provider download! Expected '${chunk.hash}', got '${computedChunkHash}'`
+          );
+        }
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        writeStream.end((err?: Error | null) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+    } catch (err) {
+      writeStream.destroy();
+      throw err;
+    }
+
+    const computedWholeFileHash = wholeFileHasher.digest('hex');
+    if (computedWholeFileHash !== file.wholeFileHash) {
+      throw new Error(
+        `Whole-file hash mismatch during multi-provider download reassembly! Expected '${file.wholeFileHash}', got '${computedWholeFileHash}'`
+      );
+    }
+
+    return {
+      destinationPath: input.destinationPath,
+      file,
+      verifiedHash: computedWholeFileHash,
+    };
+  }
 }
+

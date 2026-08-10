@@ -9,4 +9,5 @@ export * from './supabase';
 export * from './router';
 export * from './registry';
 export * from './share';
+export * from './migration';
 export * from './application';

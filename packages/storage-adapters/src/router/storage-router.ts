@@ -39,6 +39,10 @@ export class StorageRouter {
     return [...this.rules];
   }
 
+  public clearRules(): void {
+    this.rules = [];
+  }
+
   public setDefaultProvider(providerId: string): void {
     this.defaultProviderId = providerId;
   }
