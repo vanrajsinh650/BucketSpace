@@ -1,6 +1,6 @@
 import {
   LegacyIStorageProvider,
-  TelegramStorageAdapter,
+  LegacyTelegramStorageAdapter,
   GCPStorageAdapter,
   AzureBlobStorageAdapter,
   S3StorageAdapter,
@@ -49,7 +49,7 @@ export class StorageAdapterFactory {
         if (!botToken) {
           throw new Error('TELEGRAM_BOT_TOKEN is required for Telegram storage adapter');
         }
-        adapter = new TelegramStorageAdapter({ botToken });
+        adapter = new LegacyTelegramStorageAdapter({ botToken });
         break;
       }
     }

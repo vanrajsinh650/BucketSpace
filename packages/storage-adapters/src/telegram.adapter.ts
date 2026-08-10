@@ -30,7 +30,7 @@ interface TelegramApiResponse<T> {
 /*  Configuration                                                      */
 /* ------------------------------------------------------------------ */
 
-export interface TelegramAdapterConfig {
+export interface LegacyTelegramAdapterConfig {
   botToken: string;
   apiBaseUrl?: string;
   /** Maximum retries on 429 rate-limit errors (default: 3) */
@@ -55,12 +55,12 @@ const DEFAULT_BACKOFF_SECONDS = 5;
 /*  Stores file chunks as document attachments in Telegram channels.   */
 /* ------------------------------------------------------------------ */
 
-export class TelegramStorageAdapter implements LegacyIStorageProvider {
+export class LegacyTelegramStorageAdapter implements LegacyIStorageProvider {
   private readonly botToken: string;
   private readonly apiBaseUrl: string;
   private readonly maxRetries: number;
 
-  constructor(config: TelegramAdapterConfig) {
+  constructor(config: LegacyTelegramAdapterConfig) {
     if (!config.botToken) {
       throw new Error('TelegramStorageAdapter requires a non-empty botToken');
     }

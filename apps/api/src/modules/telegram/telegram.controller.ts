@@ -1,19 +1,19 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { DirectUploadPresignSchema, TelegramChunkUploadSchema } from '@bucketspace/shared';
-import { TelegramStorageAdapter } from '@bucketspace/storage-adapters';
+import { LegacyTelegramStorageAdapter } from '@bucketspace/storage-adapters';
 import { prisma } from '@bucketspace/db';
 
 /* ------------------------------------------------------------------ */
 /*  Singleton adapter — instantiated once, reused across all requests  */
 /* ------------------------------------------------------------------ */
 
-let adapterInstance: TelegramStorageAdapter | null = null;
+let adapterInstance: LegacyTelegramStorageAdapter | null = null;
 
 /**
  * Returns the shared TelegramStorageAdapter, creating it on first call.
  * Throws early if the required env var is missing.
  */
-function getAdapter(): TelegramStorageAdapter {
+function getAdapter(): LegacyTelegramStorageAdapter {
   if (adapterInstance) return adapterInstance;
 
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -21,7 +21,7 @@ function getAdapter(): TelegramStorageAdapter {
     throw new Error('TELEGRAM_BOT_TOKEN environment variable is not configured');
   }
 
-  adapterInstance = new TelegramStorageAdapter({ botToken });
+  adapterInstance = new LegacyTelegramStorageAdapter({ botToken });
   return adapterInstance;
 }
 
