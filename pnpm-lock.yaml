@@ -76,9 +76,15 @@ importers:
 
   apps/web:
     dependencies:
+      '@bucketspace/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@bucketspace/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@bucketspace/storage-adapters':
+        specifier: workspace:*
+        version: link:../../packages/storage-adapters
       clsx:
         specifier: ^2.1.1
         version: 2.1.1

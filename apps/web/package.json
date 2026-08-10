@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@bucketspace/shared": "workspace:*",
+    "@bucketspace/db": "workspace:*",
+    "@bucketspace/storage-adapters": "workspace:*",
     "next": "15.0.0",
     "react": "^19.0.0-rc-6f23342f1d-20240625",
     "react-dom": "^19.0.0-rc-6f23342f1d-20240625",

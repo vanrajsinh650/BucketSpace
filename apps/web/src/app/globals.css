@@ -2,18 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --bg-primary: #07090e;
-    --bg-secondary: #0f172a;
-    --accent-indigo: #6366f1;
-  }
+:root {
+  --background: 11 15 25;
+  --foreground: 248 250 252;
 }
 
-/* Glassmorphism Surface Utility */
+body {
+  background-color: #0b0f19;
+  color: #f8fafc;
+  font-family: var(--font-sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Glassmorphism utilities */
 .glass-panel {
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-hover:hover {
+  background: rgba(30, 41, 59, 0.75);
+  border-color: rgba(6, 182, 212, 0.4);
+}
+
+.glass-modal {
+  background: rgba(11, 15, 25, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
