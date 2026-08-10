@@ -6,7 +6,8 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc --build",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "tsc --project tsconfig.test.json && node --test dist/test/in-memory-provider.test.js"
   },
   "dependencies": {
     "@bucketspace/shared": "workspace:*"
