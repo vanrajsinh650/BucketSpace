@@ -145,6 +145,16 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
   - Updated branding: v2.1 badge, tagline "Your storage. One interface. Any provider."
   - All 22 test suites pass, `next build` compiles cleanly.
 - **🎉 MILESTONE ACHIEVED**: **BucketSpace V2.1 — Provider Management UI Completed!**
+- **Completed V2.2**: **Storage Policy Engine** ✅ ([Commit `4fa618d`](https://github.com/vanrajsinh650/BucketSpace/commit/4fa618d))
+  - Implemented data-driven storage rules in `@bucketspace/shared`: `StorageRule`, `RuleCondition`, `StorageRuleAction`.
+  - Built pure `RuleMatcher` supporting MIME type, file extension, and file size operators with AND logic across conditions.
+  - Built deterministic `StoragePolicyEngine`: sorts enabled rules by priority descending, first match selects provider, fallback to default provider.
+  - Built SQLite `StorageRuleRepository` with CRUD operations, priority-ordered listing, and automatic `disableRulesByProvider` for provider removal safety.
+  - Refactored `StorageRouter` to consume `StoragePolicyEngine`.
+  - Built UI components: `StorageRulesPanel` (rule management & enable/disable toggles), `RuleEditor` (rule creator/editor), and `RulePreview` (file routing tester before upload).
+  - Wired policy engine routing into `uploadFile` flow in `StorageStore` and `StorageApplicationService`.
+  - Passed 100% of all 28 unit and integration test suites.
+- **🎉 MILESTONE ACHIEVED**: **BucketSpace V2.2 — Storage Policy Engine Completed!**
 
 ---
 
