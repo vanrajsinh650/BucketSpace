@@ -17,7 +17,8 @@ export function createSqliteDatabase(filepath: string = ':memory:'): DatabaseSyn
       size INTEGER NOT NULL,
       mime_type TEXT NOT NULL,
       whole_file_hash TEXT NOT NULL,
-      status TEXT NOT NULL,
+      transfer_status TEXT NOT NULL DEFAULT 'UPLOADING',
+      file_status TEXT NOT NULL DEFAULT 'ACTIVE',
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );

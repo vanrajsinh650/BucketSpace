@@ -6,10 +6,11 @@ import {
   createFileId,
   FileId,
   FileMetadata,
+  FileStatus,
   ProviderChunkRef,
   TransferState,
 } from '@bucketspace/shared';
-import { IMetadataRepository } from '../repository.interface';
+import { IMetadataRepository, ListFilesOptions } from '../repository.interface';
 import { createSqliteDatabase } from './database';
 
 interface FileRow {
@@ -18,7 +19,8 @@ interface FileRow {
   size: number;
   mime_type: string;
   whole_file_hash: string;
-  status: string;
+  transfer_status: string;
+  file_status: string;
   created_at: string;
   updated_at: string;
 }
@@ -44,15 +46,16 @@ export class SqliteMetadataRepository implements IMetadataRepository {
     }
   }
 
-  public async createFile(file: FileMetadata, status: TransferState = 'PENDING'): Promise<FileMetadata> {
+  public async createFile(file: FileMetadata, transferStatus: TransferState = 'PENDING'): Promise<FileMetadata> {
     const createdAtIso = file.createdAt ? file.createdAt.toISOString() : new Date().toISOString();
     const updatedAtIso = file.updatedAt ? file.updatedAt.toISOString() : createdAtIso;
+    const fileStatus = file.status ?? 'ACTIVE';
 
     this.db.exec('BEGIN TRANSACTION');
     try {
       const stmt = this.db.prepare(`
-        INSERT INTO files (id, name, size, mime_type, whole_file_hash, status, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO files (id, name, size, mime_type, whole_file_hash, transfer_status, file_status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       stmt.run(
@@ -61,7 +64,8 @@ export class SqliteMetadataRepository implements IMetadataRepository {
         file.size,
         file.mimeType,
         file.wholeFileHash,
-        status,
+        transferStatus,
+        fileStatus,
         createdAtIso,
         updatedAtIso
       );
@@ -130,14 +134,21 @@ export class SqliteMetadataRepository implements IMetadataRepository {
       size: fileRow.size,
       mimeType: fileRow.mime_type,
       wholeFileHash: fileRow.whole_file_hash,
+      status: (fileRow.file_status ?? 'ACTIVE') as FileStatus,
       createdAt: new Date(fileRow.created_at),
       updatedAt: new Date(fileRow.updated_at),
       chunks,
     };
   }
 
-  public async listFiles(): Promise<FileMetadata[]> {
-    const stmt = this.db.prepare('SELECT id FROM files ORDER BY created_at DESC');
+  public async listFiles(options?: ListFilesOptions): Promise<FileMetadata[]> {
+    const includeTrashed = options?.includeTrashed ?? false;
+    let query = 'SELECT id FROM files WHERE file_status = \'ACTIVE\' ORDER BY created_at DESC';
+    if (includeTrashed) {
+      query = 'SELECT id FROM files ORDER BY created_at DESC';
+    }
+
+    const stmt = this.db.prepare(query);
     const rows = stmt.all() as unknown as { id: string }[];
 
     const result: FileMetadata[] = [];
@@ -192,11 +203,28 @@ export class SqliteMetadataRepository implements IMetadataRepository {
 
   public async updateFileStatus(id: FileId, status: TransferState): Promise<void> {
     const updatedAtIso = new Date().toISOString();
-    const stmt = this.db.prepare('UPDATE files SET status = ?, updated_at = ? WHERE id = ?');
+    const stmt = this.db.prepare('UPDATE files SET transfer_status = ?, updated_at = ? WHERE id = ?');
     stmt.run(status, updatedAtIso, id);
   }
 
+  /** Soft-delete file metadata by setting file_status to TRASHED */
   public async deleteFileMetadata(id: FileId): Promise<boolean> {
+    const updatedAtIso = new Date().toISOString();
+    const stmt = this.db.prepare('UPDATE files SET file_status = \'TRASHED\', updated_at = ? WHERE id = ?');
+    const result = stmt.run(updatedAtIso, id);
+    return result.changes > 0;
+  }
+
+  /** Restore soft-deleted file metadata by setting file_status back to ACTIVE */
+  public async restoreFileMetadata(id: FileId): Promise<boolean> {
+    const updatedAtIso = new Date().toISOString();
+    const stmt = this.db.prepare('UPDATE files SET file_status = \'ACTIVE\', updated_at = ? WHERE id = ?');
+    const result = stmt.run(updatedAtIso, id);
+    return result.changes > 0;
+  }
+
+  /** Permanently purge file metadata and associated chunks from SQLite DB */
+  public async purgeFileMetadata(id: FileId): Promise<boolean> {
     const stmt = this.db.prepare('DELETE FROM files WHERE id = ?');
     const result = stmt.run(id);
     return result.changes > 0;

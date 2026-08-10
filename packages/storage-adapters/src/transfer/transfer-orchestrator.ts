@@ -71,6 +71,7 @@ export class TransferOrchestrator {
       size: totalSize,
       mimeType: input.mimeType,
       wholeFileHash,
+      status: 'ACTIVE',
       createdAt: new Date(),
       updatedAt: new Date(),
       chunks: uploadedChunks,

@@ -55,6 +55,25 @@ importers:
         specifier: ^5.5.0
         version: 5.9.3
 
+  apps/cli:
+    dependencies:
+      '@bucketspace/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@bucketspace/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@bucketspace/storage-adapters':
+        specifier: workspace:*
+        version: link:../../packages/storage-adapters
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
+      typescript:
+        specifier: ^5.5.4
+        version: 5.9.3
+
   apps/web:
     dependencies:
       '@bucketspace/shared':

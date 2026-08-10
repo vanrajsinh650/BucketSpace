@@ -22,6 +22,7 @@ test('SqliteMetadataRepository — Centerpiece Database Close & Reopen Test', as
     size: 52428800, // 50MB
     mimeType: 'application/gzip',
     wholeFileHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+    status: 'ACTIVE',
     createdAt: new Date('2026-08-10T12:00:00.000Z'),
     updatedAt: new Date('2026-08-10T12:00:00.000Z'),
     chunks: [],
@@ -121,6 +122,7 @@ test('SqliteMetadataRepository — UNIQUE(file_id, chunk_index) Atomic Upsert In
     size: 2048,
     mimeType: 'application/pdf',
     wholeFileHash: 'hash_abc',
+    status: 'ACTIVE',
     createdAt: new Date(),
     updatedAt: new Date(),
     chunks: [],
@@ -168,6 +170,7 @@ test('SqliteMetadataRepository — Metadata Deletion Cascades to Chunks', async 
     size: 4096,
     mimeType: 'image/jpeg',
     wholeFileHash: 'hash_xyz',
+    status: 'ACTIVE',
     createdAt: new Date(),
     updatedAt: new Date(),
     chunks: [
@@ -186,11 +189,54 @@ test('SqliteMetadataRepository — Metadata Deletion Cascades to Chunks', async 
   assert.ok(fileBefore !== null);
   assert.strictEqual(fileBefore.chunks.length, 1);
 
-  const deleted = await repo.deleteFileMetadata(fileId);
+  const deleted = await repo.purgeFileMetadata(fileId);
   assert.strictEqual(deleted, true);
 
   const fileAfter = await repo.getFileById(fileId);
   assert.strictEqual(fileAfter, null);
+
+  await repo.close();
+});
+
+test('SqliteMetadataRepository — Soft Delete and Restore Lifecycle', async () => {
+  const repo = new SqliteMetadataRepository(':memory:');
+
+  const fileId = createFileId('file-soft-del-404');
+  await repo.createFile({
+    id: fileId,
+    name: 'notes.txt',
+    size: 512,
+    mimeType: 'text/plain',
+    wholeFileHash: 'hash_notes',
+    status: 'ACTIVE',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    chunks: [],
+  });
+
+  // 1. Soft-delete
+  const softDeleted = await repo.deleteFileMetadata(fileId);
+  assert.strictEqual(softDeleted, true);
+
+  const trashedFile = await repo.getFileById(fileId);
+  assert.strictEqual(trashedFile?.status, 'TRASHED');
+
+  const activeFiles = await repo.listFiles({ includeTrashed: false });
+  assert.strictEqual(activeFiles.length, 0);
+
+  const allFiles = await repo.listFiles({ includeTrashed: true });
+  assert.strictEqual(allFiles.length, 1);
+  assert.strictEqual(allFiles[0].id, fileId);
+
+  // 2. Restore
+  const restored = await repo.restoreFileMetadata(fileId);
+  assert.strictEqual(restored, true);
+
+  const restoredFile = await repo.getFileById(fileId);
+  assert.strictEqual(restoredFile?.status, 'ACTIVE');
+
+  const activeFilesAfter = await repo.listFiles({ includeTrashed: false });
+  assert.strictEqual(activeFilesAfter.length, 1);
 
   await repo.close();
 });
