@@ -73,11 +73,20 @@ A storage system is not complete until the core data path is demonstrated reliab
 
 ---
 
-## 4. Current Status
+## 4. Current Status & Progress Tracking
 
-- **Active Phase**: V0 — Local Personal Storage (Architecture Reset).
-- **Prior State**: Phases 1–4 codebase exists but was never end-to-end verified against the core data path. Treated as reference material, not proven functionality.
-- **Next Step**: Awaiting architect-led design and implementation guidance for V0 foundation.
+- **Active Phase**: **BucketSpace V0 — Local Personal Storage**
+- **Completed Step 1**: **Core Domain Contracts & Storage Abstraction** ✅ ([Commit `284e160`](https://github.com/vanrajsinh650/BucketSpace/commit/284e160))
+  - Stream-oriented `IStorageProvider` contract (`AsyncIterable<Uint8Array>`).
+  - Nominal branded types (`FileId`, `ChunkId`, `ProviderId`) and domain error hierarchy.
+  - Opaque provider references (`ProviderChunkRef` with `reference: unknown`).
+  - `InMemoryStorageProvider` test adapter passing 100% unit tests.
+- **Completed Step 2**: **Local SQLite Metadata Engine & Repository** ✅ ([Commit `5e4de9e`](https://github.com/vanrajsinh650/BucketSpace/commit/5e4de9e))
+  - Native `node:sqlite` DB wrapper with `PRAGMA foreign_keys = ON;` and `PRAGMA journal_mode = WAL;`.
+  - `files` and `chunks` schema with `CONSTRAINT uq_file_chunk UNIQUE (file_id, chunk_index)` and `INDEX idx_chunks_file_id`.
+  - Prepared statements and atomic transactions for metadata operations.
+  - `IMetadataRepository` implementation (`SqliteMetadataRepository`) passing database closing & reopening test.
+- **Next Step**: **Step 3 — The Transfer Engine** (Chunking, Hashing, Resumability, Upload & Download Orchestration).
 
 ---
 
