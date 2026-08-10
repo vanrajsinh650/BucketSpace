@@ -6,17 +6,21 @@ When architecture, goals, or rules change, this document MUST be updated, removi
 
 ---
 
-## 1. Core Project Goal & Vision
+## 1. Core Product Thesis & Vision
 
-**BucketSpace V0** is a **local personal storage system** that uses Telegram as the storage backend.
+> **"BucketSpace is an open-source personal file system that unifies storage from multiple providers into one searchable, shareable drive. The storage provider is infrastructure. BucketSpace is the experience."**
 
-- **Project Model**: 100% Open-Source.
-- **V0 Scope**: Local desktop application that can reliably store and retrieve files via Telegram Private Channels.
-- **Core Principle**: Telegram is a **StorageProvider adapter**, not the identity of BucketSpace. The architecture must cleanly support future providers (Local Disk, S3, GCP, Azure) without refactoring — but V0 only implements Telegram.
+### Product Principles
+1. **Unified Personal Drive**: Users see a single Google Drive-style file hierarchy (`My Drive/Photos/...`). The storage backend (Telegram, S3, R2, Supabase, Local Disk) is metadata attached to each file.
+2. **Provider Independence**: Storage providers are interchangeable infrastructure adapters underneath the BucketSpace core layer.
+3. **Layered Intelligence**:
+   - **Normal Search** (Default, No API Key): Instant structured metadata search across filenames, mime-types, extensions, sizes, dates, extracted text, and tags.
+   - **Optional AI Search** (User Brings Key / Local Model): Open-source pluggable AI search layer supporting OpenAI, Gemini, Claude, OpenRouter, or local Ollama.
+4. **Provider-Agnostic File Sharing**: Share links resolve `/s/:token -> fileId -> provider -> providerRef -> stream file` regardless of where bytes are stored.
+5. **Storage Redundancy Policies**: Multi-provider routing & background replication (e.g. Primary: Telegram, Backup: R2).
 
-### V0 Completion Bar
-A storage system is not complete until the core data path is demonstrated reliably:
-
+### V0 Scope & Discipline
+For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V0 focuses exclusively on establishing a rock-solid foundation:
 > **add file → upload → metadata → close/reopen app → find file → download → verify bytes → recover from interruption → delete/restore**
 
 ---
