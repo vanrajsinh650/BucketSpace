@@ -8,6 +8,7 @@ import {
   Film,
   Image as ImageIcon,
   Layers,
+  Settings,
   Trash2,
 } from 'lucide-react';
 import { CategoryFilter } from '../lib/storage-store';
@@ -15,6 +16,7 @@ import { CategoryFilter } from '../lib/storage-store';
 interface SidebarProps {
   activeCategory: CategoryFilter;
   onSelectCategory: (cat: CategoryFilter) => void;
+  onOpenSettings: () => void;
   categoryCounts: Record<CategoryFilter, number>;
   storageUsedBytes: number;
 }
@@ -22,6 +24,7 @@ interface SidebarProps {
 export function Sidebar({
   activeCategory,
   onSelectCategory,
+  onOpenSettings,
   categoryCounts,
   storageUsedBytes,
 }: SidebarProps) {
@@ -46,9 +49,9 @@ export function Sidebar({
           </div>
           <div>
             <h1 className="font-bold text-lg tracking-tight text-white flex items-center gap-1.5">
-              BucketSpace <span className="text-xs px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 font-mono font-normal">v0.1</span>
+              BucketSpace <span className="text-xs px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 font-mono font-normal">v2.1</span>
             </h1>
-            <p className="text-xs text-slate-400">Unified Storage Layer</p>
+            <p className="text-xs text-slate-400">Your storage. One interface.</p>
           </div>
         </div>
 
@@ -102,6 +105,15 @@ export function Sidebar({
         </div>
         <p className="text-[11px] text-slate-500">Byte-verified chunk integrity active</p>
       </div>
+
+      {/* Settings Button */}
+      <button
+        onClick={onOpenSettings}
+        className="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all border border-slate-800/60"
+      >
+        <Settings className="w-4 h-4" />
+        <span>Storage Providers</span>
+      </button>
     </aside>
   );
 }

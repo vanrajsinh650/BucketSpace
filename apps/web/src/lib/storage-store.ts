@@ -385,8 +385,93 @@ export class StorageStore {
     return false;
   }
 
+  /* ─── V2.1 Provider Management ─── */
+
+  /** List all providers registered in ProviderRegistry with their status */
+  public getRegisteredProviders(): { providerId: string; status: 'healthy' | 'degraded' | 'unreachable' | 'unknown'; latencyMs?: number }[] {
+    return ProviderRegistry.list().map((p) => ({
+      providerId: p.providerId,
+      status: 'unknown' as const,
+    }));
+  }
+
+  /** Run a health check probe against a specific provider */
+  public async testProviderHealth(providerId: string): Promise<{ status: 'healthy' | 'degraded' | 'unreachable'; latencyMs: number }> {
+    const result = await ProviderRegistry.healthCheck(providerId);
+    return { status: result.status, latencyMs: result.latencyMs };
+  }
+
+  /** Remove a provider from the registry */
+  public removeProvider(providerId: string): boolean {
+    return ProviderRegistry.remove(providerId);
+  }
+
+  /**
+   * Migrate a file's chunks from their current provider to a target provider.
+   * Performs byte-level verification during transfer.
+   */
+  public async migrateFile(fileId: string, targetProviderId: string): Promise<void> {
+    const file = this.files.find((f) => f.id === fileId);
+    if (!file) {
+      throw new Error(`File '${fileId}' not found`);
+    }
+
+    const targetProvider = ProviderRegistry.get(targetProviderId);
+
+    // Migrate each chunk: read from source → verify → write to target → update ref
+    for (const chunk of file.chunks) {
+      if (!chunk.providerRef || chunk.providerRef.providerId === targetProviderId) {
+        continue; // Skip chunks already on the target
+      }
+
+      const sourceProvider = ProviderRegistry.get(chunk.providerRef.providerId);
+      const stream = await sourceProvider.getChunk(chunk.providerRef);
+
+      // Buffer chunk bytes for re-upload
+      const buffers: Uint8Array[] = [];
+      for await (const piece of stream) {
+        buffers.push(piece);
+      }
+
+      // Verify source read hash
+      const totalLength = buffers.reduce((sum, b) => sum + b.byteLength, 0);
+      const combined = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const buf of buffers) {
+        combined.set(buf, offset);
+        offset += buf.byteLength;
+      }
+
+      const readHash = await calculateSha256(combined);
+      if (readHash !== chunk.hash) {
+        throw new Error(`Chunk ${chunk.index} hash mismatch during migration read`);
+      }
+
+      // Upload to target
+      const oldRef = chunk.providerRef;
+      const newRef = await targetProvider.putChunk({
+        chunkId: chunk.id,
+        size: chunk.size,
+        hash: chunk.hash,
+        data: (async function* () { yield combined; })(),
+      });
+
+      // Update metadata to point to new provider
+      chunk.providerRef = newRef;
+
+      // Delete from source (non-fatal if it fails)
+      try {
+        await sourceProvider.deleteChunk(oldRef);
+      } catch {
+        // Source cleanup is best-effort
+      }
+    }
+
+    file.updatedAt = new Date();
+  }
+
   private seedInitialData(): void {
-    const sampleText = 'Welcome to BucketSpace V0.1 — Local Personal Storage!';
+    const sampleText = 'Welcome to BucketSpace v2.1 — Your storage. One interface. Any provider.';
     const textBytes = new TextEncoder().encode(sampleText);
 
     this.files = [
@@ -438,3 +523,4 @@ export class StorageStore {
     ];
   }
 }
+

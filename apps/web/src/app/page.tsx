@@ -5,6 +5,8 @@ import { FileMetadata } from '@bucketspace/shared';
 import { FileGrid } from '../components/FileGrid';
 import { FileInfoModal } from '../components/FileInfoModal';
 import { Header } from '../components/Header';
+import { MoveFileModal } from '../components/MoveFileModal';
+import { ProviderSettings, ProviderDisplayInfo } from '../components/ProviderSettings';
 import { ShareModal } from '../components/ShareModal';
 import { Sidebar } from '../components/Sidebar';
 import { UploadModal } from '../components/UploadModal';
@@ -28,6 +30,9 @@ export default function BucketSpaceApp() {
   const [uploadState, setUploadState] = useState<UploadProgressState | null>(null);
   const [selectedFileForInfo, setSelectedFileForInfo] = useState<FileMetadata | null>(null);
   const [selectedFileForShare, setSelectedFileForShare] = useState<FileMetadata | null>(null);
+  const [selectedFileForMove, setSelectedFileForMove] = useState<FileMetadata | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [providerList, setProviderList] = useState<ProviderDisplayInfo[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
@@ -98,12 +103,59 @@ export default function BucketSpaceApp() {
     }
   };
 
+  /* ─── Provider Management Handlers ─── */
+
+  const handleOpenSettings = () => {
+    // Populate provider list from store
+    const providers = store.getRegisteredProviders();
+    setProviderList(providers);
+    setSettingsOpen(true);
+  };
+
+  const handleTestConnection = async (providerId: string) => {
+    const result = await store.testProviderHealth(providerId);
+    setProviderList((prev) =>
+      prev.map((p) =>
+        p.providerId === providerId
+          ? { ...p, status: result.status, latencyMs: result.latencyMs }
+          : p
+      )
+    );
+  };
+
+  const handleRemoveProvider = (providerId: string) => {
+    store.removeProvider(providerId);
+    setProviderList((prev) => prev.filter((p) => p.providerId !== providerId));
+  };
+
+  const handleMoveFile = async (fileId: string, targetProviderId: string) => {
+    try {
+      await store.migrateFile(fileId, targetProviderId);
+      setSelectedFileForMove(null);
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Migration failed';
+      alert(`Move Error: ${msg}`);
+    }
+  };
+
+  /** Build available providers list for the MoveFileModal */
+  const getMoveProviders = (file: FileMetadata) => {
+    const currentProviderId = file.chunks?.[0]?.providerRef?.providerId ?? 'unknown';
+    const allProviders = store.getRegisteredProviders();
+    return allProviders.map((p) => ({
+      providerId: p.providerId,
+      current: p.providerId === currentProviderId,
+    }));
+  };
+
   return (
     <div className="min-h-screen bg-[#0b0f19] text-slate-100 flex">
       {/* Sidebar */}
       <Sidebar
         activeCategory={activeCategory}
         onSelectCategory={setActiveCategory}
+        onOpenSettings={handleOpenSettings}
         categoryCounts={categoryCounts}
         storageUsedBytes={storageUsedBytes}
       />
@@ -139,6 +191,7 @@ export default function BucketSpaceApp() {
             onDownload={handleDownload}
             onInfo={setSelectedFileForInfo}
             onShare={setSelectedFileForShare}
+            onMove={setSelectedFileForMove}
             onDelete={handleDelete}
             onRestore={handleRestore}
             onPurge={handlePurge}
@@ -168,6 +221,26 @@ export default function BucketSpaceApp() {
         file={selectedFileForShare}
         onClose={() => setSelectedFileForShare(null)}
       />
+
+      {/* Move File Modal */}
+      {selectedFileForMove && (
+        <MoveFileModal
+          file={selectedFileForMove}
+          availableProviders={getMoveProviders(selectedFileForMove)}
+          onMove={handleMoveFile}
+          onClose={() => setSelectedFileForMove(null)}
+        />
+      )}
+
+      {/* Provider Settings Modal */}
+      {settingsOpen && (
+        <ProviderSettings
+          providers={providerList}
+          onTestConnection={handleTestConnection}
+          onRemoveProvider={handleRemoveProvider}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
     </div>
   );
 }

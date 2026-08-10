@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import {
+  ArrowRightLeft,
   Download,
   File,
   FileText,
@@ -24,15 +25,22 @@ interface FileCardProps {
   onDownload: (fileId: string) => void;
   onInfo: (file: FileMetadata) => void;
   onShare?: (file: FileMetadata) => void;
+  onMove?: (file: FileMetadata) => void;
   onDelete: (fileId: string) => void;
   onRestore?: (fileId: string) => void;
   onPurge?: (fileId: string) => void;
   onVerify?: (fileId: string) => void;
 }
 
+/** Derive the primary provider ID from a file's first chunk */
+const getFileProviderId = (file: FileMetadata): string | null => {
+  return file.chunks?.[0]?.providerRef?.providerId ?? null;
+};
+
 export function FileCard({
   file,
   viewMode,
+  onMove,
   onDownload,
   onInfo,
   onShare,
@@ -170,7 +178,14 @@ export function FileCard({
         <h4 className="font-semibold text-sm text-slate-200 truncate group-hover:text-white transition-colors">
           {file.name}
         </h4>
-        <p className="text-xs text-slate-400 mt-1">{formatSize(file.size)}</p>
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-xs text-slate-400">{formatSize(file.size)}</span>
+          {getFileProviderId(file) && (
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700/50">
+              📦 {getFileProviderId(file)}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
@@ -188,6 +203,15 @@ export function FileCard({
                 <Download className="w-3.5 h-3.5" />
                 <span>Get</span>
               </button>
+              {onMove && (
+                <button
+                  onClick={() => onMove(file)}
+                  title="Move to another provider"
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-purple-400 hover:bg-slate-800/80 transition-colors"
+                >
+                  <ArrowRightLeft className="w-3.5 h-3.5" />
+                </button>
+              )}
               <button
                 onClick={() => onDelete(file.id)}
                 className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800/80 transition-colors"

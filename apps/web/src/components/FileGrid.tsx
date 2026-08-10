@@ -16,6 +16,7 @@ interface FileGridProps {
   onDownload: (fileId: string) => void;
   onInfo: (file: FileMetadata) => void;
   onShare?: (file: FileMetadata) => void;
+  onMove?: (file: FileMetadata) => void;
   onDelete: (fileId: string) => void;
   onRestore?: (fileId: string) => void;
   onPurge?: (fileId: string) => void;
@@ -31,6 +32,7 @@ export function FileGrid({
   onDownload,
   onInfo,
   onShare,
+  onMove,
   onDelete,
   onRestore,
   onPurge,
@@ -100,6 +102,7 @@ export function FileGrid({
               onDownload={onDownload}
               onInfo={onInfo}
               onShare={onShare}
+              onMove={onMove}
               onDelete={onDelete}
               onRestore={onRestore}
               onPurge={onPurge}
