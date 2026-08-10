@@ -19,6 +19,9 @@ export interface IMetadataRepository {
   /** List stored file records (defaults to excluding trashed files unless includeTrashed = true) */
   listFiles(options?: ListFilesOptions): Promise<FileMetadata[]>;
 
+  /** Perform instant full-text indexed search over filenames and MIME types */
+  searchFiles(query: string, options?: ListFilesOptions): Promise<FileMetadata[]>;
+
   /** Save or update a single chunk record */
   saveChunk(chunk: ChunkMetadata): Promise<void>;
 

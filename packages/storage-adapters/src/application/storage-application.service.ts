@@ -4,6 +4,7 @@ import {
 } from '@bucketspace/db';
 import { FileId, FileMetadata } from '@bucketspace/shared';
 import { ProviderRegistry } from '../registry/provider-registry';
+import { ShareLink, TokenShareProvider } from '../share';
 import { InspectionResult, RecoveryEngine } from '../transfer/recovery-engine';
 import { DownloadResult, TransferOrchestrator } from '../transfer/transfer-orchestrator';
 
@@ -51,6 +52,23 @@ export class StorageApplicationService {
 
   public async listFiles(options?: ListFilesOptions): Promise<FileMetadata[]> {
     return this.repository.listFiles(options);
+  }
+
+  public async searchFiles(query: string, options?: ListFilesOptions): Promise<FileMetadata[]> {
+    return this.repository.searchFiles(query, options);
+  }
+
+  public async createShareLink(
+    fileId: string,
+    options?: { expiresInSeconds?: number; baseUrl?: string }
+  ): Promise<ShareLink> {
+    const file = await this.repository.getFileById(fileId as FileId);
+    if (!file) {
+      throw new Error(`File '${fileId}' not found for sharing`);
+    }
+
+    const shareProvider = new TokenShareProvider();
+    return shareProvider.createShareLink(fileId, options);
   }
 
   public async getFile(fileId: string): Promise<FileMetadata | null> {

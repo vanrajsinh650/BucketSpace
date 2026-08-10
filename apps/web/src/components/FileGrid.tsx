@@ -15,6 +15,7 @@ interface FileGridProps {
   onSortChange: (field: SortField) => void;
   onDownload: (fileId: string) => void;
   onInfo: (file: FileMetadata) => void;
+  onShare?: (file: FileMetadata) => void;
   onDelete: (fileId: string) => void;
   onRestore?: (fileId: string) => void;
   onPurge?: (fileId: string) => void;
@@ -29,6 +30,7 @@ export function FileGrid({
   onSortChange,
   onDownload,
   onInfo,
+  onShare,
   onDelete,
   onRestore,
   onPurge,
@@ -97,6 +99,7 @@ export function FileGrid({
               viewMode={viewMode}
               onDownload={onDownload}
               onInfo={onInfo}
+              onShare={onShare}
               onDelete={onDelete}
               onRestore={onRestore}
               onPurge={onPurge}

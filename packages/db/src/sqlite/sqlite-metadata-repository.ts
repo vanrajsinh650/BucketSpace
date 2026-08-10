@@ -162,6 +162,39 @@ export class SqliteMetadataRepository implements IMetadataRepository {
     return result;
   }
 
+  public async searchFiles(query: string, options?: ListFilesOptions): Promise<FileMetadata[]> {
+    const includeTrashed = options?.includeTrashed ?? false;
+    const pattern = `%${query.trim().toLowerCase()}%`;
+
+    let sql = `
+      SELECT id FROM files
+      WHERE (LOWER(name) LIKE ? OR LOWER(mime_type) LIKE ?)
+      AND file_status = 'ACTIVE'
+      ORDER BY created_at DESC
+    `;
+
+    if (includeTrashed) {
+      sql = `
+        SELECT id FROM files
+        WHERE (LOWER(name) LIKE ? OR LOWER(mime_type) LIKE ?)
+        ORDER BY created_at DESC
+      `;
+    }
+
+    const stmt = this.db.prepare(sql);
+    const rows = stmt.all(pattern, pattern) as unknown as { id: string }[];
+
+    const result: FileMetadata[] = [];
+    for (const row of rows) {
+      const file = await this.getFileById(createFileId(row.id));
+      if (file) {
+        result.push(file);
+      }
+    }
+
+    return result;
+  }
+
   public async saveChunk(chunk: ChunkMetadata): Promise<void> {
     const providerId = chunk.providerRef?.providerId ?? 'none';
     const providerRefJson = chunk.providerRef ? JSON.stringify(chunk.providerRef) : JSON.stringify(null);

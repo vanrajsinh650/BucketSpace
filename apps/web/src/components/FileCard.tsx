@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Trash2,
   FileArchive,
+  Share2,
 } from 'lucide-react';
 import { FileMetadata } from '@bucketspace/shared';
 
@@ -22,6 +23,7 @@ interface FileCardProps {
   viewMode: 'grid' | 'list';
   onDownload: (fileId: string) => void;
   onInfo: (file: FileMetadata) => void;
+  onShare?: (file: FileMetadata) => void;
   onDelete: (fileId: string) => void;
   onRestore?: (fileId: string) => void;
   onPurge?: (fileId: string) => void;
@@ -33,6 +35,7 @@ export function FileCard({
   viewMode,
   onDownload,
   onInfo,
+  onShare,
   onDelete,
   onRestore,
   onPurge,
@@ -105,6 +108,15 @@ export function FileCard({
               >
                 <Info className="w-4 h-4" />
               </button>
+              {onShare && (
+                <button
+                  onClick={() => onShare(file)}
+                  title="Share Secure Link"
+                  className="p-2 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-800/80 transition-colors"
+                >
+                  <Share2 className="w-4 h-4" />
+                </button>
+              )}
               <button
                 onClick={() => onDelete(file.id)}
                 title="Move to Trash"

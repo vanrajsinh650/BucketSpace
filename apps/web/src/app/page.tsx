@@ -5,6 +5,7 @@ import { FileMetadata } from '@bucketspace/shared';
 import { FileGrid } from '../components/FileGrid';
 import { FileInfoModal } from '../components/FileInfoModal';
 import { Header } from '../components/Header';
+import { ShareModal } from '../components/ShareModal';
 import { Sidebar } from '../components/Sidebar';
 import { UploadModal } from '../components/UploadModal';
 import {
@@ -26,6 +27,7 @@ export default function BucketSpaceApp() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [uploadState, setUploadState] = useState<UploadProgressState | null>(null);
   const [selectedFileForInfo, setSelectedFileForInfo] = useState<FileMetadata | null>(null);
+  const [selectedFileForShare, setSelectedFileForShare] = useState<FileMetadata | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
@@ -136,6 +138,7 @@ export default function BucketSpaceApp() {
             onSortChange={handleSortChange}
             onDownload={handleDownload}
             onInfo={setSelectedFileForInfo}
+            onShare={setSelectedFileForShare}
             onDelete={handleDelete}
             onRestore={handleRestore}
             onPurge={handlePurge}
@@ -158,6 +161,12 @@ export default function BucketSpaceApp() {
       <FileInfoModal
         file={selectedFileForInfo}
         onClose={() => setSelectedFileForInfo(null)}
+      />
+
+      {/* Share Modal */}
+      <ShareModal
+        file={selectedFileForShare}
+        onClose={() => setSelectedFileForShare(null)}
       />
     </div>
   );

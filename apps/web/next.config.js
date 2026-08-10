@@ -9,13 +9,11 @@ const nextConfig = {
         path: false,
         os: false,
         stream: false,
+        'stream/promises': false,
       };
       config.plugins.push(
         new webpack.NormalModuleReplacementPlugin(/^node:/, (resource) => {
-          const mod = resource.request.replace(/^node:/, '');
-          if (['fs', 'crypto', 'path', 'os', 'stream'].includes(mod)) {
-            resource.request = 'path'; // harmless fallback module or empty
-          }
+          resource.request = 'path';
         })
       );
     }
