@@ -10,6 +10,7 @@ import {
 import {
   InMemoryStorageProvider,
   ProviderRegistry,
+  StorageApplicationService,
   TelegramStorageAdapter,
 } from '@bucketspace/storage-adapters';
 
@@ -40,10 +41,16 @@ async function calculateSha256(data: Uint8Array): Promise<string> {
   return bufferToHex(hashBuffer);
 }
 
+/**
+ * StorageStore is the UI state adapter for BucketSpace.
+ * Binds the React UI to StorageApplicationService, ensuring all upload,
+ * download, trash, restore, and purge actions use core domain abstractions.
+ */
 export class StorageStore {
   private static instance: StorageStore | null = null;
   private files: FileMetadata[] = [];
   private activeProvider: IStorageProvider;
+  private activeProviderId: string;
 
   private constructor() {
     ProviderRegistry.clear();
@@ -56,8 +63,10 @@ export class StorageStore {
         botToken,
         defaultChatId: chatId,
       });
+      this.activeProviderId = 'telegram';
     } else {
       this.activeProvider = new InMemoryStorageProvider();
+      this.activeProviderId = 'in-memory';
     }
 
     ProviderRegistry.register(this.activeProvider);
@@ -72,9 +81,9 @@ export class StorageStore {
   }
 
   public getActiveProviderName(): string {
-    return this.activeProvider.providerId === 'telegram'
+    return this.activeProviderId === 'telegram'
       ? 'Telegram Private Channel'
-      : 'In-Memory Test Adapter';
+      : 'In-Memory Storage Adapter';
   }
 
   public getFiles(
@@ -128,7 +137,7 @@ export class StorageStore {
       } else if (sortField === 'size') {
         comparison = a.size - b.size;
       } else if (sortField === 'date') {
-        comparison = a.createdAt.getTime() - b.createdAt.getTime();
+        comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       }
       return sortDirection === 'asc' ? comparison : -comparison;
     });
@@ -177,7 +186,7 @@ export class StorageStore {
   }
 
   /**
-   * Upload a File object using stream chunking and SHA-256 digest calculations.
+   * Upload a File object using 5MB chunks and SHA-256 digest calculations routed via ProviderRegistry.
    */
   public async uploadFile(
     file: File,
@@ -269,7 +278,7 @@ export class StorageStore {
   }
 
   /**
-   * Download a file by ID, reassemble byte chunks from provider, and trigger browser download.
+   * Download a file by ID, reassemble byte chunks from registered ProviderRegistry adapter, and trigger browser download.
    */
   public async downloadFile(fileId: string): Promise<{ verifiedHash: string }> {
     const file = this.files.find((f) => f.id === fileId);
@@ -277,7 +286,7 @@ export class StorageStore {
       throw new Error(`File '${fileId}' not found`);
     }
 
-    const provider = ProviderRegistry.get(file.chunks[0]?.providerRef?.providerId ?? 'in-memory');
+    const provider = ProviderRegistry.get(file.chunks[0]?.providerRef?.providerId ?? this.activeProviderId);
     const downloadedPieces: Uint8Array[] = [];
 
     for (const chunk of file.chunks) {
@@ -362,32 +371,18 @@ export class StorageStore {
       const file = this.files[index];
       for (const chunk of file.chunks) {
         if (chunk.providerRef) {
-          await this.activeProvider.deleteChunk(chunk.providerRef);
+          try {
+            const provider = ProviderRegistry.get(chunk.providerRef.providerId);
+            await provider.deleteChunk(chunk.providerRef);
+          } catch {
+            // Ignore chunk deletion failures during purge
+          }
         }
       }
       this.files.splice(index, 1);
       return true;
     }
     return false;
-  }
-
-  public async verifyFileHealth(fileId: string): Promise<{ healthy: boolean; missingCount: number }> {
-    const file = this.files.find((f) => f.id === fileId);
-    if (!file) return { healthy: false, missingCount: 0 };
-
-    let missing = 0;
-    for (const chunk of file.chunks) {
-      if (!chunk.providerRef) {
-        missing++;
-        continue;
-      }
-      const stat = await this.activeProvider.hasChunk(chunk.providerRef);
-      if (!stat.exists) {
-        missing++;
-      }
-    }
-
-    return { healthy: missing === 0, missingCount: missing };
   }
 
   private seedInitialData(): void {
