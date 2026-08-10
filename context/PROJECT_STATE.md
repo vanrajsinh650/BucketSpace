@@ -135,6 +135,16 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
   - Added `clearRules()` to `StorageRouter` for runtime re-configuration.
   - Passed 100% of all 22 unit and integration test suites.
 - **🎉 MILESTONE ACHIEVED**: **BucketSpace V2 — Multi-Provider Storage Platform Completed!**
+- **Completed V2.1**: **Provider Management UI** ✅ ([Commit `39ae56d`](https://github.com/vanrajsinh650/BucketSpace/commit/39ae56d))
+  - Created `ProviderSettings` modal: health status indicators, latency display, Test/Remove actions.
+  - Created `MoveFileModal`: radio-style target provider selection with SHA-256 verification note.
+  - Added provider badge (`📦 provider-id`) to `FileCard` showing which provider holds each file's chunks.
+  - Added `ArrowRightLeft` Move action to file card grid view.
+  - Added "Storage Providers" settings button to `Sidebar`.
+  - Added V2.1 provider management methods to `StorageStore`: `getRegisteredProviders()`, `testProviderHealth()`, `removeProvider()`, `migrateFile()`.
+  - Updated branding: v2.1 badge, tagline "Your storage. One interface. Any provider."
+  - All 22 test suites pass, `next build` compiles cleanly.
+- **🎉 MILESTONE ACHIEVED**: **BucketSpace V2.1 — Provider Management UI Completed!**
 
 ---
 
