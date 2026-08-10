@@ -103,6 +103,9 @@ importers:
 
   packages/db:
     dependencies:
+      '@bucketspace/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@prisma/client':
         specifier: ^5.16.0
         version: 5.22.0(prisma@5.22.0)

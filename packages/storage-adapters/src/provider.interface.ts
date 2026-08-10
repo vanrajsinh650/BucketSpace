@@ -36,7 +36,7 @@ export interface UploadPartResult {
  * Every storage backend (Telegram, S3, R2, GCS, Azure) must satisfy
  * this contract. Consumers never depend on provider-specific fields.
  */
-export interface IStorageProvider {
+export interface LegacyIStorageProvider {
   /**
    * Upload a file chunk to the target storage location.
    * @param targetId - Provider-specific destination (Telegram channel ID, S3 bucket, etc.)

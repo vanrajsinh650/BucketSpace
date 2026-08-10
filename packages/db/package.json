@@ -7,9 +7,11 @@
   "scripts": {
     "build": "tsc --build",
     "prisma:generate": "prisma generate",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "tsc --project tsconfig.test.json && node --test dist/test/sqlite-metadata-repository.test.js"
   },
   "dependencies": {
+    "@bucketspace/shared": "workspace:*",
     "@prisma/client": "^5.16.0"
   },
   "devDependencies": {
