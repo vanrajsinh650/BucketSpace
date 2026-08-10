@@ -111,7 +111,7 @@ test('SqliteMetadataRepository — Foreign Key Constraint Invariant', async () =
   await repo.close();
 });
 
-test('SqliteMetadataRepository — UNIQUE(file_id, chunk_index) Constraint Invariant', async () => {
+test('SqliteMetadataRepository — UNIQUE(file_id, chunk_index) Atomic Upsert Invariant', async () => {
   const repo = new SqliteMetadataRepository(':memory:');
 
   const fileId = createFileId('file-uuid-202');
@@ -126,7 +126,7 @@ test('SqliteMetadataRepository — UNIQUE(file_id, chunk_index) Constraint Invar
     chunks: [],
   });
 
-  const chunk0a = {
+  const chunk0a: ChunkMetadata = {
     id: createChunkId('chunk-id-1'),
     fileId,
     index: 0,
@@ -137,22 +137,23 @@ test('SqliteMetadataRepository — UNIQUE(file_id, chunk_index) Constraint Invar
 
   await repo.saveChunk(chunk0a);
 
-  const chunk0b = {
-    id: createChunkId('chunk-id-2'), // Different chunk ID
+  const chunk0b: ChunkMetadata = {
+    id: createChunkId('chunk-id-2'), // New chunk ID for same file_id & index 0
     fileId,
     index: 0, // Duplicate chunk index for same file_id
     size: 1024,
-    hash: 'hash_2',
-    providerRef: { providerId: 'in-memory', reference: { key: 'k2' } },
+    hash: 'hash_2_updated',
+    providerRef: { providerId: 'in-memory', reference: { key: 'k2_updated' } },
   };
 
-  // Unique constraint uq_file_chunk must reject duplicate (file_id, chunk_index)
-  await assert.rejects(
-    async () => {
-      await repo.saveChunk(chunk0b);
-    },
-    (err: unknown) => err instanceof Error && err.message.includes('UNIQUE constraint failed')
-  );
+  // Calling saveChunk for an existing (file_id, chunk_index) must upsert the record
+  await repo.saveChunk(chunk0b);
+
+  const file = await repo.getFileById(fileId);
+  assert.ok(file !== null);
+  assert.strictEqual(file.chunks.length, 1, 'Must still contain exactly 1 chunk for index 0');
+  assert.strictEqual(file.chunks[0].hash, 'hash_2_updated');
+  assert.deepStrictEqual(file.chunks[0].providerRef?.reference, { key: 'k2_updated' });
 
   await repo.close();
 });

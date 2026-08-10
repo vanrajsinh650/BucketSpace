@@ -158,9 +158,8 @@ export class SqliteMetadataRepository implements IMetadataRepository {
     const stmt = this.db.prepare(`
       INSERT INTO chunks (id, file_id, chunk_index, size, hash, provider_id, provider_ref_json)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(id) DO UPDATE SET
-        file_id = excluded.file_id,
-        chunk_index = excluded.chunk_index,
+      ON CONFLICT(file_id, chunk_index) DO UPDATE SET
+        id = excluded.id,
         size = excluded.size,
         hash = excluded.hash,
         provider_id = excluded.provider_id,

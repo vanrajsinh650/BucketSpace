@@ -1,5 +1,6 @@
 import { Readable } from 'stream';
-import { IStorageProvider, UploadPartPayload, UploadPartResult } from './provider.interface';
+import { LegacyIStorageProvider, UploadPartPayload, UploadPartResult } from './provider.interface';
+
 import { streamToBuffer } from './stream.utils';
 
 /* ------------------------------------------------------------------ */
@@ -19,7 +20,7 @@ export interface AzureAdapterConfig {
 /*  Uses REST API with SAS token auth from environment.                */
 /* ------------------------------------------------------------------ */
 
-export class AzureBlobStorageAdapter implements IStorageProvider {
+export class AzureBlobStorageAdapter implements LegacyIStorageProvider {
   private readonly accountName: string;
   private readonly apiEndpoint: string;
 

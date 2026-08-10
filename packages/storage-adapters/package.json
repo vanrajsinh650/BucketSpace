@@ -7,9 +7,10 @@
   "scripts": {
     "build": "tsc --build",
     "type-check": "tsc --noEmit",
-    "test": "tsc --project tsconfig.test.json && node --test dist/test/in-memory-provider.test.js"
+    "test": "tsc --project tsconfig.test.json && node --test dist/test/*.test.js"
   },
   "dependencies": {
+    "@bucketspace/db": "workspace:*",
     "@bucketspace/shared": "workspace:*"
   },
   "devDependencies": {

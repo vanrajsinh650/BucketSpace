@@ -55,7 +55,7 @@ const DEFAULT_BACKOFF_SECONDS = 5;
 /*  Stores file chunks as document attachments in Telegram channels.   */
 /* ------------------------------------------------------------------ */
 
-export class TelegramStorageAdapter implements IStorageProvider {
+export class TelegramStorageAdapter implements LegacyIStorageProvider {
   private readonly botToken: string;
   private readonly apiBaseUrl: string;
   private readonly maxRetries: number;

@@ -1,5 +1,6 @@
 import { Readable } from 'stream';
-import { IStorageProvider, UploadPartPayload, UploadPartResult } from './provider.interface';
+import { LegacyIStorageProvider, UploadPartPayload, UploadPartResult } from './provider.interface';
+
 import { streamToBuffer } from './stream.utils';
 
 /* ------------------------------------------------------------------ */
@@ -20,7 +21,7 @@ export interface S3AdapterConfig {
 /*  Full AWS SigV4 signing is planned for Phase 3 (@aws-sdk/client-s3) */
 /* ------------------------------------------------------------------ */
 
-export class S3StorageAdapter implements IStorageProvider {
+export class S3StorageAdapter implements LegacyIStorageProvider {
   private readonly endpoint: string;
 
   constructor(config: S3AdapterConfig = {}) {

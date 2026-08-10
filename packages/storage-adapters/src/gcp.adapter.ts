@@ -1,5 +1,6 @@
 import { Readable } from 'stream';
-import { IStorageProvider, UploadPartPayload, UploadPartResult } from './provider.interface';
+import { LegacyIStorageProvider, UploadPartPayload, UploadPartResult } from './provider.interface';
+
 import { streamToBuffer } from './stream.utils';
 
 /* ------------------------------------------------------------------ */
@@ -19,7 +20,7 @@ export interface GCPAdapterConfig {
 /*  Uses GCP JSON API with Bearer token auth from environment.         */
 /* ------------------------------------------------------------------ */
 
-export class GCPStorageAdapter implements IStorageProvider {
+export class GCPStorageAdapter implements LegacyIStorageProvider {
   private readonly projectId: string;
   private readonly apiEndpoint: string;
 

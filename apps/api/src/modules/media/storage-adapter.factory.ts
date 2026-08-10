@@ -1,5 +1,5 @@
 import {
-  IStorageProvider,
+  LegacyIStorageProvider,
   TelegramStorageAdapter,
   GCPStorageAdapter,
   AzureBlobStorageAdapter,
@@ -12,18 +12,18 @@ import {
 /*  Singletons are cached per provider to avoid re-instantiation.      */
 /* ------------------------------------------------------------------ */
 
-const adapterCache = new Map<string, IStorageProvider>();
+const adapterCache = new Map<string, LegacyIStorageProvider>();
 
 export class StorageAdapterFactory {
   /**
    * Returns a cached adapter instance for the given provider type.
    * Creates one on first call for each provider.
    */
-  static create(provider: string): IStorageProvider {
+  static create(provider: string): LegacyIStorageProvider {
     const cached = adapterCache.get(provider);
     if (cached) return cached;
 
-    let adapter: IStorageProvider;
+    let adapter: LegacyIStorageProvider;
 
     switch (provider) {
       case 'GCP_STORAGE':

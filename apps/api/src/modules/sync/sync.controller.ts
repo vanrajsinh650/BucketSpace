@@ -156,7 +156,7 @@ export function registerSyncRoutes(fastify: FastifyInstance): void {
         take: 20,
       });
 
-      const formattedJobs = jobs.map((j) => ({
+      const formattedJobs = jobs.map((j: any) => ({
         id: j.id,
         policyName: j.policy.name,
         status: j.status,
