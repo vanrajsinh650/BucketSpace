@@ -173,6 +173,14 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
   - Defined `IContentExtractor` and `IAIIndex` domain contracts in `@bucketspace/shared`, isolating AI/OCR metadata completely from storage providers (`IStorageProvider` remains 100% byte-only).
   - Passed 100% of all 42 master unit and integration test suites (including ciphertext tampering rejection, IV uniqueness run, scrypt passcode verification, 20-concurrent-request download cap race test, circuit breaker policy fallback, and AI zero-dependency isolation audit).
 - **🎉 MILESTONE ACHIEVED**: **BucketSpace V2.4 — Security, Production Hardening & Architectural Isolation Completed!**
+- **Completed V2.5**: **Security & Threat Model Hardening** ✅ ([Commit `ab46ba4`](https://github.com/vanrajsinh650/BucketSpace/commit/ab46ba4))
+  - Implemented Local Disk Sandboxing in `LocalStorageAdapter`: canonical `path.resolve` + strict root prefix validation (`targetPath.startsWith(storageRoot)`) rejecting path traversal (`../../../../etc/passwd`) and symlink breakouts.
+  - Implemented Hashed Share Tokens at Rest in `TokenShareProvider`: 256-bit cryptographically secure random tokens (`crypto.randomBytes(32)`), stored hashed at rest via SHA-256 digest so DB leaks never reveal active public links.
+  - Implemented `sanitizeFilename` utility: strips null bytes (`\0`), control characters, directory separators, and Windows reserved names (`CON`, `NUL`, etc.).
+  - Implemented Audit Logging Subsystem in `@bucketspace/db`: append-only `audit_logs` SQLite table and `AuditLogRepository` tracking system events (`UPLOAD`, `DOWNLOAD`, `SHARE_CREATED`, `SHARE_REVOKED`, `CREDENTIAL_ROTATED`, `REPAIR_COMPLETED`, etc.).
+  - Implemented Master Key Rotation in `EnvelopeEncryptionVault`: `rekeyCredential` updates KEK under a new master passphrase without re-encrypting underlying payloads.
+  - Passed 100% of all 47 master unit and integration test suites.
+- **🎉 MILESTONE ACHIEVED**: **BucketSpace V2.5 — Security & Threat Model Hardening Completed!**
 
 ---
 
