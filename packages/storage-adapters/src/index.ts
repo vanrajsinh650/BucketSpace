@@ -11,4 +11,5 @@ export * from './routing';
 export * from './registry';
 export * from './share';
 export * from './migration';
+export * from './redundancy';
 export * from './application';

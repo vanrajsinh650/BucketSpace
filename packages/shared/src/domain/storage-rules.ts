@@ -30,10 +30,15 @@ export interface RuleCondition {
   value: string; // For size: string-encoded bytes, e.g. "1073741824" for 1GB
 }
 
-/** The action to take when a rule matches. Currently only STORE is supported. */
+/**
+ * The action to take when a rule matches.
+ * - type 'STORE': Place file on providerId as PRIMARY.
+ * - replicas: Optional array of provider IDs for redundant copies.
+ */
 export interface StorageRuleAction {
   type: 'STORE';
   providerId: string;
+  replicas?: string[];
 }
 
 /**

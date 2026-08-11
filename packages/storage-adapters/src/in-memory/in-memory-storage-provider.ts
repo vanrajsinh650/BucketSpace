@@ -16,10 +16,14 @@ interface InMemoryRefData {
  * Operates purely on async iterable byte streams and opaque provider references.
  */
 export class InMemoryStorageProvider implements IStorageProvider {
-  public readonly providerId = 'in-memory';
+  public readonly providerId: string;
 
   // Internal storage: key -> array of Uint8Array chunks
   private readonly store = new Map<string, { chunks: Uint8Array[]; size: number }>();
+
+  constructor(providerId: string = 'in-memory') {
+    this.providerId = providerId;
+  }
 
   /**
    * Put a chunk stream into in-memory storage and return an opaque reference.
@@ -118,5 +122,28 @@ export class InMemoryStorageProvider implements IStorageProvider {
     }
 
     return (ref.reference as InMemoryRefData).key;
+  }
+
+  /**
+   * Testing utility: replace stored bytes for a given reference with garbage data.
+   * This simulates provider-side data corruption for redundancy testing.
+   */
+  public corruptChunk(ref: ProviderChunkRef): void {
+    const key = this.narrowReference(ref);
+    const entry = this.store.get(key);
+    if (entry) {
+      const garbage = new Uint8Array(entry.size);
+      garbage.fill(0xFF);
+      this.store.set(key, { chunks: [garbage], size: entry.size });
+    }
+  }
+
+  /**
+   * Testing utility: delete stored bytes for a given reference.
+   * Simulates provider-side data loss.
+   */
+  public deleteChunkDirect(ref: ProviderChunkRef): void {
+    const key = this.narrowReference(ref);
+    this.store.delete(key);
   }
 }

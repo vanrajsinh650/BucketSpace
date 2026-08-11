@@ -47,6 +47,25 @@ export function createSqliteDatabase(filepath: string = ':memory:'): DatabaseSyn
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS chunk_locations (
+      id TEXT PRIMARY KEY,
+      chunk_id TEXT NOT NULL,
+      file_id TEXT NOT NULL,
+      provider_id TEXT NOT NULL,
+      provider_ref_json TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'PRIMARY',
+      state TEXT NOT NULL DEFAULT 'PENDING',
+      verified_at TEXT,
+      last_error TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,
+      CONSTRAINT uq_chunk_provider UNIQUE (chunk_id, provider_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_chunk_locations_file_id ON chunk_locations(file_id);
+    CREATE INDEX IF NOT EXISTS idx_chunk_locations_chunk_id ON chunk_locations(chunk_id);
   `);
 
   return db;

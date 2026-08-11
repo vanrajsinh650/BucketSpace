@@ -1,1 +1,1 @@
-{"root":["./src/client.ts","./src/index.ts","./src/repository.interface.ts","./src/sqlite/database.ts","./src/sqlite/sqlite-metadata-repository.ts","./src/sqlite/storage-rule-repository.ts"],"version":"5.9.3"}
+{"root":["./src/client.ts","./src/index.ts","./src/repository.interface.ts","./src/sqlite/chunk-location-repository.ts","./src/sqlite/database.ts","./src/sqlite/sqlite-metadata-repository.ts","./src/sqlite/storage-rule-repository.ts"],"version":"5.9.3"}
