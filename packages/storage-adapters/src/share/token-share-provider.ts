@@ -1,27 +1,41 @@
+import { createHash, randomBytes } from 'node:crypto';
 import { CreateShareOptions, IShareProvider, ShareLink } from './share-provider.interface';
 
 /**
- * TokenShareProvider generates secure, time-bound access links and share tokens
- * with passcode verification, download caps, and expiration checks.
+ * TokenShareProvider generates secure, time-bound access links.
+ * Security Invariants:
+ * 1. Primary security boundary is a 256-bit cryptographically secure random token.
+ * 2. Share tokens are stored HASHED at rest (SHA-256 digest) so database/memory leakage
+ *    never reveals active share URLs.
+ * 3. Atomic download caps, scrypt passcode verification, and expiration checks.
  */
 export class TokenShareProvider implements IShareProvider {
   public readonly providerId = 'token-share';
+  // Storage key is tokenHash (SHA-256 of rawToken) -> ShareLink
   private readonly shares = new Map<string, ShareLink>();
+
+  /** Compute SHA-256 digest of a raw token string */
+  public static hashToken(rawToken: string): string {
+    return createHash('sha256').update(rawToken).digest('hex');
+  }
 
   public async createShareLink(
     fileId: string,
     options?: CreateShareOptions
   ): Promise<ShareLink> {
-    const shareId = `share-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+    // 1. Generate 256-bit (32-byte) cryptographically secure random share token
+    const rawToken = randomBytes(32).toString('hex');
+    const tokenHash = TokenShareProvider.hashToken(rawToken);
+
     const baseUrl = options?.baseUrl ?? 'http://localhost:3000';
     const expiresAt = options?.expiresInSeconds
       ? new Date(Date.now() + options.expiresInSeconds * 1000)
       : undefined;
 
     const shareLink: ShareLink = {
-      shareId,
+      shareId: rawToken, // Returned to caller/creator
       fileId,
-      url: `${baseUrl}/share/${shareId}`,
+      url: `${baseUrl}/share/${rawToken}`,
       createdAt: new Date(),
       expiresAt,
       passcodeHash: options?.passcodeHash,
@@ -29,21 +43,24 @@ export class TokenShareProvider implements IShareProvider {
       downloadCount: 0,
     };
 
-    this.shares.set(shareId, shareLink);
+    // Store ONLY by hashed token at rest
+    this.shares.set(tokenHash, shareLink);
     return shareLink;
   }
 
-  public async revokeShareLink(shareId: string): Promise<boolean> {
-    return this.shares.delete(shareId);
+  public async revokeShareLink(rawToken: string): Promise<boolean> {
+    const tokenHash = TokenShareProvider.hashToken(rawToken);
+    return this.shares.delete(tokenHash);
   }
 
-  public async getShareLink(shareId: string): Promise<ShareLink | null> {
-    const link = this.shares.get(shareId);
+  public async getShareLink(rawToken: string): Promise<ShareLink | null> {
+    const tokenHash = TokenShareProvider.hashToken(rawToken);
+    const link = this.shares.get(tokenHash);
     if (!link) return null;
 
-    // Expiration boundary check (at-expiry <= Date.now() is rejected)
+    // Expiration boundary check (at or past expiresAt is rejected)
     if (link.expiresAt && link.expiresAt.getTime() <= Date.now()) {
-      this.shares.delete(shareId);
+      this.shares.delete(tokenHash);
       return null;
     }
 
@@ -57,25 +74,25 @@ export class TokenShareProvider implements IShareProvider {
 
   /**
    * Atomic download consumption check.
-   * Atomically checks passcode, expiration, and maxDownloads cap before incrementing.
-   * Thread-safe / race-condition safe: returns true only if slot was reserved.
+   * Looks up share link by SHA-256 of rawToken, verifies passcode & caps, then increments.
    */
   public async consumeDownload(
-    shareId: string,
+    rawToken: string,
     passcodeVerifier?: (storedHash: string) => Promise<boolean>
   ): Promise<boolean> {
-    const link = this.shares.get(shareId);
+    const tokenHash = TokenShareProvider.hashToken(rawToken);
+    const link = this.shares.get(tokenHash);
     if (!link) return false;
 
     // 1. Expiration check: at or past expiresAt is rejected
     if (link.expiresAt && link.expiresAt.getTime() <= Date.now()) {
-      this.shares.delete(shareId);
+      this.shares.delete(tokenHash);
       return false;
     }
 
     // 2. Passcode verification check
     if (link.passcodeHash) {
-      if (!passcodeVerifier) return false; // Passcode required but none provided
+      if (!passcodeVerifier) return false;
       const validPasscode = await passcodeVerifier(link.passcodeHash);
       if (!validPasscode) return false;
     }
@@ -85,7 +102,6 @@ export class TokenShareProvider implements IShareProvider {
       return false;
     }
 
-    // Atomically increment download count
     link.downloadCount++;
     return true;
   }

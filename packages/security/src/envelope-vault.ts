@@ -109,4 +109,48 @@ export class EnvelopeEncryptionVault implements ICredentialVault {
       throw new Error(`Authentication/Decryption failed: ${msg}`);
     }
   }
+
+  /**
+   * Master Key Rotation: re-encrypts the Data Encryption Key (DEK) under a new master passphrase
+   * without having to re-encrypt the underlying credential payload.
+   */
+  public rekeyCredential(
+    payload: EncryptedPayload,
+    oldMasterPassphrase: string,
+    newMasterPassphrase: string,
+  ): EncryptedPayload {
+    if (!oldMasterPassphrase || !newMasterPassphrase) {
+      throw new Error('Master passphrases cannot be empty');
+    }
+
+    // 1. Decrypt DEK with old master passphrase
+    const oldKekSalt = Buffer.from(payload.kekSalt, 'hex');
+    const oldKek = this.deriveKek(oldMasterPassphrase, oldKekSalt);
+
+    const dekIv = Buffer.from(payload.dekIv, 'hex');
+    const dekAuthTag = Buffer.from(payload.dekAuthTag, 'hex');
+    const encryptedDek = Buffer.from(payload.encryptedDek, 'hex');
+
+    const dekDecipher = createDecipheriv('aes-256-gcm', oldKek, dekIv);
+    dekDecipher.setAuthTag(dekAuthTag);
+    const dek = Buffer.concat([dekDecipher.update(encryptedDek), dekDecipher.final()]);
+
+    // 2. Re-encrypt DEK with new master passphrase and fresh salt + IV
+    const newKekSalt = randomBytes(16);
+    const newKek = this.deriveKek(newMasterPassphrase, newKekSalt);
+    const newDekIv = randomBytes(12);
+
+    const newDekCipher = createCipheriv('aes-256-gcm', newKek, newDekIv);
+    const newEncryptedDek = Buffer.concat([newDekCipher.update(dek), newDekCipher.final()]);
+    const newDekAuthTag = newDekCipher.getAuthTag();
+
+    // 3. Return payload with updated KEK envelope and unchanged ciphertext
+    return {
+      ...payload,
+      kekSalt: newKekSalt.toString('hex'),
+      encryptedDek: newEncryptedDek.toString('hex'),
+      dekIv: newDekIv.toString('hex'),
+      dekAuthTag: newDekAuthTag.toString('hex'),
+    };
+  }
 }

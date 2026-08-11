@@ -82,18 +82,16 @@ export class LocalStorageAdapter implements IStorageProvider {
 
   public async getChunk(ref: ProviderChunkRef): Promise<AsyncIterable<Uint8Array>> {
     const localRef = this.parseRef(ref);
-    const filePath = path.join(this.rootDir, localRef.relPath);
+    const filePath = this.resolveSandboxedPath(localRef.relPath);
 
     if (!fs.existsSync(filePath)) {
-      throw new Error(
-        `[${this.providerId}] Chunk file not found on local disk: '${localRef.relPath}'`
-      );
+      throw new Error(`[${this.providerId}] Local chunk file not found: '${filePath}'`);
     }
 
-    const stream = fs.createReadStream(filePath);
     return (async function* () {
-      for await (const piece of stream) {
-        yield new Uint8Array(piece);
+      const stream = fs.createReadStream(filePath);
+      for await (const chunk of stream) {
+        yield new Uint8Array(chunk);
       }
     })();
   }
@@ -101,7 +99,7 @@ export class LocalStorageAdapter implements IStorageProvider {
   public async hasChunk(ref: ProviderChunkRef): Promise<ChunkStat> {
     try {
       const localRef = this.parseRef(ref);
-      const filePath = path.join(this.rootDir, localRef.relPath);
+      const filePath = this.resolveSandboxedPath(localRef.relPath);
 
       if (fs.existsSync(filePath)) {
         const stat = fs.statSync(filePath);
@@ -116,7 +114,7 @@ export class LocalStorageAdapter implements IStorageProvider {
   public async deleteChunk(ref: ProviderChunkRef): Promise<boolean> {
     try {
       const localRef = this.parseRef(ref);
-      const filePath = path.join(this.rootDir, localRef.relPath);
+      const filePath = this.resolveSandboxedPath(localRef.relPath);
 
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
@@ -143,5 +141,28 @@ export class LocalStorageAdapter implements IStorageProvider {
     }
 
     return data;
+  }
+
+  /**
+   * Sandboxed path resolver.
+   * Resolves target paths and verifies they stay strictly inside rootDir to prevent
+   * path traversal attacks (e.g. ../../../../etc/passwd) and symlink breakouts.
+   */
+  public resolveSandboxedPath(relPath: string): string {
+    const normalizedRoot = path.resolve(this.rootDir);
+    const targetPath = path.resolve(normalizedRoot, relPath);
+
+    if (!targetPath.startsWith(normalizedRoot + path.sep) && targetPath !== normalizedRoot) {
+      throw new Error(`[${this.providerId}] Security Alert: Path traversal breakout attempt detected for '${relPath}'`);
+    }
+
+    if (fs.existsSync(targetPath)) {
+      const realPath = fs.realpathSync(targetPath);
+      if (!realPath.startsWith(normalizedRoot + path.sep) && realPath !== normalizedRoot) {
+        throw new Error(`[${this.providerId}] Security Alert: Symlink breakout attempt detected for '${relPath}'`);
+      }
+    }
+
+    return targetPath;
   }
 }
