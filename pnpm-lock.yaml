@@ -145,6 +145,19 @@ importers:
         specifier: ^5.5.0
         version: 5.9.3
 
+  packages/security:
+    dependencies:
+      '@bucketspace/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
   packages/shared:
     dependencies:
       zod:
@@ -160,6 +173,9 @@ importers:
       '@bucketspace/db':
         specifier: workspace:*
         version: link:../db
+      '@bucketspace/security':
+        specifier: workspace:*
+        version: link:../security
       '@bucketspace/shared':
         specifier: workspace:*
         version: link:../shared

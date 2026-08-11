@@ -1,20 +1,42 @@
 import { FileRoutingInfo, StorageRule } from '@bucketspace/shared';
 import { PolicyEvaluationResult, StoragePolicyEngine } from '../routing/storage-policy-engine';
+import { ProviderCircuitBreaker } from '../resilience/circuit-breaker';
 
 /**
  * StorageRouter resolves which provider a file should be stored on.
  * It delegates rule evaluation to StoragePolicyEngine, which evaluates
  * user-defined rules deterministically in priority order.
+ *
+ * Policy-Authoritative Circuit Breaker Integration:
+ *   If a matching rule's target provider circuit is OPEN, the router evaluates
+ *   remaining policy rules for a healthy authorized alternative. It NEVER
+ *   silently violates the storage policy.
  */
 export class StorageRouter {
   private defaultProviderId: string;
   private policyEngine: StoragePolicyEngine;
   private rules: StorageRule[];
+  private circuitBreaker?: ProviderCircuitBreaker;
 
-  constructor(defaultProviderId: string = 'local-disk', policyEngine?: StoragePolicyEngine) {
+  constructor(
+    defaultProviderId: string = 'local-disk',
+    policyEngine?: StoragePolicyEngine,
+    circuitBreaker?: ProviderCircuitBreaker,
+  ) {
     this.defaultProviderId = defaultProviderId;
     this.policyEngine = policyEngine ?? new StoragePolicyEngine();
+    this.circuitBreaker = circuitBreaker;
     this.rules = this.getDefaultRules();
+  }
+
+  /** Attach or update the circuit breaker instance */
+  public setCircuitBreaker(circuitBreaker: ProviderCircuitBreaker): void {
+    this.circuitBreaker = circuitBreaker;
+  }
+
+  /** Get the attached circuit breaker */
+  public getCircuitBreaker(): ProviderCircuitBreaker | undefined {
+    return this.circuitBreaker;
   }
 
   /** Set the rules to evaluate. Typically loaded from StorageRuleRepository. */
@@ -59,8 +81,8 @@ export class StorageRouter {
 
   /**
    * Resolve which provider should store a file.
-   * Evaluates rules via PolicyEngine and returns the first match's providerId,
-   * or the defaultProviderId if no rules match.
+   * Evaluates rules via PolicyEngine. If a target provider's circuit is OPEN,
+   * remaining rules are evaluated to find a healthy policy-authorized alternative.
    */
   public resolveProviderId(file: { name: string; mimeType: string; size?: number }): string {
     const fileRoutingInfo: FileRoutingInfo = {
@@ -68,7 +90,22 @@ export class StorageRouter {
       mimeType: file.mimeType,
       size: file.size ?? 0,
     };
-    const result = this.evaluateDetailed(fileRoutingInfo);
+
+    // Filter active rules to those targeting healthy providers if circuit breaker is present
+    let candidateRules = this.rules;
+    if (this.circuitBreaker) {
+      candidateRules = this.rules.filter((rule) =>
+        this.circuitBreaker!.isAvailable(rule.action.providerId)
+      );
+    }
+
+    const result = this.policyEngine.evaluate(candidateRules, fileRoutingInfo, this.defaultProviderId);
+
+    // If result points to an unavailable provider (e.g. fallback default is OPEN)
+    if (this.circuitBreaker && !this.circuitBreaker.isAvailable(result.providerId)) {
+      throw new Error(`Storage policy target '${result.providerId}' is currently unavailable (circuit OPEN)`);
+    }
+
     return result.providerId;
   }
 

@@ -1,8 +1,8 @@
-import { IShareProvider, ShareLink } from './share-provider.interface';
+import { CreateShareOptions, IShareProvider, ShareLink } from './share-provider.interface';
 
 /**
  * TokenShareProvider generates secure, time-bound access links and share tokens
- * without exposing raw Telegram message IDs or backend bucket URLs.
+ * with passcode verification, download caps, and expiration checks.
  */
 export class TokenShareProvider implements IShareProvider {
   public readonly providerId = 'token-share';
@@ -10,7 +10,7 @@ export class TokenShareProvider implements IShareProvider {
 
   public async createShareLink(
     fileId: string,
-    options?: { expiresInSeconds?: number; baseUrl?: string }
+    options?: CreateShareOptions
   ): Promise<ShareLink> {
     const shareId = `share-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
     const baseUrl = options?.baseUrl ?? 'http://localhost:3000';
@@ -24,6 +24,9 @@ export class TokenShareProvider implements IShareProvider {
       url: `${baseUrl}/share/${shareId}`,
       createdAt: new Date(),
       expiresAt,
+      passcodeHash: options?.passcodeHash,
+      maxDownloads: options?.maxDownloads,
+      downloadCount: 0,
     };
 
     this.shares.set(shareId, shareLink);
@@ -38,11 +41,52 @@ export class TokenShareProvider implements IShareProvider {
     const link = this.shares.get(shareId);
     if (!link) return null;
 
-    if (link.expiresAt && link.expiresAt.getTime() < Date.now()) {
+    // Expiration boundary check (at-expiry <= Date.now() is rejected)
+    if (link.expiresAt && link.expiresAt.getTime() <= Date.now()) {
       this.shares.delete(shareId);
       return null;
     }
 
+    // Max downloads cap check
+    if (link.maxDownloads !== undefined && link.downloadCount >= link.maxDownloads) {
+      return null;
+    }
+
     return link;
+  }
+
+  /**
+   * Atomic download consumption check.
+   * Atomically checks passcode, expiration, and maxDownloads cap before incrementing.
+   * Thread-safe / race-condition safe: returns true only if slot was reserved.
+   */
+  public async consumeDownload(
+    shareId: string,
+    passcodeVerifier?: (storedHash: string) => Promise<boolean>
+  ): Promise<boolean> {
+    const link = this.shares.get(shareId);
+    if (!link) return false;
+
+    // 1. Expiration check: at or past expiresAt is rejected
+    if (link.expiresAt && link.expiresAt.getTime() <= Date.now()) {
+      this.shares.delete(shareId);
+      return false;
+    }
+
+    // 2. Passcode verification check
+    if (link.passcodeHash) {
+      if (!passcodeVerifier) return false; // Passcode required but none provided
+      const validPasscode = await passcodeVerifier(link.passcodeHash);
+      if (!validPasscode) return false;
+    }
+
+    // 3. Atomic max downloads check & increment
+    if (link.maxDownloads !== undefined && link.downloadCount >= link.maxDownloads) {
+      return false;
+    }
+
+    // Atomically increment download count
+    link.downloadCount++;
+    return true;
   }
 }
