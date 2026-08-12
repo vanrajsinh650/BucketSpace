@@ -192,6 +192,16 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
   - Enabled **Zero-Cost Deep Content Search**: full text search works out of the box with zero external AI API keys.
   - Passed 100% of all 52 master unit and integration test suites (including provider zero-dependency isolation audit).
 - **🎉 MILESTONE ACHIEVED**: **BucketSpace V3.0 — Content Ingestion & Provenance Pipeline Completed!**
+- **Completed V3.1**: **Hybrid & Semantic Search System** ✅ ([Commit `b515594`](https://github.com/vanrajsinh650/BucketSpace/commit/b515594))
+  - Defined Hybrid Search Contracts in `@bucketspace/shared`: `ContentChunk`, `VectorEmbedding`, `IEmbeddingProvider`, `HybridSearchResult`, `IAIIndex`.
+  - Built Vector Repository & Model Identity Storage in `@bucketspace/db`: SQLite `vector_chunks` and `embedding_models` tables + `VectorRepository` tracking `model_id`, `model_version`, `dimensions`, and in-memory cosine similarity ranking.
+  - Built `SemanticChunker`: splits `ExtractedContent` into overlapping chunks while preserving V3.0 segment provenance (`pageNumber`, `charOffset`, `startTimeSeconds`, `endTimeSeconds`).
+  - Built `LocalEmbeddingProvider`: deterministic 384-dimensional normalized dense vector generator working 100% offline with zero external API keys.
+  - Built `HybridSearchEngine`: fuses SQLite FTS5 lexical keyword search (BM25) and semantic vector search using **Reciprocal Rank Fusion (RRF)**:
+    \[ RRF(d) = \frac{1}{60 + R_{FTS}(d)} + \frac{1}{60 + R_{Vector}(d)} \]
+  - Built **Search Quality Benchmark Suite**: 6 real-world benchmark queries ("electricity bill", "passport", "college project", "photos from Ahmedabad", "contract termination", "PAN number") passed 100% precision!
+  - Passed 100% of all 57 master unit and integration test suites (including provider zero-dependency isolation audit).
+- **🎉 MILESTONE ACHIEVED**: **BucketSpace V3.1 — Hybrid & Semantic Search System Completed!**
 
 ---
 
