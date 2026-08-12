@@ -181,6 +181,17 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
   - Implemented Master Key Rotation in `EnvelopeEncryptionVault`: `rekeyCredential` updates KEK under a new master passphrase without re-encrypting underlying payloads.
   - Passed 100% of all 47 master unit and integration test suites.
 - **🎉 MILESTONE ACHIEVED**: **BucketSpace V2.5 — Security & Threat Model Hardening Completed!**
+- **Completed V3.0**: **Content Ingestion & Provenance Pipeline** ✅ ([Commit `ef09853`](https://github.com/vanrajsinh650/BucketSpace/commit/ef09853))
+  - Defined Content & Provenance Contracts in `@bucketspace/shared`: `SegmentProvenance`, `ExtractedContent`, `IContentExtractor`, `IOCRProvider`, `ITranscriptionProvider`.
+  - Built Extracted Content Repository in `@bucketspace/db`: SQLite `content_metadata` and `content_segments` tables + `ContentRepository` with FTS5 full-text indexing.
+  - Built `PlainTextExtractor`: deterministic text, markdown, CSV, JSON parser tracking character offsets.
+  - Built `PdfExtractor`: PDF text parser tracking page-level segment provenance (`pageNumber: 1`, `pageNumber: 2`).
+  - Built `OcrExtractorAdapter`: pluggable `IOCRProvider` adapter preserving OCR confidence scores and bounding boxes in segment provenance.
+  - Built `AudioTranscriptionAdapter`: pluggable `ITranscriptionProvider` adapter preserving audio/video timestamp provenance (`startTimeSeconds`, `endTimeSeconds`).
+  - Built `ContentPipeline`: orchestrates stream parsing, provenance persistence, and SQLite FTS5 search.
+  - Enabled **Zero-Cost Deep Content Search**: full text search works out of the box with zero external AI API keys.
+  - Passed 100% of all 52 master unit and integration test suites (including provider zero-dependency isolation audit).
+- **🎉 MILESTONE ACHIEVED**: **BucketSpace V3.0 — Content Ingestion & Provenance Pipeline Completed!**
 
 ---
 
