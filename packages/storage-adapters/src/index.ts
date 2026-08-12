@@ -14,4 +14,5 @@ export * from './migration';
 export * from './redundancy';
 export * from './resilience';
 export * from './queue';
+export * from './content';
 export * from './application';

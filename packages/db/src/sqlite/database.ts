@@ -77,6 +77,39 @@ export function createSqliteDatabase(filepath: string = ':memory:'): DatabaseSyn
 
     CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp);
     CREATE INDEX IF NOT EXISTS idx_audit_logs_event_type ON audit_logs(event_type);
+
+    CREATE TABLE IF NOT EXISTS content_metadata (
+      file_id TEXT PRIMARY KEY,
+      extractor_id TEXT NOT NULL,
+      mime_type TEXT NOT NULL,
+      full_text TEXT NOT NULL,
+      language TEXT,
+      metadata_json TEXT NOT NULL,
+      extracted_at TEXT NOT NULL,
+      FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS content_segments (
+      id TEXT PRIMARY KEY,
+      file_id TEXT NOT NULL,
+      segment_index INTEGER NOT NULL,
+      text TEXT NOT NULL,
+      page_number INTEGER,
+      char_offset INTEGER,
+      start_time_seconds REAL,
+      end_time_seconds REAL,
+      confidence REAL,
+      bounding_box_json TEXT,
+      FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_content_segments_file ON content_segments(file_id);
+
+    CREATE VIRTUAL TABLE IF NOT EXISTS content_fts USING fts5(
+      file_id UNINDEXED,
+      full_text,
+      tokenize='unicode61'
+    );
   `);
 
   return db;
