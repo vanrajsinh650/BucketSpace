@@ -34,11 +34,51 @@ export interface ExtractedContent {
   extractedAt: Date;
 }
 
-/**
- * Content Extractor contract for ingesting file byte streams into ExtractedContent.
- * Operates strictly on byte streams from storage application service.
- * Storage providers (Telegram, S3, Local Disk) know NOTHING about this interface.
- */
+/** A semantically coherent chunk derived from ExtractedContent with segment provenance */
+export interface ContentChunk {
+  id: string;
+  fileId: FileId;
+  chunkIndex: number;
+  text: string;
+  tokenCount?: number;
+  pageNumber?: number;
+  charOffset?: number;
+  startTimeSeconds?: number;
+  endTimeSeconds?: number;
+  confidence?: number;
+}
+
+/** Vector Embedding record with model identity metadata */
+export interface VectorEmbedding {
+  chunkId: string;
+  fileId: FileId;
+  vector: number[];
+  modelId: string;
+  modelVersion: string;
+  dimensions: number;
+  createdAt: Date;
+}
+
+/** Pluggable Embedding Model Provider contract (Local/Ollama/OpenAI/Gemini) */
+export interface IEmbeddingProvider {
+  readonly modelId: string;
+  readonly modelVersion: string;
+  readonly dimensions: number;
+  embedText(text: string): Promise<number[]>;
+  embedBatch(texts: string[]): Promise<number[][]>;
+}
+
+/** Result from Hybrid Search Engine combining FTS5 and Vector Search via RRF */
+export interface HybridSearchResult {
+  fileId: FileId;
+  rrfScore: number;
+  ftsRank?: number;
+  semanticRank?: number;
+  snippet: string;
+  provenance?: SegmentProvenance;
+}
+
+/** Content Extractor contract for ingesting file byte streams into ExtractedContent */
 export interface IContentExtractor {
   readonly extractorId: string;
   canHandle(mimeType: string, filename?: string): boolean;
@@ -70,14 +110,15 @@ export interface ITranscriptionProvider {
 
 export interface SemanticSearchResult {
   fileId: FileId;
-  score: number; // Relevance score between 0.0 and 1.0
-  snippet?: string;
+  chunkId: string;
+  score: number; // Cosine similarity score between 0.0 and 1.0
+  text: string;
   provenance?: SegmentProvenance;
 }
 
 /** AI Vector Index contract for V3.1 Semantic Search */
 export interface IAIIndex {
-  indexDocument(content: ExtractedContent): Promise<void>;
-  searchSemantic(query: string, limit?: number): Promise<SemanticSearchResult[]>;
-  removeDocument(fileId: FileId): Promise<void>;
+  upsertChunks(fileId: FileId, chunks: ContentChunk[], embeddings: number[][], modelId: string): Promise<void>;
+  deleteForFile(fileId: FileId): Promise<void>;
+  searchSemantic(queryVector: number[], limit?: number, minScore?: number): Promise<SemanticSearchResult[]>;
 }

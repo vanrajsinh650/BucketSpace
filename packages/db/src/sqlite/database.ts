@@ -110,6 +110,34 @@ export function createSqliteDatabase(filepath: string = ':memory:'): DatabaseSyn
       full_text,
       tokenize='unicode61'
     );
+
+    CREATE TABLE IF NOT EXISTS vector_chunks (
+      id TEXT PRIMARY KEY,
+      file_id TEXT NOT NULL,
+      chunk_index INTEGER NOT NULL,
+      text TEXT NOT NULL,
+      page_number INTEGER,
+      char_offset INTEGER,
+      start_time_seconds REAL,
+      end_time_seconds REAL,
+      confidence REAL,
+      embedding_json TEXT NOT NULL,
+      model_id TEXT NOT NULL,
+      dimensions INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_vector_chunks_file ON vector_chunks(file_id);
+    CREATE INDEX IF NOT EXISTS idx_vector_chunks_model ON vector_chunks(model_id);
+
+    CREATE TABLE IF NOT EXISTS embedding_models (
+      model_id TEXT PRIMARY KEY,
+      model_version TEXT NOT NULL,
+      dimensions INTEGER NOT NULL,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL
+    );
   `);
 
   return db;
