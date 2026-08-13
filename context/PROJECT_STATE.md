@@ -234,17 +234,23 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
   - **Layer 2 — RC Evaluation Runner**: Built `RcEvaluationRunner` testing multi-tenant authorization boundaries (cross-tenant data leakage prevention), multi-version document conflict handling, and authorization-scoped evaluation suite execution.
   - **Layer 3 — Honest Terminology & Documentation**: Replaced production README.md with defensible claims. Telegram is documented as a "storage backend" (not "infinite storage"). AI policy states "source-grounded response with enforced refusal, prompt-injection defense in depth, and post-generation claim validation" (not "zero hallucination guarantee").
   - **Layer 4 — Master Test Suite**: `v1.0-release-candidate.test.ts` covering authorization scoping, cross-tenant leakage prevention, conflicting document versions, and full RC evaluation metrics.
-- **Completed 1.0 RC Verification & Security Audit**: **1.0 Production Release Proving** ✅
+- **Completed 1.0 RC Verification & Security Audit**: **1.0 Production Release Proving** ✅ ([Commit `dc2cd54`](https://github.com/vanrajsinh650/BucketSpace/commit/dc2cd54))
   - **Authorization Abuse Suite** (`rc-authorization-abuse.test.ts`): Tested empty sets (0 hits, refusal), unknown/ghost IDs, 3-tenant collision queries (100% tenant isolation), and trashed/purged file pruning. Invariant: *Unauthorized content is excluded before retrieval/RRF, not post-filtered.*
   - **File Ingestion & Processing Security** (`rc-file-processing-security.test.ts`): Implemented 50MB stream bounds, null-byte stripping (`\0`), path traversal mitigation, and malformed/truncated PDF stream graceful recovery in `PdfExtractor` & `PlainTextExtractor`.
   - **Share Security & Concurrency Verification** (`rc-share-security.test.ts`): Verified 100 concurrent requests against `maxDownloads = 1` (exactly 1 succeeds), 50 concurrent requests against `maxDownloads = 5`, expired/revoked link purging, OWASP scrypt passcode auth, and opaque reference privacy.
   - **Real-World Multi-Format Local Corpus Suite** (`rc-real-world-corpus.test.ts`): Ingested multi-lingual documents (English, Spanish, Hindi, French), scanned OCR receipts with noise, audio transcripts with timestamp offsets, conflicting policy versions (2024 vs 2025), and executed 100+ assertion evaluation matrix.
-  - Passed 100% of all 89 master test suites with 0 failures, 100% monorepo type-check across 7 workspace packages, and 100% Next.js 15 production build.
-- **🎉 MILESTONE ACHIEVED**: **BucketSpace 1.0 Release Candidate — Verification & Security Audit Complete!**
+  - **Stale Permissions & Cascading Deletion** (`rc-stale-permissions-and-deletion.test.ts`): Verified that revoked user permissions never leak stale vector index chunks, and deleting a file cascades across SQLite metadata, chunks, content metadata, FTS5 index, vector store, and active share links.
+  - **Disaster Recovery & Backup/Restore** (`rc-disaster-recovery.test.ts`): Tested full snapshot export from Machine A -> wiped host -> fresh Machine B restore -> provider reconnect -> chunk audit -> verified 100% byte equality on reassembly.
+  - **Complete Ephemeral State & Residue Cleanup** (`rc-complete-residue-cleanup.test.ts`): Implemented `ResidueCleaner` guaranteeing complete purge of temporary upload buffers, intermediate extracted caches, thumbnail caches, embedding caches, transfer queue states, and share tokens.
+  - Passed 100% of all 94 master test suites with 0 failures, 100% monorepo type-check across 7 workspace packages, and 100% Next.js 15 production build.
+- **🎉 MILESTONE ACHIEVED**: **BucketSpace 1.0 Release Candidate — Verification, Disaster Recovery & Security Audit Complete!**
 
 ---
 
 ## 5. Security & Reliability Directives
 - **Data Integrity**: Every downloaded file must be byte-identical to the uploaded original. Verified via checksums.
+- **Disaster Recovery**: Portable metadata snapshot export and restore on clean machines with instant provider re-verification.
 - **Interruption Recovery**: Partial uploads/downloads must be resumable. No data loss on crash or network failure.
 - **Credentials Protection**: Telegram bot tokens and session data stored securely in local config.
+- **Release Status**: Feature-complete 1.0 Release Candidate undergoing final release validation.
+
