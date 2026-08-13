@@ -117,6 +117,48 @@ export interface ILLMProvider {
   ): Promise<AssistantResponse>;
 }
 
+/* ─── V3.3 Trust & Evaluation Contracts ─── */
+
+export interface CitationValidationResult {
+  isValid: boolean;
+  citationIndex: number;
+  fileId: FileId;
+  pageNumber?: number;
+  matchedSnippet: string;
+  confidenceScore: number;
+  reason?: string;
+}
+
+export interface GroundingValidationReport {
+  isGrounded: boolean;
+  groundingScore: number; // 0.0 to 1.0
+  citationsValid: boolean;
+  citationResults: CitationValidationResult[];
+  entityMismatchDetected: boolean;
+  promptInjectionDetected: boolean;
+  rejectionReason?: string;
+}
+
+export interface EvaluationTestCase {
+  id: string;
+  category: 'answerable' | 'unanswerable' | 'conflicting' | 'entity_ambiguous' | 'citation_verify' | 'adversarial';
+  query: string;
+  expectedFileId?: string;
+  expectedPage?: number;
+  shouldRefuse?: boolean;
+  disallowedPhrases?: string[];
+}
+
+export interface EvaluationBenchmarkReport {
+  totalTests: number;
+  passCount: number;
+  failCount: number;
+  retrievalRecallAtK: number;
+  refusalAccuracy: number;
+  citationPrecision: number;
+  testDetails: Array<{ id: string; category: string; passed: boolean; score: number; notes: string }>;
+}
+
 /** Content Extractor contract for ingesting file byte streams into ExtractedContent */
 export interface IContentExtractor {
   readonly extractorId: string;
