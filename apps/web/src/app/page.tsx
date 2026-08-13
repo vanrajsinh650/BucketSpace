@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { FileMetadata, StorageRule } from '@bucketspace/shared';
+import { DuplicateCheckResult, FileMetadata, StorageRule } from '@bucketspace/shared';
+import { DuplicateConflictModal } from '../components/DuplicateConflictModal';
 import { FileGrid } from '../components/FileGrid';
 import { FileInfoModal } from '../components/FileInfoModal';
+import { FilePreviewModal } from '../components/FilePreviewModal';
 import { Header } from '../components/Header';
 import { MoveFileModal } from '../components/MoveFileModal';
 import { ProviderSettings, ProviderDisplayInfo } from '../components/ProviderSettings';
@@ -29,9 +31,14 @@ export default function BucketSpaceApp() {
 
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [uploadState, setUploadState] = useState<UploadProgressState | null>(null);
+  const [selectedFileForPreview, setSelectedFileForPreview] = useState<FileMetadata | null>(null);
   const [selectedFileForInfo, setSelectedFileForInfo] = useState<FileMetadata | null>(null);
   const [selectedFileForShare, setSelectedFileForShare] = useState<FileMetadata | null>(null);
   const [selectedFileForMove, setSelectedFileForMove] = useState<FileMetadata | null>(null);
+  const [duplicateConflict, setDuplicateConflict] = useState<{
+    file: File;
+    result: DuplicateCheckResult;
+  } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [providerList, setProviderList] = useState<ProviderDisplayInfo[]>([]);
@@ -65,6 +72,83 @@ export default function BucketSpaceApp() {
   };
 
   const handleUploadFile = async (file: File) => {
+    try {
+      // Pre-check for duplicate or name collision
+      const check = await store.checkDuplicate(file);
+      if (check.scenario === 'SAME_NAME_IDENTICAL_CONTENT' || check.scenario === 'SAME_NAME_DIFFERENT_CONTENT') {
+        setUploadModalOpen(false);
+        setDuplicateConflict({ file, result: check });
+        return;
+      }
+
+      await store.uploadFile(file, (progress) => {
+        setUploadState({ ...progress });
+      });
+      setRefreshTrigger((prev) => prev + 1);
+      setTimeout(() => {
+        setUploadModalOpen(false);
+        setUploadState(null);
+      }, 800);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Upload failed';
+      setUploadState((prev) => (prev ? { ...prev, status: 'FAILED', errorMessage: msg } : null));
+    }
+  };
+
+  /* ─── Duplicate Conflict Handlers ─── */
+
+  const handleKeepBoth = async (suggestedName: string) => {
+    if (!duplicateConflict) return;
+    const { file } = duplicateConflict;
+    setDuplicateConflict(null);
+    setUploadModalOpen(true);
+
+    try {
+      await store.uploadFileWithCustomName(file, suggestedName, (progress) => {
+        setUploadState({ ...progress });
+      });
+      setRefreshTrigger((prev) => prev + 1);
+      setTimeout(() => {
+        setUploadModalOpen(false);
+        setUploadState(null);
+      }, 800);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Upload failed';
+      setUploadState((prev) => (prev ? { ...prev, status: 'FAILED', errorMessage: msg } : null));
+    }
+  };
+
+  const handleReplaceExisting = async (existingFileId: string) => {
+    if (!duplicateConflict) return;
+    const { file } = duplicateConflict;
+    setDuplicateConflict(null);
+    setUploadModalOpen(true);
+
+    try {
+      await store.replaceFile(existingFileId, file, (progress) => {
+        setUploadState({ ...progress });
+      });
+      setRefreshTrigger((prev) => prev + 1);
+      setTimeout(() => {
+        setUploadModalOpen(false);
+        setUploadState(null);
+      }, 800);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Replacement failed';
+      setUploadState((prev) => (prev ? { ...prev, status: 'FAILED', errorMessage: msg } : null));
+    }
+  };
+
+  const handleSkipDuplicate = () => {
+    setDuplicateConflict(null);
+  };
+
+  const handleUploadAnyway = async () => {
+    if (!duplicateConflict) return;
+    const { file } = duplicateConflict;
+    setDuplicateConflict(null);
+    setUploadModalOpen(true);
+
     try {
       await store.uploadFile(file, (progress) => {
         setUploadState({ ...progress });
@@ -214,6 +298,7 @@ export default function BucketSpaceApp() {
             onSortChange={handleSortChange}
             onDownload={handleDownload}
             onInfo={setSelectedFileForInfo}
+            onPreview={setSelectedFileForPreview}
             onShare={setSelectedFileForShare}
             onMove={setSelectedFileForMove}
             onDelete={handleDelete}
@@ -222,6 +307,26 @@ export default function BucketSpaceApp() {
           />
         </main>
       </div>
+
+      {/* File Preview Modal */}
+      <FilePreviewModal
+        file={selectedFileForPreview}
+        isOpen={selectedFileForPreview !== null}
+        onClose={() => setSelectedFileForPreview(null)}
+        onDownload={handleDownload}
+      />
+
+      {/* Duplicate / Name Conflict Modal */}
+      <DuplicateConflictModal
+        isOpen={duplicateConflict !== null}
+        incomingFile={duplicateConflict?.file ?? null}
+        checkResult={duplicateConflict?.result ?? null}
+        onKeepBoth={handleKeepBoth}
+        onReplaceExisting={handleReplaceExisting}
+        onSkip={handleSkipDuplicate}
+        onUploadAnyway={handleUploadAnyway}
+        onClose={() => setDuplicateConflict(null)}
+      />
 
       {/* Upload Modal */}
       <UploadModal

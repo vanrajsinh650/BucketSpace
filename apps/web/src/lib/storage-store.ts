@@ -9,6 +9,7 @@ import {
   StorageRule,
 } from '@bucketspace/shared';
 import {
+  DuplicateResolver,
   InMemoryStorageProvider,
   ProviderRegistry,
   StorageApplicationService,
@@ -290,6 +291,169 @@ export class StorageStore {
     });
 
     return fileMetadata;
+  }
+
+  /**
+   * Check for duplicate files or name collisions before starting an upload.
+   */
+  public async checkDuplicate(file: File): Promise<import('@bucketspace/shared').DuplicateCheckResult> {
+    const fileBuffer = new Uint8Array(await file.arrayBuffer());
+    const wholeFileHash = await calculateSha256(fileBuffer);
+    return DuplicateResolver.checkDuplicate(file.name, wholeFileHash, this.files);
+  }
+
+  /**
+   * Uploads a file with a specific custom name (e.g. for numbered copies like `report (1).pdf`).
+   */
+  public async uploadFileWithCustomName(
+    file: File,
+    customName: string,
+    onProgress?: (progress: UploadProgressState) => void
+  ): Promise<FileMetadata> {
+    const renamedFile = new File([file], customName, { type: file.type });
+    return this.uploadFile(renamedFile, onProgress);
+  }
+
+  /**
+   * Replaces an existing file's underlying payload and metadata while preserving its persistent FileId.
+   */
+  public async replaceFile(
+    existingFileId: string,
+    file: File,
+    onProgress?: (progress: UploadProgressState) => void
+  ): Promise<FileMetadata> {
+    const existing = this.files.find((f) => f.id === existingFileId);
+    if (!existing) {
+      throw new Error(`File '${existingFileId}' not found for replacement`);
+    }
+
+    const CHUNK_SIZE = 5 * 1024 * 1024;
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+
+    onProgress?.({
+      fileName: file.name,
+      currentChunk: 0,
+      totalChunks,
+      percent: 5,
+      status: 'HASHING',
+    });
+
+    const fileBuffer = new Uint8Array(await file.arrayBuffer());
+    const wholeFileHash = await calculateSha256(fileBuffer);
+    const uploadedChunks: ChunkMetadata[] = [];
+
+    for (let index = 0; index < totalChunks; index++) {
+      const start = index * CHUNK_SIZE;
+      const end = Math.min(start + CHUNK_SIZE, file.size);
+      const chunkBytes = fileBuffer.subarray(start, end);
+
+      onProgress?.({
+        fileName: file.name,
+        currentChunk: index + 1,
+        totalChunks,
+        percent: Math.round(((index + 1) / totalChunks) * 85) + 5,
+        status: 'UPLOADING',
+      });
+
+      const chunkHash = await calculateSha256(chunkBytes);
+      const chunkId = createChunkId(`chunk-${existing.id}-${index}-${Date.now()}`);
+
+      const resolvedProviderId = this.router.resolveProviderId({
+        name: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        size: file.size,
+      });
+
+      const targetProvider = ProviderRegistry.has(resolvedProviderId)
+        ? ProviderRegistry.get(resolvedProviderId)
+        : this.activeProvider;
+
+      const providerRef = await targetProvider.putChunk({
+        chunkId,
+        size: chunkBytes.byteLength,
+        hash: chunkHash,
+        data: (async function* () {
+          yield chunkBytes;
+        })(),
+      });
+
+      uploadedChunks.push({
+        id: chunkId,
+        fileId: existing.id,
+        index,
+        size: chunkBytes.byteLength,
+        hash: chunkHash,
+        providerRef,
+      });
+    }
+
+    existing.name = file.name;
+    existing.size = file.size;
+    existing.mimeType = file.type || 'application/octet-stream';
+    existing.wholeFileHash = wholeFileHash;
+    existing.chunks = uploadedChunks;
+    existing.updatedAt = new Date();
+
+    onProgress?.({
+      fileName: file.name,
+      currentChunk: totalChunks,
+      totalChunks,
+      percent: 100,
+      status: 'COMPLETE',
+    });
+
+    return existing;
+  }
+
+  /**
+   * Stream and reassemble all byte chunks of a file for inline viewing / preview.
+   */
+  public async getFileBytes(fileId: string): Promise<{ bytes: Uint8Array; file: FileMetadata }> {
+    const file = this.files.find((f) => f.id === fileId);
+    if (!file) {
+      throw new Error(`File '${fileId}' not found`);
+    }
+
+    const downloadedPieces: Uint8Array[] = [];
+    for (const chunk of file.chunks) {
+      if (!chunk.providerRef) {
+        throw new Error(`Chunk ${chunk.index} missing provider reference`);
+      }
+
+      const provider = ProviderRegistry.get(chunk.providerRef.providerId);
+      const stream = await provider.getChunk(chunk.providerRef);
+      const pieces: Uint8Array[] = [];
+      let totalLength = 0;
+
+      for await (const piece of stream) {
+        pieces.push(piece);
+        totalLength += piece.byteLength;
+      }
+
+      const chunkCombined = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const piece of pieces) {
+        chunkCombined.set(piece, offset);
+        offset += piece.byteLength;
+      }
+
+      const verifiedChunkHash = await calculateSha256(chunkCombined);
+      if (verifiedChunkHash !== chunk.hash) {
+        throw new Error(`Chunk ${chunk.index} hash mismatch during preview reassembly!`);
+      }
+
+      downloadedPieces.push(chunkCombined);
+    }
+
+    const fullTotalSize = downloadedPieces.reduce((sum, p) => sum + p.byteLength, 0);
+    const fullCombined = new Uint8Array(fullTotalSize);
+    let fullOffset = 0;
+    for (const piece of downloadedPieces) {
+      fullCombined.set(piece, fullOffset);
+      fullOffset += piece.byteLength;
+    }
+
+    return { bytes: fullCombined, file };
   }
 
   /**

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import {
   ArrowRightLeft,
   Download,
+  Eye,
   File,
   FileText,
   Film,
@@ -24,6 +25,7 @@ interface FileCardProps {
   viewMode: 'grid' | 'list';
   onDownload: (fileId: string) => void;
   onInfo: (file: FileMetadata) => void;
+  onPreview?: (file: FileMetadata) => void;
   onShare?: (file: FileMetadata) => void;
   onMove?: (file: FileMetadata) => void;
   onDelete: (fileId: string) => void;
@@ -43,6 +45,7 @@ export function FileCard({
   onMove,
   onDownload,
   onInfo,
+  onPreview,
   onShare,
   onDelete,
   onRestore,
@@ -102,6 +105,15 @@ export function FileCard({
         <div className="flex items-center gap-1 shrink-0">
           {!isTrashed ? (
             <>
+              {onPreview && (
+                <button
+                  onClick={() => onPreview(file)}
+                  title="Preview / View File"
+                  className="p-2 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-800/80 transition-colors"
+                >
+                  <Eye className="w-4 h-4" />
+                </button>
+              )}
               <button
                 onClick={() => onDownload(file.id)}
                 title="Download & Verify"
@@ -196,6 +208,16 @@ export function FileCard({
         <div className="flex items-center gap-1">
           {!isTrashed ? (
             <>
+              {onPreview && (
+                <button
+                  onClick={() => onPreview(file)}
+                  className="px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 text-xs font-medium flex items-center gap-1.5 transition-all"
+                  title="View File"
+                >
+                  <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>View</span>
+                </button>
+              )}
               <button
                 onClick={() => onDownload(file.id)}
                 className="px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 text-xs font-medium flex items-center gap-1.5 transition-all"
