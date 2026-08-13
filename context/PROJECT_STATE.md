@@ -229,6 +229,13 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
   - Calculated **Production RAG Metrics**: `unsupportedClaimRate === 0.0`, `attackSuccessRate === 0.0`, `falseRefusalRate === 0.0`, `refusalAccuracy === 1.0`, `citationRecall === 1.0`.
   - Passed 100% of all 69 master unit and integration test suites.
 - **🎉 MILESTONE ACHIEVED**: **BucketSpace V3.4 — Real-World Evaluation & Release Hardening Completed!**
+- **Completed 1.0 RC**: **Release Candidate — Authorization Hardening & Honest Documentation** ✅
+  - **Layer 1 — Application-Level Authorization Guard**: Added `authorizedFileIds?: Set<string>` parameter to both `HybridSearchEngine.searchHybrid()` and `AssistantService.ask()`. All candidate chunks from FTS5 and vector search are filtered by authorized file set **before** RRF fusion. The LLM is never trusted to enforce access control.
+  - **Layer 2 — RC Evaluation Runner**: Built `RcEvaluationRunner` testing multi-tenant authorization boundaries (cross-tenant data leakage prevention), multi-version document conflict handling, and authorization-scoped evaluation suite execution.
+  - **Layer 3 — Honest Terminology & Documentation**: Replaced production README.md with defensible claims. Telegram is documented as a "storage backend" (not "infinite storage"). AI policy states "source-grounded response with enforced refusal, prompt-injection defense in depth, and post-generation claim validation" (not "zero hallucination guarantee").
+  - **Layer 4 — Master Test Suite**: `v1.0-release-candidate.test.ts` covering authorization scoping, cross-tenant leakage prevention, conflicting document versions, and full RC evaluation metrics.
+  - Passed 100% of all 73 master unit and integration test suites.
+- **🎉 MILESTONE ACHIEVED**: **BucketSpace 1.0 Release Candidate — Authorization Hardening Complete!**
 
 ---
 

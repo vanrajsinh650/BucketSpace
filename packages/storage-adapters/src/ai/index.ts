@@ -9,5 +9,6 @@ export * from './evaluation-harness';
 export * from './claim-validator';
 export * from './adversarial-security-matrix';
 export * from './corpus-evaluation-suite';
+export * from './rc-evaluation-runner';
 
 

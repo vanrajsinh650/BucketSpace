@@ -34,8 +34,16 @@ export class AssistantService {
   /**
    * Submit a user question: executes hybrid RRF retrieval, applies grounding checks,
    * calls LLM provider, and returns AssistantResponse with citations.
+   *
+   * @param authorizedFileIds - Optional set of file IDs the caller is authorized to access.
+   *   When provided, the LLM will ONLY see context from these files. Authorization is
+   *   enforced at the application level, never delegated to the LLM.
    */
-  public async ask(question: string, limit: number = 5): Promise<AssistantResponse> {
+  public async ask(
+    question: string,
+    limit: number = 5,
+    authorizedFileIds?: Set<string>
+  ): Promise<AssistantResponse> {
     if (!question.trim()) {
       return {
         answer: "Please provide a valid question.",
@@ -46,8 +54,8 @@ export class AssistantService {
       };
     }
 
-    // 1. Execute Hybrid RRF Search
-    const searchHits = await this.hybridEngine.searchHybrid(question, limit);
+    // 1. Execute Hybrid RRF Search (scoped to authorized files only)
+    const searchHits = await this.hybridEngine.searchHybrid(question, limit, authorizedFileIds);
 
     // 2. Resolve source file names
     const fileNamesMap = new Map<string, string>();

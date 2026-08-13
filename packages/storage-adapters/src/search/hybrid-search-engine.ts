@@ -63,23 +63,40 @@ export class HybridSearchEngine {
   /**
    * Hybrid Search: runs FTS5 and Vector Search in parallel and combines
    * ranks using Reciprocal Rank Fusion (RRF).
+   *
+   * @param authorizedFileIds - Optional set of file IDs the caller is permitted to access.
+   *   When provided, ALL candidate chunks from both FTS5 and Vector search are filtered
+   *   to this authorized set BEFORE RRF fusion. The LLM is never trusted to enforce
+   *   access control; authorization is an application-level pre-filter.
    */
-  public async searchHybrid(query: string, limit: number = 20): Promise<HybridSearchResult[]> {
+  public async searchHybrid(
+    query: string,
+    limit: number = 20,
+    authorizedFileIds?: Set<string>
+  ): Promise<HybridSearchResult[]> {
     if (!query.trim()) return [];
 
     // 1. Run FTS5 search
-    const ftsResults = this.contentRepo.searchContentFts(query, limit * 2);
+    const rawFtsResults = this.contentRepo.searchContentFts(query, limit * 2);
 
     // 2. Run Vector Semantic Search
     const queryVector = await this.embeddingProvider.embedText(query);
-    const vectorResults = this.vectorRepo.searchCosineSimilarity(
+    const rawVectorResults = this.vectorRepo.searchCosineSimilarity(
       queryVector,
       limit * 2,
       0.0,
       this.embeddingProvider.modelId
     );
 
-    // 3. Reciprocal Rank Fusion (RRF) Fusing
+    // 3. Application-Level Authorization Filter (pre-RRF)
+    const ftsResults = authorizedFileIds
+      ? rawFtsResults.filter((r) => authorizedFileIds.has(r.fileId))
+      : rawFtsResults;
+    const vectorResults = authorizedFileIds
+      ? rawVectorResults.filter((r) => authorizedFileIds.has(r.fileId as string))
+      : rawVectorResults;
+
+    // 4. Reciprocal Rank Fusion (RRF) Fusing
     const fileRrfMap = new Map<
       string,
       {
@@ -141,7 +158,7 @@ export class HybridSearchEngine {
       }
     }
 
-    // 4. Sort fused results by RRF score DESC
+    // 5. Sort fused results by RRF score DESC
     const sorted = Array.from(fileRrfMap.values()).sort((a, b) => b.rrfScore - a.rrfScore);
     return sorted.slice(0, limit);
   }

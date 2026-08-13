@@ -1,88 +1,156 @@
-# 🚀 BucketSpace — 100% Open-Source AI-First Multi-Cloud Drive
+# BucketSpace
 
-**BucketSpace** is an ultra-secure, high-performance, open-source **Telegram Cloud Drive & Multi-Cloud Storage Workspace** built with Next.js 15, Fastify, PostgreSQL (pgvector), and pnpm monorepo architecture.
-
----
-
-## ✨ Features
-
-- 📁 **Telegram Private Channel Storage**: Use Telegram private channels as an encrypted, unlimited cloud drive storage layer.
-- ☁️ **Universal Multi-Cloud Adapters**: Unified `IStorageProvider` interface supporting **Telegram**, **Google Cloud Storage (GCP)**, **Azure Blob Storage**, and **AWS S3 / Cloudflare R2**.
-- 🎬 **HLS Video Streaming**: Dynamic `.m3u8` video playlist and TS segment streaming for instant in-browser preview without downloading full files.
-- ⚡ **Real-Time WebSocket Presence & CRDT**: Fastify WebSocket server supporting multi-user presence badges, dynamic live cursors, and Last-Write-Wins (LWW) conflict resolution.
-- 🧠 **Multimodal AI Intelligence**:
-  - **Whisper Speech-to-Text**: Automatic transcription of audio & video files.
-  - **Document OCR**: Text extraction from PDFs and image documents.
-  - **`pgvector` Cosine Semantic Search**: Search files by concept, content, or natural language query.
-- 🔄 **Automated Cross-Cloud Bucket Sync**: Declarative bucket replication policies and automated background sync jobs across storage providers.
-- 📊 **Enterprise Automation & Governance**:
-  - **Multi-Cloud Cost Analytics Engine**: Real-time storage cost breakdown and auto-optimization recommendations.
-  - **Lifecycle Policy Engine**: Automated file age/size migration rules and soft-deletion tiering.
-  - **SOC 2 & HIPAA Cryptographic Compliance Exporters**: SHA-256 HMAC tamper-evident audit log export.
+**Open-source, provider-agnostic personal cloud and memory system with verifiable storage integrity, redundancy, hybrid search, and source-grounded AI.**
 
 ---
 
-## 🛠️ Repository Architecture
+## What BucketSpace Does
 
-```text
-BucketSpace/
-├── apps/
-│   ├── api/            # Fastify REST & WebSocket API Gateway
-│   └── web/            # Next.js 15 App Router + Tailwind Glassmorphic UI
-├── packages/
-│   ├── db/             # Prisma DB Schema & pgvector Client
-│   ├── shared/         # Zod Schemas & Shared Types/Utilities
-│   └── storage-adapters/ # Universal Provider Adapters (Telegram, GCP, Azure, S3)
-└── context/            # Architectural & Project Documentation Hub
+BucketSpace is a personal storage system that turns multiple cloud providers into a single, searchable, AI-aware file system.
+
+- **Store files across any provider**: Telegram, Local Disk, S3/R2, Supabase — through a single unified interface.
+- **Search by meaning, not just filename**: Hybrid BM25 + semantic vector search with Reciprocal Rank Fusion.
+- **Ask questions about your files**: Source-grounded AI assistant with enforced refusal, provenance citations, and post-generation claim validation.
+- **Verify everything**: Every chunk is SHA-256 hashed, replicated, and continuously verified. Corrupted data is auto-repaired from verified replicas.
+- **Own your data**: Runs entirely locally. No external accounts required. Ollama for local LLM inference.
+
+---
+
+## Architecture
+
+```
+BucketSpace
+│
+├── Storage Layer
+│   ├── Telegram Storage Backend
+│   ├── Local Disk (Sandboxed)
+│   ├── AWS S3 / Cloudflare R2
+│   └── Supabase Storage
+│
+├── Reliability Layer
+│   ├── SHA-256 Chunk Verification
+│   ├── Active Replication
+│   ├── Automatic Repair
+│   └── Circuit Breaker & Backpressure
+│
+├── Security Layer
+│   ├── AES-256-GCM Envelope Encryption
+│   ├── OWASP scrypt Key Derivation (N=131072)
+│   ├── Hashed Share Tokens (SHA-256)
+│   ├── Path Traversal Sandboxing
+│   └── Audit Logging
+│
+├── Content Intelligence
+│   ├── PDF Text Extraction (Page Provenance)
+│   ├── OCR (Confidence + Bounding Box)
+│   ├── Audio/Video Transcription (Timestamps)
+│   └── SQLite FTS5 Full-Text Index
+│
+├── Search Layer
+│   ├── SQLite FTS5 BM25 (Lexical)
+│   ├── 384-Dim Semantic Vectors (Cosine)
+│   └── Reciprocal Rank Fusion (RRF)
+│
+└── AI Assistant
+    ├── Application-Level Authorization (Pre-LLM)
+    ├── RAG Context Builder
+    ├── LLM Abstraction (Ollama / Mock)
+    ├── Source-Grounded Citations
+    ├── Enforced Refusal ("I don't know")
+    ├── Prompt Injection Defense-in-Depth
+    ├── Post-Generation Claim Validation
+    └── Citation Verification (vs. SQLite DB)
 ```
 
 ---
 
-## 🚀 Quick Start Guide
+## Important Design Decisions
 
-### Prerequisites
-- **Node.js**: `>= 22.0.0`
-- **pnpm**: `>= 9.0.0`
-- **PostgreSQL**: PostgreSQL 16+ with `pgvector` extension enabled.
+### Telegram as Storage Backend
+BucketSpace uses Telegram as one of several storage providers. The Telegram Bot API has documented limits (50 MB upload, 20 MB download via `getFile`). BucketSpace's chunked transfer engine works within these limits. Telegram is a storage backend, not "infinite storage."
 
-### Installation & Setup
+### AI Grounding & Hallucination Policy
+BucketSpace provides **source-grounded responses with enforced refusal, prompt-injection defense in depth, and post-generation claim validation.** It does not claim "zero hallucination." No current system can mathematically guarantee that an LLM will never produce an unsupported statement. BucketSpace constrains, detects, and rejects unsupported output through multiple validation layers.
 
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/vanrajsinh650/BucketSpace.git
-   cd BucketSpace
-   ```
-
-2. **Install Dependencies**:
-   ```bash
-   pnpm install
-   ```
-
-3. **Configure Environment Variables**:
-   ```bash
-   cp .env.example .env
-   ```
-   *Edit `.env` with your PostgreSQL database connection string and Telegram Bot token.*
-
-4. **Initialize Database**:
-   ```bash
-   pnpm --filter ./packages/db db:push
-   ```
-
-5. **Type Check & Lint**:
-   ```bash
-   pnpm type-check
-   ```
-
-6. **Start Development Servers**:
-   ```bash
-   pnpm dev
-   ```
-   * Web Workspace: `http://localhost:3000`
-   * API Gateway & WebSocket: `http://localhost:4000`
+### Authorization Model
+The LLM is **never trusted to enforce authorization**. The application resolves which files a user is permitted to access, and passes only authorized file IDs to the search engine. The LLM only ever sees chunks from files the user is authorized to access.
 
 ---
 
-## 🛡️ License
+## Quick Start
 
-Distributed under the **MIT License**. Open-source and free for all to use, modify, and distribute.
+### Prerequisites
+- **Node.js** >= 22.0.0
+- **pnpm** >= 9.0.0
+
+### Install & Run
+
+```bash
+git clone https://github.com/vanrajsinh650/BucketSpace.git
+cd BucketSpace
+pnpm install
+pnpm type-check
+pnpm --filter "@bucketspace/web" dev
+```
+
+Web UI: `http://localhost:3000`
+
+### Run Tests
+
+```bash
+pnpm --filter "@bucketspace/storage-adapters" test
+```
+
+---
+
+## Repository Structure
+
+```
+BucketSpace/
+├── apps/
+│   ├── api/                 # Fastify REST API
+│   ├── cli/                 # CLI Interface
+│   └── web/                 # Next.js 15 Web UI
+├── packages/
+│   ├── shared/              # Domain Contracts & Types
+│   ├── security/            # Encryption & Key Derivation
+│   ├── db/                  # SQLite Metadata, FTS5, Vector Store
+│   └── storage-adapters/    # Provider Adapters, Search, AI, Trust
+└── context/                 # Architectural Documentation
+```
+
+---
+
+## Milestone History
+
+| Version | Milestone | Tests |
+| :--- | :--- | :--- |
+| V0 | Storage Foundation | 11 |
+| V1 / V1.5 | Multi-Provider + SQLite Search | 16 |
+| V2 | Routing, Migration, Sharing | 22 |
+| V2.2 | Storage Policy Engine | 28 |
+| V2.3 | Replication, Verification, Repair | 34 |
+| V2.4 | AES-256-GCM Encryption, Circuit Breaker | 42 |
+| V2.5 | Threat-Model Hardening, Audit Logging | 47 |
+| V3.0 | Content Ingestion & Provenance Pipeline | 52 |
+| V3.1 | Hybrid RRF Search (BM25 + Semantic) | 57 |
+| V3.2 | Grounded RAG Assistant | 62 |
+| V3.3 | AI Trust & Citation Validation | 66 |
+| V3.4 | Adversarial Hardening & 100+ Benchmark | 69 |
+| **1.0 RC** | **Authorization Hardening & Release Candidate** | **73+** |
+
+---
+
+## Security Considerations
+
+- **Encryption**: AES-256-GCM with per-file Data Encryption Keys, wrapped under master passphrase via OWASP scrypt.
+- **Share Tokens**: 256-bit random tokens, stored hashed (SHA-256) at rest.
+- **Path Traversal**: Canonical `path.resolve` + strict root prefix validation.
+- **Prompt Injection**: Defense-in-depth (pattern matching, Unicode normalization, exfiltration detection). Treated as one security layer, not a complete boundary.
+- **Authorization**: Application-enforced, never delegated to the LLM.
+
+---
+
+## License
+
+Distributed under the **MIT License**.
