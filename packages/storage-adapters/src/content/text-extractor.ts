@@ -39,15 +39,27 @@ export class PlainTextExtractor implements IContentExtractor {
     fileId: FileId,
     stream: AsyncIterable<Uint8Array>,
     mimeType: string,
-    filename?: string
+    filename?: string,
+    maxBytes: number = 50 * 1024 * 1024 // 50MB limit
   ): Promise<ExtractedContent> {
     const buffers: Uint8Array[] = [];
+    let totalSize = 0;
+
     for await (const chunk of stream) {
+      totalSize += chunk.byteLength;
+      if (totalSize > maxBytes) {
+        break;
+      }
       buffers.push(chunk);
     }
 
     const fullBuffer = concatBuffers(buffers);
-    const fullText = new TextDecoder('utf-8').decode(fullBuffer);
+    let rawText = new TextDecoder('utf-8', { fatal: false }).decode(fullBuffer);
+    // Sanitize null bytes in extracted text content
+    rawText = rawText.replace(/\0/g, '');
+
+    // Max text bound (5M characters)
+    const fullText = rawText.length > 5_000_000 ? rawText.slice(0, 5_000_000) : rawText;
 
     // Segment by paragraphs / non-empty blocks
     const lines = fullText.split(/\r?\n/);

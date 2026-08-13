@@ -23,16 +23,38 @@ export class PdfExtractor implements IContentExtractor {
     fileId: FileId,
     stream: AsyncIterable<Uint8Array>,
     mimeType: string,
-    filename?: string
+    filename?: string,
+    maxBytes: number = 50 * 1024 * 1024 // 50MB safety limit
   ): Promise<ExtractedContent> {
     const buffers: Uint8Array[] = [];
+    let totalSize = 0;
+
     for await (const chunk of stream) {
+      totalSize += chunk.byteLength;
+      if (totalSize > maxBytes) {
+        // Enforce file processing boundary: protect against resource exhaustion / zip bombs
+        break;
+      }
       buffers.push(chunk);
     }
     const fullBuffer = concatBuffers(buffers);
 
-    // Extract text streams & page breaks from PDF buffer
-    const { pages, fullText, metadata } = this.parsePdfTextPages(fullBuffer);
+    // Extract text streams & page breaks from PDF buffer safely
+    let pages: string[] = [];
+    let fullText = '';
+    let metadata: Record<string, unknown> = {};
+
+    try {
+      const parsed = this.parsePdfTextPages(fullBuffer);
+      pages = parsed.pages;
+      fullText = parsed.fullText;
+      metadata = parsed.metadata;
+    } catch {
+      // Safe fallback on corrupted / malformed PDF streams
+      pages = ['[Malformed PDF content]'];
+      fullText = '[Malformed PDF content]';
+      metadata = { malformed: true, rawByteLength: fullBuffer.byteLength };
+    }
 
     const segments: SegmentProvenance[] = pages.map((pageText, idx) => ({
       id: `seg-${fileId}-p${idx + 1}`,

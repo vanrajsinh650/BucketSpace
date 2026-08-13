@@ -27,10 +27,13 @@ export class ClaimValidator {
       };
     }
 
-    // Combine all retrieved context into lower-case reference text
-    const fullContextText = contextChunks
-      .map((c) => c.snippet.toLowerCase() + ' ' + (c.provenance?.text?.toLowerCase() || ''))
-      .join(' ');
+    // Combine all retrieved context into normalized lower-case reference text
+    const rawContextText = contextChunks
+      .map((c) => c.snippet + ' ' + (c.provenance?.text || ''))
+      .join(' ')
+      .toLowerCase();
+    const normalizedContextText = rawContextText.replace(/[^\p{L}\p{N}\s]/gu, ' ');
+    const compactContextText = rawContextText.replace(/[^\p{L}\p{N}]/gu, '');
 
     // Split answer into sentences
     const sentences = answerText
@@ -48,23 +51,28 @@ export class ClaimValidator {
         continue;
       }
 
-      // Extract key terms (length >= 4) from the sentence
+      // Extract key terms (length >= 3) from the sentence
       const terms = sentence
         .toLowerCase()
-        .replace(/[^\w\s]/g, '')
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
         .split(/\s+/)
-        .filter((w) => w.length >= 4);
+        .filter((w) => w.length >= 3);
 
       if (terms.length === 0) {
         supportedCount++;
         continue;
       }
 
-      // Sentence is supported if at least 40% of its key terms exist in the retrieved context
-      const matchedTerms = terms.filter((term) => fullContextText.includes(term));
+      // Sentence is supported if key terms exist in the normalized or compact retrieved context
+      const matchedTerms = terms.filter(
+        (term) =>
+          normalizedContextText.includes(term) ||
+          compactContextText.includes(term) ||
+          rawContextText.includes(term)
+      );
       const supportRatio = matchedTerms.length / terms.length;
 
-      if (supportRatio >= 0.4) {
+      if (supportRatio >= 0.35) {
         supportedCount++;
       } else {
         unsupportedClaims.push(sentence);
