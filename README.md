@@ -87,6 +87,42 @@ To prevent resource exhaustion and decompression bombs, content ingestion follow
 compressed input ──► parser ──► bounded memory ──► bounded extracted output ──► bounded processing time
 ```
 
+### Disaster Recovery Playbook: "What Happens If My Laptop Dies?"
+If your local machine or BucketSpace host suffers total hardware failure, your filesystem is **fully recoverable**:
+
+```
+Disaster Recovery Workflow:
+Original Host ──► Export Snapshot ──► Host Dies ──► Fresh Machine ──► Restore SQLite ──► Reconnect Providers ──► Audit & Verify Chunks ──► 100% Recovered
+```
+
+1. **Restore Metadata Backup**: Import the exported JSON/SQLite snapshot onto your clean machine.
+2. **Reconnect Storage Providers**: Provide your provider credentials (Telegram bot tokens, S3/R2 keys, Supabase URLs, local storage disks).
+3. **Run Integrity Audit**: BucketSpace's `BackupManager` instantly audits all chunk references against the reconnected providers.
+4. **Instant Access**: Full hybrid search, vector embeddings, and verified byte-identical file downloads resume immediately.
+
+### Explicit Backup Scope: Metadata vs. File Bytes
+To prevent confusion, BucketSpace maintains a strict distinction between metadata snapshots and storage payloads:
+
+| Included in Backup Snapshot ✅ | NOT Included in Backup Snapshot ❌ |
+| :--- | :--- |
+| **SQLite Filesystem Index & File Records** | **Raw File Payload Bytes** |
+| **Chunk Identifiers & Hash Checksums** | (Raw chunks reside securely across |
+| **Provider Location Mappings & Refs** | Telegram, S3, Local Disk, & Supabase) |
+| **FTS5 Full-Text Search Metadata** | |
+| **384-Dim Vector Embeddings** | |
+| **Storage Routing Rules & Policies** | |
+| **Audit Logs & Historical Trails** | |
+
+> [!NOTE]
+> A BucketSpace metadata backup is an index backup, not a bulk storage dump. File durability is provided by BucketSpace's active multi-provider replication and self-repair engine.
+
+### Supply Chain & Repository Security Controls
+BucketSpace adopts comprehensive software supply chain controls:
+- **Dependency Graph & Dependabot**: Automated transitive dependency inventory and vulnerability scanning.
+- **Strict Lockfile Integrity**: All builds enforce frozen lockfiles (`pnpm install --frozen-lockfile`).
+- **Software Bill of Materials (SBOM)**: Exportable SPDX/CycloneDX dependency manifests for release validation.
+- **Architectural Isolation**: Strict build-time validation separating storage adapters from AI/content inference.
+
 ---
 
 ## Quick Start
@@ -95,23 +131,25 @@ compressed input ──► parser ──► bounded memory ──► bounded ext
 - **Node.js** >= 22.0.0
 - **pnpm** >= 9.0.0
 
-### Install & Run
+### Clean-Machine Setup & First-Run
 
 ```bash
+# 1. Clone the repository
 git clone https://github.com/vanrajsinh650/BucketSpace.git
 cd BucketSpace
+
+# 2. Install dependencies with frozen lockfile
 pnpm install
+
+# 3. Verify types and run test suites
 pnpm type-check
+pnpm --filter "@bucketspace/storage-adapters" test
+
+# 4. Launch the local web interface
 pnpm --filter "@bucketspace/web" dev
 ```
 
 Web UI: `http://localhost:3000`
-
-### Run Tests
-
-```bash
-pnpm --filter "@bucketspace/storage-adapters" test
-```
 
 ---
 
@@ -127,8 +165,8 @@ BucketSpace/
 │   ├── shared/              # Domain Contracts & Types
 │   ├── security/            # Encryption & Key Derivation
 │   ├── db/                  # SQLite Metadata, FTS5, Vector Store
-│   └── storage-adapters/    # Provider Adapters, Search, AI, Trust
-└── context/                 # Architectural Documentation
+│   └── storage-adapters/    # Provider Adapters, Search, AI, Trust, Resilience
+└── context/                 # Architectural Documentation & Project State
 ```
 
 ---
@@ -151,12 +189,13 @@ BucketSpace/
 | V3.4 | Adversarial Hardening & 100+ Benchmark | 69 |
 | **1.0 RC** | **Authorization Hardening & Release Candidate** | **73** |
 | **1.0 RC Audit** | **Final Release Validation & Concurrency Hardening** | **92** |
+| **1.0 RC Final** | **Disaster Recovery, Residue Purge & Backup Hardening** | **94** |
 
 ---
 
 ## Current Status
 
-BucketSpace is a **feature-complete 1.0 Release Candidate undergoing final release validation**. Feature development is frozen in favor of release engineering, clean setup verification, migration testing, and invariant auditing.
+BucketSpace is a **feature-complete 1.0 Release Candidate undergoing final release validation**. Feature development is frozen. Current focus is release engineering, clean setup verification, migration testing, and invariant auditing.
 
 ---
 
@@ -167,9 +206,11 @@ BucketSpace is a **feature-complete 1.0 Release Candidate undergoing final relea
 - **Path Traversal**: Canonical `path.resolve` + strict root prefix validation.
 - **Prompt Injection**: Defense-in-depth (pattern matching, Unicode normalization, exfiltration detection). Treated as one security layer, not a complete boundary.
 - **Authorization**: Application-enforced, never delegated to the LLM.
+- **Residue Purge**: Cascading invalidation across DB, FTS, vectors, shares, and ephemeral upload/intermediate caches.
 
 ---
 
 ## License
 
 Distributed under the **MIT License**.
+

@@ -14,14 +14,18 @@ export interface BackupSnapshot {
   contentSegments: any[];
   vectorChunks: any[];
   embeddingModels: any[];
+  auditLogs: any[];
 }
 
 /**
  * BackupManager handles the disaster recovery lifecycle for BucketSpace:
  *   1. Exports a complete, structured JSON/SQLite backup snapshot of all filesystem metadata,
- *      chunk locations, search indexes, vectors, and routing rules.
+ *      chunk locations, search indexes, vectors, audit trails, and routing rules.
  *   2. Restores metadata onto a fresh machine/database.
  *   3. Verifies provider connectivity and audits all chunk references against reconnected providers.
+ *
+ * NOTE: The snapshot contains filesystem indexing metadata, chunk locations, and cryptographic hashes.
+ * It deliberately does NOT contain raw file payload bytes, which reside securely on external/local providers.
  */
 export class BackupManager {
   constructor(private readonly db: DatabaseSync) {}
@@ -38,6 +42,7 @@ export class BackupManager {
     const contentSegments = this.db.prepare('SELECT * FROM content_segments').all();
     const vectorChunks = this.db.prepare('SELECT * FROM vector_chunks').all();
     const embeddingModels = this.db.prepare('SELECT * FROM embedding_models').all();
+    const auditLogs = this.db.prepare('SELECT * FROM audit_logs').all();
 
     return {
       version: '1.0.0-rc',
@@ -50,6 +55,7 @@ export class BackupManager {
       contentSegments,
       vectorChunks,
       embeddingModels,
+      auditLogs,
     };
   }
 
@@ -119,6 +125,15 @@ export class BackupManager {
         INSERT OR REPLACE INTO embedding_models (model_id, model_version, dimensions, is_active, created_at)
         VALUES (?, ?, ?, ?, ?)
       `).run(em.model_id, em.model_version, em.dimensions, em.is_active, em.created_at);
+    }
+
+    if (snapshot.auditLogs) {
+      for (const al of snapshot.auditLogs) {
+        targetDb.prepare(`
+          INSERT OR REPLACE INTO audit_logs (id, event_type, actor, details_json, timestamp)
+          VALUES (?, ?, ?, ?, ?)
+        `).run(al.id, al.event_type, al.actor, al.details_json, al.timestamp);
+      }
     }
 
     targetDb.exec('PRAGMA foreign_keys = ON;');
