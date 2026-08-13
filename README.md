@@ -72,8 +72,20 @@ BucketSpace uses Telegram as one of several storage providers. The Telegram Bot 
 ### AI Grounding & Hallucination Policy
 BucketSpace provides **source-grounded responses with enforced refusal, prompt-injection defense in depth, and post-generation claim validation.** It does not claim "zero hallucination." No current system can mathematically guarantee that an LLM will never produce an unsupported statement. BucketSpace constrains, detects, and rejects unsupported output through multiple validation layers.
 
-### Authorization Model
-The LLM is **never trusted to enforce authorization**. The application resolves which files a user is permitted to access, and passes only authorized file IDs to the search engine. The LLM only ever sees chunks from files the user is authorized to access.
+### Authorization & Security Model
+The LLM is **an untrusted text generator with zero authority over storage, permissions, sharing, deletion, or credentials**. The application resolves which files a user is permitted to access, and passes only authorized file IDs to the search engine. The LLM only ever sees chunks from files the user is authorized to access.
+
+- **Storage access** = Application-enforced
+- **Authorization** = Application-enforced (pre-retrieval filtering)
+- **File deletion** = Application-enforced (cascading purge across FTS, vectors, and shares)
+- **Sharing permissions** = Application-enforced (256-bit hashed tokens at rest)
+- **Master credentials** = Application-enforced (AES-256-GCM + scrypt vault)
+
+### File Extraction Pipeline Bounds
+To prevent resource exhaustion and decompression bombs, content ingestion follows a bounded processing model:
+```
+compressed input ──► parser ──► bounded memory ──► bounded extracted output ──► bounded processing time
+```
 
 ---
 
@@ -137,7 +149,14 @@ BucketSpace/
 | V3.2 | Grounded RAG Assistant | 62 |
 | V3.3 | AI Trust & Citation Validation | 66 |
 | V3.4 | Adversarial Hardening & 100+ Benchmark | 69 |
-| **1.0 RC** | **Authorization Hardening & Release Candidate** | **73+** |
+| **1.0 RC** | **Authorization Hardening & Release Candidate** | **73** |
+| **1.0 RC Audit** | **Final Release Validation & Concurrency Hardening** | **92** |
+
+---
+
+## Current Status
+
+BucketSpace is a **feature-complete 1.0 Release Candidate undergoing final release validation**. Feature development is frozen in favor of release engineering, clean setup verification, migration testing, and invariant auditing.
 
 ---
 
