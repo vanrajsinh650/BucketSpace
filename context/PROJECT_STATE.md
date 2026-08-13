@@ -242,8 +242,10 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
   - **Stale Permissions & Cascading Deletion** (`rc-stale-permissions-and-deletion.test.ts`): Verified that revoked user permissions never leak stale vector index chunks, and deleting a file cascades across SQLite metadata, chunks, content metadata, FTS5 index, vector store, and active share links.
   - **Disaster Recovery & Backup/Restore** (`rc-disaster-recovery.test.ts`): Tested full snapshot export from Machine A -> wiped host -> fresh Machine B restore -> provider reconnect -> chunk audit -> verified 100% byte equality on reassembly.
   - **Complete Ephemeral State & Residue Cleanup** (`rc-complete-residue-cleanup.test.ts`): Implemented `ResidueCleaner` guaranteeing complete purge of temporary upload buffers, intermediate extracted caches, thumbnail caches, embedding caches, transfer queue states, and share tokens.
-  - Passed 100% of all 94 master test suites with 0 failures, 100% monorepo type-check across 7 workspace packages, and 100% Next.js 15 production build.
-- **🎉 MILESTONE ACHIEVED**: **BucketSpace 1.0 Release Candidate — Verification, Disaster Recovery & Security Audit Complete!**
+  - **Universal File Preview Engine** (`preview-service.test.ts` & `FilePreviewModal.tsx`): Provider-agnostic inline viewing for images, progressive streamable video/audio, embedded PDFs, syntax-styled plaintext/code, rendered Markdown, extracted document text fallback, and unsupported binary checksum inspection.
+  - **Duplicate Detection & Conflict Resolver** (`duplicate-resolver.test.ts` & `DuplicateConflictModal.tsx`): Implemented 3 collision pathways (Case A: same name/different content $\rightarrow$ `(1), (2)` numbering; Case B: same name/identical SHA-256 $\rightarrow$ skip/replace warning; Case C: different name/identical hash $\rightarrow$ preserve separate user-named files).
+  - Passed 100% of all 100 master test suites with 0 failures, 100% monorepo type-check across 7 workspace packages, and 100% Next.js 15 production build.
+- **🎉 MILESTONE ACHIEVED**: **BucketSpace 1.0 Release Candidate — Verification, Disaster Recovery, Preview Engine & Duplicate Resolution Complete!**
 
 ---
 
