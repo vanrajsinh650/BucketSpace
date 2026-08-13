@@ -78,6 +78,45 @@ export interface HybridSearchResult {
   provenance?: SegmentProvenance;
 }
 
+/** Citation badge displaying source file and exact page or timestamp location */
+export interface Citation {
+  index: number;
+  fileId: FileId;
+  fileName: string;
+  pageNumber?: number;
+  charOffset?: number;
+  startTimeSeconds?: number;
+  endTimeSeconds?: number;
+  snippet: string;
+}
+
+/** Structured output of the Grounded RAG Assistant */
+export interface AssistantResponse {
+  answer: string;
+  citations: Citation[];
+  hasSufficientEvidence: boolean;
+  modelUsed: string;
+  retrievedChunkCount: number;
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  citations?: Citation[];
+  timestamp: Date;
+}
+
+/** Pluggable LLM Provider contract for Grounded RAG Generation */
+export interface ILLMProvider {
+  readonly providerId: string;
+  readonly modelName: string;
+  generateResponse(
+    userPrompt: string,
+    contextChunks: HybridSearchResult[],
+    fileNamesMap: Map<string, string>
+  ): Promise<AssistantResponse>;
+}
+
 /** Content Extractor contract for ingesting file byte streams into ExtractedContent */
 export interface IContentExtractor {
   readonly extractorId: string;

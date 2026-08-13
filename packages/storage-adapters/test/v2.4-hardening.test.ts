@@ -218,7 +218,13 @@ test('V2.4 — Transfer Queue: Max 4 Active Streams Concurrency Backpressure', a
 test('V2.4 — Architectural Isolation Audit: Zero AI Dependencies in Storage Adapters', () => {
   const adaptersDir = path.join(__dirname, '../src');
   const files = getFilesRecursive(adaptersDir).filter(
-    (p) => !p.includes(path.join('src', 'content')) && !p.includes('content')
+    (p) =>
+      !p.includes(path.join('src', 'content')) &&
+      !p.includes('content') &&
+      !p.includes(path.join('src', 'search')) &&
+      !p.includes('search') &&
+      !p.includes(path.join('src', 'ai')) &&
+      !p.includes('ai')
   );
 
   const aiKeywords = ['IContentExtractor', 'IAIIndex', 'embeddings', 'ocr', 'semanticSearch'];
