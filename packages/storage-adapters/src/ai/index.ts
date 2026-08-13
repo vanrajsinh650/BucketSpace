@@ -6,4 +6,8 @@ export * from './citation-validator';
 export * from './prompt-injection-guard';
 export * from './grounding-validator';
 export * from './evaluation-harness';
+export * from './claim-validator';
+export * from './adversarial-security-matrix';
+export * from './corpus-evaluation-suite';
+
 

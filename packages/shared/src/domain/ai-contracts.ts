@@ -149,6 +149,19 @@ export interface EvaluationTestCase {
   disallowedPhrases?: string[];
 }
 
+export interface AdvancedEvaluationMetrics {
+  totalCases: number;
+  unsupportedClaimRate: number;
+  citationRecall: number;
+  citationCompleteness: number;
+  entityAttributionAccuracy: number;
+  attackSuccessRate: number;
+  falseRefusalRate: number;
+  retrievalRecallAtK: number;
+  refusalAccuracy: number;
+  citationPrecision: number;
+}
+
 export interface EvaluationBenchmarkReport {
   totalTests: number;
   passCount: number;
@@ -156,6 +169,7 @@ export interface EvaluationBenchmarkReport {
   retrievalRecallAtK: number;
   refusalAccuracy: number;
   citationPrecision: number;
+  metrics?: AdvancedEvaluationMetrics;
   testDetails: Array<{ id: string; category: string; passed: boolean; score: number; notes: string }>;
 }
 
