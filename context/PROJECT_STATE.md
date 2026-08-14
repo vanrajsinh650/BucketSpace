@@ -258,13 +258,14 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
   - **5 Living Security Documents**: Published `SECURITY_AUDIT.md`, `THREAT_MODEL.md`, `SECURITY_INVARIANTS.md`, `SECURITY_RUNBOOK.md`, and `SECURITY_FINDINGS.md` in `/context`.
   - **Monorepo Metric**: **114/114 tests passing across 30 test suites, 0 type-check errors, Next.js 15 production build passing**.
 
-- **Consumer UX + Hash Mismatch Fix** (Commit `5342401`):
+- **Consumer UX + Hash Mismatch Fix** (Commits `5342401`, `1d1a7a0`, `cfbc0da`):
   - **Root Cause Identified & Fixed**: `calculateSha256()` in `storage-store.ts` was calling `crypto.subtle.digest(data.buffer)` — when `data` is a `Uint8Array.subarray()`, `.buffer` returns the entire underlying `ArrayBuffer`, not the slice. Upload hashes silently hashed the whole file while download hashes hashed only the chunk, causing guaranteed mismatches on any multi-chunk file. Fixed with `buffer.slice(byteOffset, byteOffset + byteLength)`.
-  - **First-Run Onboarding Gate**: New users with zero providers now see a full-page welcome screen instead of an empty dashboard. Must connect at least one provider to enter the file manager.
+  - **Dedicated Subarray Slice Regression Suite**: Added `packages/storage-adapters/test/subarray-slice-integrity.test.ts` asserting backing-buffer offset isolation (`SHA256(chunk) !== SHA256(fullBuffer)`), multi-chunk upload $\rightarrow$ storage $\rightarrow$ preview $\rightarrow$ download bit-level equality, and reassembly hash fidelity.
+  - **First-Run Onboarding Gate**: New users with zero providers see a full-page welcome screen instead of an empty dashboard.
   - **Telegram Phone Flow**: Removed API ID, API Hash, Channel ID, MTProto, and Bot API terminology from user-facing UI. Connection flow is now Phone → Telegram Code → 2FA Password (only if required) → Connected.
-  - **Error Humanization**: All hash mismatch and integrity errors now show user-friendly messages with optional collapsible technical details.
+  - **Error Humanization**: All hash mismatch and integrity errors show user-friendly messages with optional collapsible technical details.
   - **Component Simplification**: FilePreviewModal, ProviderSettings, and DuplicateConflictModal rewritten with consumer-friendly wording, collapsible technical details, and Google Drive-style language.
-  - **Monorepo Metric**: **114/114 tests passing, type-check clean, Next.js 15 production build clean**.
+  - **Monorepo Metric**: **116/116 tests passing across 31 test suites, type-check clean, Next.js 15 production build clean**.
 
 ---
 
