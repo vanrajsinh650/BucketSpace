@@ -256,4 +256,10 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
 - **Interruption Recovery**: Partial uploads/downloads must be resumable. No data loss on crash or network failure.
 - **Credentials Protection**: Telegram bot tokens and session data stored securely in local config.
 - **Release Status**: Feature-complete 1.0 Release Candidate undergoing final release validation.
+- **Live Telegram Cloud E2E Validation Protocol (Pending Disposable Account)**:
+  1. *Multi-Scale Transfers*: 100 MB, 500 MB, 1 GB payloads $\rightarrow$ GramJS MTProto $\rightarrow$ Telegram DC $\rightarrow$ app restart $\rightarrow$ download $\rightarrow$ compare SHA-256 == original.
+  2. *Interruption & Resume*: Terminate upload mid-transfer $\rightarrow$ restart application $\rightarrow$ resume transfer $\rightarrow$ assert zero duplicate parts uploaded and final file matches digest.
+  3. *Provider Loss & Self-Healing*: Delete message on Telegram $\rightarrow$ `hasChunk()` returns `false` $\rightarrow$ triggers `RepairEngine` from replica $\rightarrow$ verify byte equality.
+  4. *Memory Boundedness*: Continuous heap profiling asserting max RAM stays bounded to $O(1)$ (512 KB part window) throughout multi-gigabyte transfers.
+  5. *Byte-Range Reads*: Seek to arbitrary offsets in video/audio media chunks $\rightarrow$ verify exact slice boundaries without full-object download.
 
