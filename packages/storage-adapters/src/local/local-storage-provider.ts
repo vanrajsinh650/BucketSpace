@@ -8,6 +8,7 @@ import {
   IStorageProvider,
   ProviderChunkRef,
   PutChunkInput,
+  StorageProviderCapabilities,
 } from '@bucketspace/shared';
 
 export interface LocalStorageConfig {
@@ -34,6 +35,21 @@ export class LocalStorageAdapter implements IStorageProvider {
     if (!fs.existsSync(this.rootDir)) {
       fs.mkdirSync(this.rootDir, { recursive: true });
     }
+  }
+
+  public getCapabilities(): StorageProviderCapabilities {
+    return {
+      providerId: this.providerId,
+      maxObjectSizeBytes: null,
+      optimalChunkSizeBytes: 5 * 1024 * 1024,
+      supportsStreamingRead: true,
+      supportsStreamingWrite: true,
+      supportsByteRangeRead: true,
+      supportsParallelUploads: true,
+      supportsResumableUpload: true,
+      supportsDirectMediaPlayback: true,
+      supportsMultipartLogicalFiles: true,
+    };
   }
 
   public async putChunk(chunk: PutChunkInput): Promise<ProviderChunkRef> {

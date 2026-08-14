@@ -1,11 +1,12 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { IStorageProvider } from '@bucketspace/shared';
+import { IStorageProvider, StorageProviderCapabilities } from '@bucketspace/shared';
 
 /* ─── Types ─── */
 
 export interface ProviderInfo {
   providerId: string;
   registered: boolean;
+  capabilities?: StorageProviderCapabilities;
 }
 
 export interface ProviderHealth {
@@ -19,7 +20,7 @@ export interface ProviderHealth {
 
 /**
  * ProviderRegistry manages registered IStorageProvider instances by provider ID.
- * Supports listing, removal, and connectivity health checks via probe chunks.
+ * Supports listing, removal, capability queries, and connectivity health checks via probe chunks.
  */
 export class ProviderRegistry {
   private static readonly providers = new Map<string, IStorageProvider>();
@@ -41,16 +42,23 @@ export class ProviderRegistry {
     return provider;
   }
 
+  /** Retrieve declared capabilities for a registered provider */
+  public static getCapabilities(providerId: string): StorageProviderCapabilities {
+    const provider = this.get(providerId);
+    return provider.getCapabilities();
+  }
+
   /** Check if a provider ID is registered */
   public static has(providerId: string): boolean {
     return this.providers.has(providerId);
   }
 
-  /** List all registered providers */
+  /** List all registered providers with their declared capabilities */
   public static list(): ProviderInfo[] {
-    return Array.from(this.providers.keys()).map((id) => ({
+    return Array.from(this.providers.entries()).map(([id, provider]) => ({
       providerId: id,
       registered: true,
+      capabilities: provider.getCapabilities(),
     }));
   }
 

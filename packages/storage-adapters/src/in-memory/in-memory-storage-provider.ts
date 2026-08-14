@@ -5,6 +5,7 @@ import {
   IStorageProvider,
   ProviderChunkRef,
   PutChunkInput,
+  StorageProviderCapabilities,
 } from '@bucketspace/shared';
 
 interface InMemoryRefData {
@@ -23,6 +24,21 @@ export class InMemoryStorageProvider implements IStorageProvider {
 
   constructor(providerId: string = 'in-memory') {
     this.providerId = providerId;
+  }
+
+  public getCapabilities(): StorageProviderCapabilities {
+    return {
+      providerId: this.providerId,
+      maxObjectSizeBytes: null,
+      optimalChunkSizeBytes: 5 * 1024 * 1024,
+      supportsStreamingRead: true,
+      supportsStreamingWrite: true,
+      supportsByteRangeRead: true,
+      supportsParallelUploads: true,
+      supportsResumableUpload: true,
+      supportsDirectMediaPlayback: true,
+      supportsMultipartLogicalFiles: true,
+    };
   }
 
   /**

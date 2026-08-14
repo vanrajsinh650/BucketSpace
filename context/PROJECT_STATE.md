@@ -244,8 +244,9 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
   - **Complete Ephemeral State & Residue Cleanup** (`rc-complete-residue-cleanup.test.ts`): Implemented `ResidueCleaner` guaranteeing complete purge of temporary upload buffers, intermediate extracted caches, thumbnail caches, embedding caches, transfer queue states, and share tokens.
   - **Universal File Preview Engine** (`preview-service.test.ts` & `FilePreviewModal.tsx`): Provider-agnostic inline viewing for images, progressive streamable video/audio, embedded PDFs, syntax-styled plaintext/code, rendered Markdown, extracted document text fallback, and unsupported binary checksum inspection.
   - **Duplicate Detection & Conflict Resolver** (`duplicate-resolver.test.ts` & `DuplicateConflictModal.tsx`): Implemented 3 collision pathways (Case A: same name/different content $\rightarrow$ `(1), (2)` numbering; Case B: same name/identical SHA-256 $\rightarrow$ skip/replace warning; Case C: different name/identical hash $\rightarrow$ preserve separate user-named files).
-  - Passed 100% of all 100 master test suites with 0 failures, 100% monorepo type-check across 7 workspace packages, and 100% Next.js 15 production build.
-- **🎉 MILESTONE ACHIEVED**: **BucketSpace 1.0 Release Candidate — Verification, Disaster Recovery, Preview Engine & Duplicate Resolution Complete!**
+  - **Storage Provider Capabilities & MTProto Architecture** (`provider-capabilities.test.ts` & `ProviderOnboardingModal.tsx`): Reverse-engineered Telegram-Drive's MTProto pipeline (2 GB object capability, 512 KB optimal chunk size, byte-range streaming, FloodWait resilience) and removed all hardcoded global 50 MB limits in favor of a dynamic `StorageProviderCapabilities` contract across Telegram, S3/R2, Supabase, and Local Disk.
+  - Passed 100% of all 105 master test suites with 0 failures, 100% monorepo type-check across 7 workspace packages, and 100% Next.js 15 production build.
+- **🎉 MILESTONE ACHIEVED**: **BucketSpace 1.0 Release Candidate — Storage Provider Capabilities & MTProto Architecture Complete!**
 
 ---
 

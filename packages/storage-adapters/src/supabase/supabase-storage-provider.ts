@@ -4,6 +4,7 @@ import {
   IStorageProvider,
   ProviderChunkRef,
   PutChunkInput,
+  StorageProviderCapabilities,
 } from '@bucketspace/shared';
 
 export interface SupabaseStorageConfig {
@@ -33,6 +34,21 @@ export class SupabaseStorageAdapter implements IStorageProvider {
     this.supabaseUrl = config.supabaseUrl;
     this.supabaseKey = config.supabaseKey;
     this.bucketName = config.bucketName;
+  }
+
+  public getCapabilities(): StorageProviderCapabilities {
+    return {
+      providerId: this.providerId,
+      maxObjectSizeBytes: 50 * 1024 * 1024 * 1024, // 50 GB
+      optimalChunkSizeBytes: 5 * 1024 * 1024, // 5 MB
+      supportsStreamingRead: true,
+      supportsStreamingWrite: true,
+      supportsByteRangeRead: true,
+      supportsParallelUploads: true,
+      supportsResumableUpload: true,
+      supportsDirectMediaPlayback: true,
+      supportsMultipartLogicalFiles: true,
+    };
   }
 
   public async putChunk(chunk: PutChunkInput): Promise<ProviderChunkRef> {

@@ -4,6 +4,7 @@ import {
   IStorageProvider,
   ProviderChunkRef,
   PutChunkInput,
+  StorageProviderCapabilities,
 } from '@bucketspace/shared';
 
 export interface S3StorageConfig {
@@ -34,6 +35,21 @@ export class S3StorageAdapter implements IStorageProvider {
     this.providerId = config.providerId ?? 's3-r2';
     this.bucket = config.bucket;
     this.endpoint = config.endpoint ?? 'https://s3.amazonaws.com';
+  }
+
+  public getCapabilities(): StorageProviderCapabilities {
+    return {
+      providerId: this.providerId,
+      maxObjectSizeBytes: 5 * 1024 * 1024 * 1024 * 1024, // 5 TB
+      optimalChunkSizeBytes: 5 * 1024 * 1024, // 5 MB
+      supportsStreamingRead: true,
+      supportsStreamingWrite: true,
+      supportsByteRangeRead: true,
+      supportsParallelUploads: true,
+      supportsResumableUpload: true,
+      supportsDirectMediaPlayback: true,
+      supportsMultipartLogicalFiles: true,
+    };
   }
 
   public async putChunk(chunk: PutChunkInput): Promise<ProviderChunkRef> {

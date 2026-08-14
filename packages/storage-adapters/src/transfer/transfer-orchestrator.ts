@@ -41,12 +41,15 @@ export interface DownloadResult {
 }
 
 export class TransferOrchestrator {
-  /**
-   * Upload a local disk file, stream chunks to provider, and save metadata to SQLite.
-   */
   public static async uploadFile(input: UploadFileInput): Promise<FileMetadata> {
     const fileId = createFileId(randomUUID());
-    const chunkSize = input.chunkSize ?? 5 * 1024 * 1024;
+    const capabilities = input.provider.getCapabilities();
+    let chunkSize = input.chunkSize ?? capabilities.optimalChunkSizeBytes;
+
+    // Bound chunkSize to provider's maxObjectSizeBytes if specified
+    if (capabilities.maxObjectSizeBytes && chunkSize > capabilities.maxObjectSizeBytes) {
+      chunkSize = capabilities.maxObjectSizeBytes;
+    }
 
     const { chunkStream, getWholeFileHash, totalSize } = createFileChunker(input.filePath, chunkSize);
     const uploadedChunks: ChunkMetadata[] = [];

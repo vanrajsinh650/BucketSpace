@@ -21,10 +21,11 @@ export interface ProviderDisplayInfo {
   latencyMs?: number;
 }
 
-interface ProviderSettingsProps {
+export interface ProviderSettingsProps {
   providers: ProviderDisplayInfo[];
   onTestConnection: (providerId: string) => void;
   onRemoveProvider: (providerId: string) => void;
+  onOpenOnboarding?: () => void;
   onClose: () => void;
 }
 
@@ -64,6 +65,7 @@ export function ProviderSettings({
   providers,
   onTestConnection,
   onRemoveProvider,
+  onOpenOnboarding,
   onClose,
 }: ProviderSettingsProps) {
   return (
@@ -91,7 +93,7 @@ export function ProviderSettings({
         </div>
 
         {/* Provider List */}
-        <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+        <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
           {providers.length === 0 && (
             <div className="text-center py-12 text-slate-500 text-sm">
               No providers registered. Add a provider to start storing files.
@@ -138,7 +140,23 @@ export function ProviderSettings({
             </div>
           ))}
         </div>
+
+        {/* Add / Connect Provider Button */}
+        {onOpenOnboarding && (
+          <div className="pt-2 border-t border-slate-800/80">
+            <button
+              onClick={() => {
+                onClose();
+                onOpenOnboarding();
+              }}
+              className="w-full py-3 rounded-2xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700 text-white font-medium text-xs transition-colors flex items-center justify-center gap-2"
+            >
+              <span>+ Connect New Provider (Telegram, S3, R2, Supabase, Local)</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
