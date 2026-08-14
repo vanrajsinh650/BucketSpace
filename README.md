@@ -67,7 +67,11 @@ BucketSpace
 ## Important Design Decisions
 
 ### Telegram as Storage Backend
-BucketSpace uses Telegram as one of several storage providers. The Telegram Bot API has documented limits (50 MB upload, 20 MB download via `getFile`). BucketSpace's chunked transfer engine works within these limits. Telegram is a storage backend, not "infinite storage."
+BucketSpace supports two Telegram transport modes with dynamic capability negotiation:
+- **MTProto 2.0 Client Mode (GramJS)**: Direct connection to Telegram's cloud using user credentials (`StringSession`), supporting streaming multi-gigabyte files (up to 2,000,000,000 bytes per document) with bounded 512 KB slice windows.
+- **Bot API Mode**: Standard bot-based transfers with Telegram's documented limits (50 MB upload, 20 MB download).
+
+Telegram is treated as a high-durability cloud storage adapter, not "infinite storage." Durability is guaranteed through active multi-provider replication and self-healing verification.
 
 ### AI Grounding & Hallucination Policy
 BucketSpace provides **source-grounded responses with enforced refusal, prompt-injection defense in depth, and post-generation claim validation.** It does not claim "zero hallucination." No current system can mathematically guarantee that an LLM will never produce an unsupported statement. BucketSpace constrains, detects, and rejects unsupported output through multiple validation layers.
@@ -96,7 +100,7 @@ Original Host ──► Export Snapshot ──► Host Dies ──► Fresh Mach
 ```
 
 1. **Restore Metadata Backup**: Import the exported JSON/SQLite snapshot onto your clean machine.
-2. **Reconnect Storage Providers**: Provide your provider credentials (Telegram bot tokens, S3/R2 keys, Supabase URLs, local storage disks).
+2. **Reconnect Storage Providers**: Provide your provider credentials (Telegram sessions/tokens, S3/R2 keys, Supabase URLs, local storage disks).
 3. **Run Integrity Audit**: BucketSpace's `BackupManager` instantly audits all chunk references against the reconnected providers.
 4. **Instant Access**: Full hybrid search, vector embeddings, and verified byte-identical file downloads resume immediately.
 
@@ -115,13 +119,6 @@ To prevent confusion, BucketSpace maintains a strict distinction between metadat
 
 > [!NOTE]
 > A BucketSpace metadata backup is an index backup, not a bulk storage dump. File durability is provided by BucketSpace's active multi-provider replication and self-repair engine.
-
-### Supply Chain & Repository Security Controls
-BucketSpace adopts comprehensive software supply chain controls:
-- **Dependency Graph & Dependabot**: Automated transitive dependency inventory and vulnerability scanning.
-- **Strict Lockfile Integrity**: All builds enforce frozen lockfiles (`pnpm install --frozen-lockfile`).
-- **Software Bill of Materials (SBOM)**: Exportable SPDX/CycloneDX dependency manifests for release validation.
-- **Architectural Isolation**: Strict build-time validation separating storage adapters from AI/content inference.
 
 ---
 
@@ -143,7 +140,7 @@ pnpm install
 
 # 3. Verify types and run test suites
 pnpm type-check
-pnpm --filter "@bucketspace/storage-adapters" test
+pnpm test
 
 # 4. Launch the local web interface
 pnpm --filter "@bucketspace/web" dev
@@ -190,27 +187,24 @@ BucketSpace/
 | **1.0 RC** | **Authorization Hardening & Release Candidate** | **73** |
 | **1.0 RC Audit** | **Final Release Validation & Concurrency Hardening** | **92** |
 | **1.0 RC Final** | **Disaster Recovery, Residue Purge & Backup Hardening** | **94** |
+| **1.0 RC MTProto** | **MTProto 2.0 Streaming Engine & Multi-Part Sizing** | **105** |
+| **1.0 Security Freeze** | **24 Security Invariants (S1–S24) & Consolidated Red-Team Suite** | **114** |
 
 ---
 
-## Current Status
+## Security Documentation
 
-BucketSpace is a **feature-complete 1.0 Release Candidate undergoing final release validation**. Feature development is frozen. Current focus is release engineering, clean setup verification, migration testing, and invariant auditing.
-
----
-
-## Security Considerations
-
-- **Encryption**: AES-256-GCM with per-file Data Encryption Keys, wrapped under master passphrase via OWASP scrypt.
-- **Share Tokens**: 256-bit random tokens, stored hashed (SHA-256) at rest.
-- **Path Traversal**: Canonical `path.resolve` + strict root prefix validation.
-- **Prompt Injection**: Defense-in-depth (pattern matching, Unicode normalization, exfiltration detection). Treated as one security layer, not a complete boundary.
-- **Authorization**: Application-enforced, never delegated to the LLM.
-- **Residue Purge**: Cascading invalidation across DB, FTS, vectors, shares, and ephemeral upload/intermediate caches.
+BucketSpace's security architecture is fully documented in `/context`:
+- [`SECURITY_AUDIT.md`](context/SECURITY_AUDIT.md) — 20-Phase Security Audit Report & OWASP Cryptographic Storage compliance.
+- [`THREAT_MODEL.md`](context/THREAT_MODEL.md) — Threat model covering 15 threat actors (A–O) and trust boundaries.
+- [`SECURITY_INVARIANTS.md`](context/SECURITY_INVARIANTS.md) — 24 executable security invariants (S1–S24).
+- [`SECURITY_RUNBOOK.md`](context/SECURITY_RUNBOOK.md) — Incident response, master key rotation, and disaster recovery runbooks.
+- [`SECURITY_FINDINGS.md`](context/SECURITY_FINDINGS.md) — Vulnerability inventory and remediation catalog.
 
 ---
 
 ## License
 
 Distributed under the **MIT License**.
+
 
