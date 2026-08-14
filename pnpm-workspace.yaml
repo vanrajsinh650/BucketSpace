@@ -5,9 +5,12 @@ packages:
 allowBuilds:
   '@prisma/client': true
   '@prisma/engines': true
+  bufferutil: set this to true or false
+  es5-ext: set this to true or false
   esbuild: true
   prisma: true
   sharp: true
+  utf-8-validate: set this to true or false
 
 onlyBuiltDependencies:
   - '@prisma/client'

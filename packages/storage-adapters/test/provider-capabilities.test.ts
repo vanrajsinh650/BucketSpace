@@ -196,18 +196,72 @@ describe('Storage Provider Capabilities & MTProto Architecture', () => {
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
-  it('Phase 6 — Telegram MTProto Provider puts chunk and creates document reference', async () => {
+  it('Phase 6 — Telegram MTProto Provider: full Put, Get, Has, Delete cycle with byte-for-byte SHA-256 verification', async () => {
+    // Mock MTProto client simulating the GramJS client MTProto RPC methods
+    const mockMtproto: import('../src/telegram/telegram-storage-provider').IMtprotoClient = {
+      messages: new Map<number, { id: number; data: Uint8Array; media: { document: { id: string; accessHash: string; dcId: number; size: number } } }>(),
+      currentId: 100,
+
+      async connect(): Promise<void> {},
+
+      async uploadFile(params: { file: any; workers?: number }): Promise<any> {
+        return { id: 12345, parts: 1, name: params.file.name, bytes: params.file.buffer };
+      },
+
+      async sendFile(entity: string, params: { file: any; caption?: string }): Promise<any> {
+        const msgId = ++this.currentId;
+        const bytes = params.file.bytes || new Uint8Array(0);
+        const msg = {
+          id: msgId,
+          data: bytes,
+          media: {
+            document: {
+              id: `doc_${msgId}`,
+              accessHash: 'hash_' + msgId,
+              dcId: 4,
+              size: bytes.length,
+            },
+          },
+        };
+        this.messages.set(msgId, msg);
+        return msg;
+      },
+
+      async getMessages(entity: string, params: { ids: number[] }): Promise<any[]> {
+        const res: any[] = [];
+        for (const id of params.ids) {
+          const found = this.messages.get(id);
+          if (found) res.push(found);
+        }
+        return res;
+      },
+
+      async *iterDownload(params: { file: any; chunkSize?: number; requestSize?: number }): AsyncIterable<Uint8Array> {
+        for (const msg of this.messages.values()) {
+          yield msg.data;
+          return;
+        }
+      },
+
+      async deleteMessages(entity: string, ids: number[], options?: { revoke?: boolean }): Promise<any> {
+        for (const id of ids) {
+          this.messages.delete(id);
+        }
+        return true;
+      },
+    } as any;
+
     const telegramProvider = new TelegramStorageAdapter({
       mode: 'mtproto',
-      apiId: 99999,
-      apiHash: 'fake-hash',
+      mtprotoClient: mockMtproto,
     });
 
-    const chunkData = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+    const chunkData = new Uint8Array([10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
     const hash = createHash('sha256').update(chunkData).digest('hex');
 
+    // 1. Put chunk (triggers GramJS uploadFile -> saveBigFilePart -> sendFile media document)
     const ref = await telegramProvider.putChunk({
-      chunkId: 'chunk-tg-1',
+      chunkId: 'chunk-tg-real-1',
       size: chunkData.byteLength,
       hash,
       data: (async function* () {
@@ -217,12 +271,44 @@ describe('Storage Provider Capabilities & MTProto Architecture', () => {
 
     assert.strictEqual(ref.providerId, 'telegram');
     assert.ok(ref.reference);
-    const refObj = ref.reference as { documentId?: string; accessHash?: string; dcId?: number };
+    const refObj = ref.reference as { documentId?: string; accessHash?: string; dcId?: number; fileId: string };
     assert.ok(refObj.documentId);
-    assert.strictEqual(refObj.accessHash, hash);
     assert.strictEqual(refObj.dcId, 4);
 
+    // 2. Has chunk check (triggers GramJS getMessages -> document metadata inspect)
     const existsStat = await telegramProvider.hasChunk(ref);
     assert.strictEqual(existsStat.exists, true);
+    assert.strictEqual(existsStat.size, chunkData.byteLength);
+
+    // 3. Get chunk byte stream and verify 100% byte equality (triggers GramJS iterDownload -> getFile)
+    const stream = await telegramProvider.getChunk(ref);
+    const downloadedPieces: Uint8Array[] = [];
+    for await (const piece of stream) {
+      downloadedPieces.push(piece);
+    }
+    const downloadedCombined = Buffer.concat(downloadedPieces.map((p) => Buffer.from(p)));
+    assert.strictEqual(downloadedCombined.length, chunkData.byteLength);
+    assert.deepStrictEqual(new Uint8Array(downloadedCombined), chunkData);
+
+    const downloadedHash = createHash('sha256').update(downloadedCombined).digest('hex');
+    assert.strictEqual(downloadedHash, hash);
+
+    // 4. Delete chunk (triggers GramJS deleteMessages)
+    const deleted = await telegramProvider.deleteChunk(ref);
+    assert.strictEqual(deleted, true);
+
+    // 5. Verify chunk is gone (hasChunk -> false, getChunk -> throws ChunkNotFoundError)
+    const afterDeleteStat = await telegramProvider.hasChunk(ref);
+    assert.strictEqual(afterDeleteStat.exists, false);
+
+    await assert.rejects(
+      async () => {
+        await telegramProvider.getChunk(ref);
+      },
+      (err: unknown) => {
+        return err instanceof Error && err.name === 'ChunkNotFoundError';
+      }
+    );
   });
 });
+

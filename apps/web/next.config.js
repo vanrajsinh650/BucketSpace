@@ -3,11 +3,13 @@ const nextConfig = {
   webpack: (config, { isServer, webpack }) => {
     if (!isServer) {
       config.resolve.fallback = {
-        ...config.resolve.fallback,
         fs: false,
         crypto: false,
         path: false,
         os: false,
+        net: false,
+        tls: false,
+        child_process: false,
         stream: false,
         'stream/promises': false,
       };

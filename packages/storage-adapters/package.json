@@ -12,10 +12,11 @@
   "dependencies": {
     "@bucketspace/db": "workspace:*",
     "@bucketspace/security": "workspace:*",
-    "@bucketspace/shared": "workspace:*"
+    "@bucketspace/shared": "workspace:*",
+    "telegram": "^2.26.22"
   },
   "devDependencies": {
-    "typescript": "^5.5.0",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "typescript": "^5.5.0"
   }
 }
