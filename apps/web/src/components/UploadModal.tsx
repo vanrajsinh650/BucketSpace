@@ -83,7 +83,7 @@ export function UploadModal({
               Drag and drop your file here, or <span className="text-cyan-400 underline">browse</span>
             </p>
             <p className="text-xs text-slate-500 mt-2">
-              Files are automatically split into 5MB chunks and hashed before storing.
+              Files are dynamically chunked according to provider capabilities, hashed with SHA-256, and verified at rest.
             </p>
           </div>
         ) : (

@@ -319,6 +319,8 @@ export default function BucketSpaceApp() {
             onDelete={handleDelete}
             onRestore={handleRestore}
             onPurge={handlePurge}
+            onOpenUpload={() => setUploadModalOpen(true)}
+            onOpenOnboarding={() => setOnboardingOpen(true)}
           />
         </main>
       </div>

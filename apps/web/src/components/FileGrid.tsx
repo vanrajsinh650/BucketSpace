@@ -21,6 +21,8 @@ interface FileGridProps {
   onDelete: (fileId: string) => void;
   onRestore?: (fileId: string) => void;
   onPurge?: (fileId: string) => void;
+  onOpenUpload?: () => void;
+  onOpenOnboarding?: () => void;
 }
 
 export function FileGrid({
@@ -38,6 +40,8 @@ export function FileGrid({
   onDelete,
   onRestore,
   onPurge,
+  onOpenUpload,
+  onOpenOnboarding,
 }: FileGridProps) {
   return (
     <div className="space-y-4">
@@ -49,10 +53,10 @@ export function FileGrid({
             <button
               key={field}
               onClick={() => onSortChange(field)}
-              className={`px-2.5 py-1 rounded-lg transition-colors capitalize ${
+              className={`px-3 py-1.5 rounded-lg capitalize transition-all ${
                 sortField === field
-                  ? 'bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-500/30'
-                  : 'hover:text-slate-200 hover:bg-slate-800/50'
+                  ? 'bg-slate-800 text-cyan-400 font-semibold border border-slate-700 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-300 hover:bg-slate-900/60'
               }`}
             >
               {field} {sortField === field && (sortDirection === 'asc' ? '↑' : '↓')}
@@ -83,10 +87,34 @@ export function FileGrid({
 
       {/* Grid or List Display */}
       {files.length === 0 ? (
-        <div className="py-20 text-center space-y-3 glass-panel rounded-2xl">
-          <SlidersHorizontal className="w-10 h-10 text-slate-600 mx-auto" />
-          <p className="text-slate-400 text-sm font-medium">No files found in this view</p>
-          <p className="text-xs text-slate-500">Upload a file or change your filter to get started.</p>
+        <div className="py-16 px-6 text-center space-y-6 glass-panel rounded-3xl border border-slate-800/80 max-w-xl mx-auto my-8">
+          <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mx-auto">
+            <SlidersHorizontal className="w-8 h-8" />
+          </div>
+          <div className="space-y-1.5">
+            <h3 className="text-lg font-semibold text-white">No files in this view</h3>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              Upload files or connect your preferred storage backend to get started.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            {onOpenUpload && (
+              <button
+                onClick={onOpenUpload}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium text-xs shadow-lg shadow-cyan-500/20 transition-all active:scale-95"
+              >
+                Upload File
+              </button>
+            )}
+            {onOpenOnboarding && (
+              <button
+                onClick={onOpenOnboarding}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 hover:text-white font-medium text-xs transition-all"
+              >
+                + Connect Storage Provider
+              </button>
+            )}
+          </div>
         </div>
       ) : (
         <div
