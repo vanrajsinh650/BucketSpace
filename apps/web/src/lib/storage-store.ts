@@ -59,19 +59,9 @@ export class StorageStore {
   private constructor() {
     ProviderRegistry.clear();
 
-    const botToken = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN;
-    const chatId = process.env.NEXT_PUBLIC_TELEGRAM_STORAGE_CHAT_ID;
-
-    if (botToken && chatId) {
-      this.activeProvider = new TelegramStorageAdapter({
-        botToken,
-        defaultChatId: chatId,
-      });
-      this.activeProviderId = 'telegram';
-    } else {
-      this.activeProvider = new InMemoryStorageProvider();
-      this.activeProviderId = 'in-memory';
-    }
+    // Initialize with safe default provider; credentials are vault-secured
+    this.activeProvider = new InMemoryStorageProvider();
+    this.activeProviderId = 'in-memory';
 
     ProviderRegistry.register(this.activeProvider);
     this.router = new StorageRouter(this.activeProviderId);

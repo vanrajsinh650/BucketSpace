@@ -1,18 +1,28 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { CreateShareOptions, IShareProvider, ShareLink } from './share-provider.interface';
 
+export interface StoredShareRecord {
+  fileId: string;
+  baseUrl: string;
+  createdAt: Date;
+  expiresAt?: Date;
+  passcodeHash?: string;
+  maxDownloads?: number;
+  downloadCount: number;
+}
+
 /**
  * TokenShareProvider generates secure, time-bound access links.
  * Security Invariants:
  * 1. Primary security boundary is a 256-bit cryptographically secure random token.
  * 2. Share tokens are stored HASHED at rest (SHA-256 digest) so database/memory leakage
- *    never reveals active share URLs.
+ *    never reveals active share URLs. Zero raw token strings in stored values.
  * 3. Atomic download caps, scrypt passcode verification, and expiration checks.
  */
 export class TokenShareProvider implements IShareProvider {
   public readonly providerId = 'token-share';
-  // Storage key is tokenHash (SHA-256 of rawToken) -> ShareLink
-  private readonly shares = new Map<string, ShareLink>();
+  // Storage key is tokenHash (SHA-256 of rawToken) -> StoredShareRecord (zero raw tokens stored at rest)
+  private readonly shares = new Map<string, StoredShareRecord>();
 
   /** Compute SHA-256 digest of a raw token string */
   public static hashToken(rawToken: string): string {
@@ -32,8 +42,19 @@ export class TokenShareProvider implements IShareProvider {
       ? new Date(Date.now() + options.expiresInSeconds * 1000)
       : undefined;
 
-    const shareLink: ShareLink = {
-      shareId: rawToken, // Returned to caller/creator
+    // Store strictly hashed token at rest (zero raw token in stored value map)
+    this.shares.set(tokenHash, {
+      fileId,
+      baseUrl,
+      createdAt: new Date(),
+      expiresAt,
+      passcodeHash: options?.passcodeHash,
+      maxDownloads: options?.maxDownloads,
+      downloadCount: 0,
+    });
+
+    return {
+      shareId: rawToken,
       fileId,
       url: `${baseUrl}/share/${rawToken}`,
       createdAt: new Date(),
@@ -42,10 +63,6 @@ export class TokenShareProvider implements IShareProvider {
       maxDownloads: options?.maxDownloads,
       downloadCount: 0,
     };
-
-    // Store ONLY by hashed token at rest
-    this.shares.set(tokenHash, shareLink);
-    return shareLink;
   }
 
   public async revokeShareLink(rawToken: string): Promise<boolean> {
@@ -55,21 +72,30 @@ export class TokenShareProvider implements IShareProvider {
 
   public async getShareLink(rawToken: string): Promise<ShareLink | null> {
     const tokenHash = TokenShareProvider.hashToken(rawToken);
-    const link = this.shares.get(tokenHash);
-    if (!link) return null;
+    const record = this.shares.get(tokenHash);
+    if (!record) return null;
 
     // Expiration boundary check (at or past expiresAt is rejected)
-    if (link.expiresAt && link.expiresAt.getTime() <= Date.now()) {
+    if (record.expiresAt && record.expiresAt.getTime() <= Date.now()) {
       this.shares.delete(tokenHash);
       return null;
     }
 
     // Max downloads cap check
-    if (link.maxDownloads !== undefined && link.downloadCount >= link.maxDownloads) {
+    if (record.maxDownloads !== undefined && record.downloadCount >= record.maxDownloads) {
       return null;
     }
 
-    return link;
+    return {
+      shareId: rawToken,
+      fileId: record.fileId,
+      url: `${record.baseUrl}/share/${rawToken}`,
+      createdAt: record.createdAt,
+      expiresAt: record.expiresAt,
+      passcodeHash: record.passcodeHash,
+      maxDownloads: record.maxDownloads,
+      downloadCount: record.downloadCount,
+    };
   }
 
   /**
