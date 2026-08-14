@@ -28,7 +28,7 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
 ## 2. Active Engineering Behavioral Rules
 
 1. **Automated Git Commit and Push Protocol**:
-   - Whenever any task or coding request is completed, automatically stage all changes (`git add .`), commit with a descriptive message, and push to the remote repository (`git push origin <branch>`).
+   - Whenever any task or coding request is completed, automatically stage all changes (`git add .`), commit with a **short, human-readable message** (one line, no multi-paragraph dumps), and push to the remote repository (`git push origin <branch>`).
 2. **Active Architectural State Maintenance**:
    - Keep `context/PROJECT_STATE.md` and the `/context` documentation hub in sync with all architectural decisions, goal changes, and system rules.
    - Instantly remove deprecated architecture sections when replacement patterns are adopted.
@@ -258,14 +258,22 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
   - **5 Living Security Documents**: Published `SECURITY_AUDIT.md`, `THREAT_MODEL.md`, `SECURITY_INVARIANTS.md`, `SECURITY_RUNBOOK.md`, and `SECURITY_FINDINGS.md` in `/context`.
   - **Monorepo Metric**: **114/114 tests passing across 30 test suites, 0 type-check errors, Next.js 15 production build passing**.
 
+- **Consumer UX + Hash Mismatch Fix** (Commit `5342401`):
+  - **Root Cause Identified & Fixed**: `calculateSha256()` in `storage-store.ts` was calling `crypto.subtle.digest(data.buffer)` — when `data` is a `Uint8Array.subarray()`, `.buffer` returns the entire underlying `ArrayBuffer`, not the slice. Upload hashes silently hashed the whole file while download hashes hashed only the chunk, causing guaranteed mismatches on any multi-chunk file. Fixed with `buffer.slice(byteOffset, byteOffset + byteLength)`.
+  - **First-Run Onboarding Gate**: New users with zero providers now see a full-page welcome screen instead of an empty dashboard. Must connect at least one provider to enter the file manager.
+  - **Telegram Phone Flow**: Removed API ID, API Hash, Channel ID, MTProto, and Bot API terminology from user-facing UI. Connection flow is now Phone → Telegram Code → 2FA Password (only if required) → Connected.
+  - **Error Humanization**: All hash mismatch and integrity errors now show user-friendly messages with optional collapsible technical details.
+  - **Component Simplification**: FilePreviewModal, ProviderSettings, and DuplicateConflictModal rewritten with consumer-friendly wording, collapsible technical details, and Google Drive-style language.
+  - **Monorepo Metric**: **114/114 tests passing, type-check clean, Next.js 15 production build clean**.
+
 ---
 
 ## 5. Security & Reliability Directives
 - **Data Integrity**: Every downloaded file must be byte-identical to the uploaded original. Verified via checksums.
 - **Disaster Recovery**: Portable metadata snapshot export and restore on clean machines with instant provider re-verification.
 - **Interruption Recovery**: Partial uploads/downloads must be resumable. No data loss on crash or network failure.
-- **Credentials Protection**: Telegram bot tokens and session data stored securely in local config.
-- **Release Status**: Feature-complete 1.0 Release Candidate undergoing final release validation.
+- **Credentials Protection**: Telegram bot tokens and session data stored securely in local config. API ID/Hash are application-level secrets, never exposed to end users.
+- **Release Status**: Feature-complete 1.0 Release Candidate with consumer-friendly UX. Pending live Telegram E2E validation.
 - **Live Telegram Cloud E2E Validation Protocol (Pending Disposable Account)**:
   1. *Multi-Scale Transfers*: 100 MB, 500 MB, 1 GB payloads $\rightarrow$ GramJS MTProto $\rightarrow$ Telegram DC $\rightarrow$ app restart $\rightarrow$ download $\rightarrow$ compare SHA-256 == original.
   2. *Interruption & Resume*: Terminate upload mid-transfer $\rightarrow$ restart application $\rightarrow$ resume transfer $\rightarrow$ assert zero duplicate parts uploaded and final file matches digest.
