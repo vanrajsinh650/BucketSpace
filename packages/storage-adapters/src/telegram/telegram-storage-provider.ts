@@ -16,6 +16,11 @@ export type TelegramAuthMode = 'mtproto' | 'bot_api';
 export interface IMtprotoClient {
   connect(): Promise<unknown>;
   uploadFile(params: { file: CustomFile; workers?: number }): Promise<unknown>;
+  saveBigFilePart?(params: {
+    fileId: bigint | number;
+    filePart: number;
+    bytes: Buffer | Uint8Array;
+  }): Promise<boolean>;
   sendFile(
     entity: string,
     params: { file: unknown; caption?: string }
@@ -69,8 +74,8 @@ export interface TelegramAdapterConfig {
   apiHash?: string;
   sessionString?: string;
   maxObjectSizeBytes?: number; // Defaults to 2,000,000,000 bytes (2 GB)
-  // Optional custom client instance (for testing, dependency injection, or real TelegramClient)
-  mtprotoClient?: TelegramClient | IMtprotoClient | any;
+  // Optional custom client instance (for testing or dependency injection)
+  mtprotoClient?: IMtprotoClient;
 }
 
 export interface TelegramRefData {
@@ -106,7 +111,7 @@ export class TelegramStorageAdapter implements IStorageProvider {
   private readonly maxObjectSizeBytes: number;
 
   // MTProto Client & Session
-  private mtprotoClient?: any;
+  private mtprotoClient?: IMtprotoClient;
   private isConnected = false;
   private inMemoryMockStore = new Map<string, Uint8Array>();
 
@@ -128,7 +133,7 @@ export class TelegramStorageAdapter implements IStorageProvider {
         const session = new StringSession(config.sessionString ?? '');
         this.mtprotoClient = new TelegramClient(session, config.apiId, config.apiHash, {
           connectionRetries: 5,
-        });
+        }) as unknown as IMtprotoClient;
       }
     }
   }
@@ -166,28 +171,28 @@ export class TelegramStorageAdapter implements IStorageProvider {
 
   /**
    * Upload a chunk byte stream as a document attachment to Telegram.
+   *
+   * In MTProto mode, streaming slices (512 KB optimal parts) are dispatched
+   * to MTProto upload.saveBigFilePart with strictly bounded memory.
    */
   public async putChunk(input: PutChunkInput): Promise<ProviderChunkRef> {
-    const bufferPieces: Uint8Array[] = [];
-    let totalLength = 0;
-
-    for await (const piece of input.data) {
-      bufferPieces.push(piece);
-      totalLength += piece.byteLength;
-    }
-
-    const combinedBytes = new Uint8Array(totalLength);
-    let offset = 0;
-    for (const piece of bufferPieces) {
-      combinedBytes.set(piece, offset);
-      offset += piece.byteLength;
-    }
-
     if (this.mode === 'bot_api') {
+      const bufferPieces: Uint8Array[] = [];
+      let totalLength = 0;
+      for await (const piece of input.data) {
+        bufferPieces.push(piece);
+        totalLength += piece.byteLength;
+      }
+      const combinedBytes = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const piece of bufferPieces) {
+        combinedBytes.set(piece, offset);
+        offset += piece.byteLength;
+      }
       return this.putChunkBotApi(input.chunkId, combinedBytes);
     }
 
-    return this.putChunkMtproto(input.chunkId, combinedBytes, input.hash);
+    return this.putChunkMtproto(input.chunkId, input.data, input.size, input.hash);
   }
 
   private async putChunkBotApi(chunkId: string, bytes: Uint8Array): Promise<ProviderChunkRef> {
@@ -240,23 +245,96 @@ export class TelegramStorageAdapter implements IStorageProvider {
 
   private async putChunkMtproto(
     chunkId: string,
-    bytes: Uint8Array,
+    stream: AsyncIterable<Uint8Array>,
+    size: number,
     hash: string
   ): Promise<ProviderChunkRef> {
     const filename = `chunk_${chunkId}.bin`;
+    const PART_SIZE = 512 * 1024; // 512 KB standard MTProto part boundary
 
     if (this.mtprotoClient) {
       try {
         await this.ensureMtprotoConnected();
 
-        // Use GramJS big-file upload pipeline (upload.saveBigFilePart with 512KB parts)
-        const customFile = new CustomFile(filename, bytes.length, '', Buffer.from(bytes));
+        // 1. Direct MTProto Part Streaming (bounded memory: at most 512 KB in RAM)
+        if (typeof this.mtprotoClient.saveBigFilePart === 'function') {
+          const fileId = BigInt(Math.floor(Math.random() * 1e14) + 1);
+          let partIndex = 0;
+          let currentPartBuffer = Buffer.alloc(0);
+
+          for await (const chunk of stream) {
+            currentPartBuffer = Buffer.concat([currentPartBuffer, Buffer.from(chunk)]);
+
+            while (currentPartBuffer.length >= PART_SIZE) {
+              const partBytes = currentPartBuffer.subarray(0, PART_SIZE);
+              currentPartBuffer = currentPartBuffer.subarray(PART_SIZE);
+
+              await this.mtprotoClient.saveBigFilePart({
+                fileId,
+                filePart: partIndex++,
+                bytes: partBytes,
+              });
+            }
+          }
+
+          if (currentPartBuffer.length > 0) {
+            await this.mtprotoClient.saveBigFilePart({
+              fileId,
+              filePart: partIndex++,
+              bytes: currentPartBuffer,
+            });
+          }
+
+          const inputFileBig = new Api.InputFileBig({
+            id: fileId as any,
+            parts: partIndex,
+            name: filename,
+          });
+
+          const message = await this.mtprotoClient.sendFile(this.defaultChatId, {
+            file: inputFileBig,
+            caption: `BucketSpace chunk: ${chunkId}`,
+          });
+
+          const doc = message.media instanceof Api.MessageMediaDocument
+            ? (message.media.document as Api.Document)
+            : (message.media as any)?.document;
+
+          const docId = doc?.id ? String(doc.id) : `doc_${chunkId}`;
+          const accessHash = doc?.accessHash ? String(doc.accessHash) : hash;
+          const dcId = doc?.dcId ?? 4;
+          const fileRef = doc?.fileReference ? Buffer.from(doc.fileReference).toString('base64') : undefined;
+
+          return {
+            providerId: this.providerId,
+            reference: {
+              chatId: this.defaultChatId,
+              messageId: message.id,
+              fileId: docId,
+              documentId: docId,
+              accessHash,
+              fileReference: fileRef,
+              dcId,
+              size,
+            },
+          };
+        }
+
+        // 2. Standard GramJS uploadFile pipeline
+        const bufferPieces: Uint8Array[] = [];
+        let total = 0;
+        for await (const piece of stream) {
+          bufferPieces.push(piece);
+          total += piece.byteLength;
+        }
+        const combined = Buffer.concat(bufferPieces.map((p) => Buffer.from(p)));
+
+        const customFile = new CustomFile(filename, combined.length, '', combined);
         const uploadedFile = await this.mtprotoClient.uploadFile({
           file: customFile,
           workers: 4,
         });
 
-        // Send media document to target storage channel / Saved Messages ("me")
         const message = await this.mtprotoClient.sendFile(this.defaultChatId, {
           file: uploadedFile,
           caption: `BucketSpace chunk: ${chunkId}`,
@@ -271,35 +349,40 @@ export class TelegramStorageAdapter implements IStorageProvider {
         const dcId = doc?.dcId ?? 4;
         const fileRef = doc?.fileReference ? Buffer.from(doc.fileReference).toString('base64') : undefined;
 
-        const refData: TelegramRefData = {
-          chatId: this.defaultChatId,
-          messageId: message.id,
-          fileId: docId,
-          documentId: docId,
-          accessHash: accessHash,
-          fileReference: fileRef,
-          dcId: dcId,
-          size: bytes.length,
-        };
-
         return {
           providerId: this.providerId,
-          reference: refData,
+          reference: {
+            chatId: this.defaultChatId,
+            messageId: message.id,
+            fileId: docId,
+            documentId: docId,
+            accessHash,
+            fileReference: fileRef,
+            dcId,
+            size: total,
+          },
         };
       } catch (err: unknown) {
         if (err instanceof errors.FloodWaitError) {
-          // Automatic FloodWait recovery
           await new Promise((r) => setTimeout(r, (err.seconds + 1) * 1000));
-          return this.putChunkMtproto(chunkId, bytes, hash);
+          return this.putChunkMtproto(chunkId, stream, size, hash);
         }
         throw new Error(`MTProto upload error for chunk '${chunkId}': ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
     // In-memory test store fallback for offline MTProto testing
+    const bufferPieces: Uint8Array[] = [];
+    let total = 0;
+    for await (const piece of stream) {
+      bufferPieces.push(piece);
+      total += piece.byteLength;
+    }
+    const combined = Buffer.concat(bufferPieces.map((p) => Buffer.from(p)));
+
     const docId = `mtproto_doc_${chunkId}_${Date.now()}`;
     const messageId = Math.floor(Math.random() * 1000000) + 1;
-    this.inMemoryMockStore.set(docId, bytes);
+    this.inMemoryMockStore.set(docId, new Uint8Array(combined));
 
     const refData: TelegramRefData = {
       chatId: this.defaultChatId,
@@ -308,7 +391,7 @@ export class TelegramStorageAdapter implements IStorageProvider {
       documentId: docId,
       accessHash: hash,
       dcId: 4,
-      size: bytes.length,
+      size: total,
     };
 
     return {
