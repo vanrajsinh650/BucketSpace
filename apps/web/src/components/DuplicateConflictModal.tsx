@@ -62,12 +62,12 @@ export function DuplicateConflictModal({
             </div>
             <div>
               <h3 className="font-semibold text-lg text-white">
-                {isIdentical ? 'Identical File Detected' : 'File Name Conflict'}
+                {isIdentical ? 'This file is already in BucketSpace.' : 'Another file with this name already exists.'}
               </h3>
               <p className="text-xs text-slate-400">
                 {isIdentical
-                  ? 'This file is byte-identical to a previously stored file.'
-                  : 'A file with this name already exists in your workspace.'}
+                  ? 'We found an exact match for the file you are trying to upload.'
+                  : 'Do you want to replace it or keep both?'}
               </p>
             </div>
           </div>
@@ -116,55 +116,62 @@ export function DuplicateConflictModal({
             <>
               <button
                 onClick={onSkip}
-                className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold text-sm transition-all border border-slate-700 flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-sm transition-all shadow-lg flex items-center justify-center gap-2"
               >
-                <SkipForward className="w-4 h-4 text-amber-400" />
-                Skip (Recommended — Save Storage)
+                Skip
               </button>
-
-              {existing && (
-                <button
-                  onClick={() => onReplaceExisting(existing.id)}
-                  className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-medium transition-all border border-slate-800 flex items-center justify-center gap-2"
-                >
-                  <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
-                  Replace Existing Timestamp & Chunks
-                </button>
-              )}
 
               <button
                 onClick={onUploadAnyway}
-                className="w-full py-2 text-center text-xs text-slate-500 hover:text-slate-400 transition-colors"
+                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-sm font-medium transition-all border border-slate-700 flex items-center justify-center"
               >
-                Upload anyway as a separate copy
+                Upload anyway
               </button>
+
+              {existing && (
+                <details className="mt-2 text-xs group cursor-pointer">
+                  <summary className="text-slate-500 hover:text-slate-400 inline-block select-none transition-colors mb-2 text-center w-full">
+                    Technical details
+                  </summary>
+                  <div className="p-3 rounded-xl bg-slate-900/50 border border-slate-800/80 space-y-2 text-left">
+                    <p className="text-slate-400">
+                      The file content matches exactly.
+                    </p>
+                    <button
+                      onClick={() => onReplaceExisting(existing.id)}
+                      className="w-full py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium transition-all border border-slate-700 flex items-center justify-center gap-2"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
+                      Update Timestamp & Re-verify
+                    </button>
+                  </div>
+                </details>
+              )}
             </>
           ) : (
             /* Name Conflict Different Content Options */
             <>
               <button
                 onClick={() => onKeepBoth(checkResult.suggestedName)}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold text-sm transition-all shadow-lg flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-sm transition-all shadow-lg flex items-center justify-center gap-2"
               >
-                <Copy className="w-4 h-4" />
-                Keep Both → Save as &quot;{checkResult.suggestedName}&quot;
+                Keep both
               </button>
 
               {existing && (
                 <button
                   onClick={() => onReplaceExisting(existing.id)}
-                  className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-medium transition-all border border-slate-700 flex items-center justify-center gap-2"
+                  className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-sm font-medium transition-all border border-slate-700 flex items-center justify-center gap-2"
                 >
-                  <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
-                  Replace Existing &quot;{existing.name}&quot;
+                  Replace existing
                 </button>
               )}
 
               <button
                 onClick={onClose}
-                className="w-full py-2 text-center text-xs text-slate-500 hover:text-slate-400 transition-colors"
+                className="w-full py-2 text-center text-sm text-slate-400 hover:text-white transition-colors"
               >
-                Cancel Upload
+                Cancel
               </button>
             </>
           )}

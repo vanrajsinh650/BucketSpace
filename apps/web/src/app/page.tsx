@@ -53,9 +53,33 @@ export default function BucketSpaceApp() {
 
   if (!store) {
     return (
-      <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center text-cyan-400 font-mono text-sm">
-        Initializing BucketSpace Storage Engine...
+      <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center text-slate-400 text-sm">
+        Loading BucketSpace…
       </div>
+    );
+  }
+
+  /* ─── Provider Connection Handler (defined early for onboarding gate) ─── */
+  const handleConnectProvider = async (
+    providerId: string,
+    _config: Record<string, unknown>
+  ): Promise<{ success: boolean; message?: string }> => {
+    await new Promise((r) => setTimeout(r, 600));
+    setRefreshTrigger((prev) => prev + 1);
+    return { success: true, message: `${providerId} connected successfully.` };
+  };
+
+  /* ─── Onboarding Gate ─── */
+  /* New users with zero real providers see a full-page welcome, not an empty dashboard */
+  const isFirstRun = !store.hasUserProvider();
+  if (isFirstRun) {
+    return (
+      <ProviderOnboardingModal
+        isOpen={true}
+        isFirstRun={true}
+        onClose={() => setRefreshTrigger((prev) => prev + 1)}
+        onConnectProvider={handleConnectProvider}
+      />
     );
   }
 
@@ -171,7 +195,9 @@ export default function BucketSpaceApp() {
       await store.downloadFile(fileId);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Download failed';
-      alert(`Download Error: ${msg}`);
+      // Extract the user-friendly portion (before [Technical:]) if present
+      const friendlyMsg = msg.includes('[Technical:') ? msg.split('[Technical:')[0].trim() : msg;
+      alert(friendlyMsg);
     }
   };
 
@@ -258,18 +284,6 @@ export default function BucketSpaceApp() {
     setRulesList(store.getRules());
   };
 
-  const handleConnectProvider = async (
-    providerId: string,
-    _config: Record<string, unknown>
-  ): Promise<{ success: boolean; message?: string }> => {
-    // Perform live connection probe
-    await new Promise((r) => setTimeout(r, 600));
-    setRefreshTrigger((prev) => prev + 1);
-    return {
-      success: true,
-      message: `${providerId.toUpperCase()} connected successfully with verified capabilities!`,
-    };
-  };
 
   return (
     <div className="min-h-screen bg-[#0b0f19] text-slate-100 flex">

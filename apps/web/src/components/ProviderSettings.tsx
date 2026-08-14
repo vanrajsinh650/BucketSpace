@@ -51,12 +51,21 @@ const statusDot = (status: ProviderDisplayInfo['status']) => {
 
 const statusLabel = (status: ProviderDisplayInfo['status']) => {
   const labels: Record<string, string> = {
-    healthy: 'Healthy',
-    degraded: 'Degraded',
-    unreachable: 'Unreachable',
-    unknown: 'Unknown',
+    healthy: 'Connected',
+    degraded: 'Needs attention',
+    unreachable: 'Offline',
+    unknown: 'Status unknown',
   };
   return labels[status];
+};
+
+const getDisplayName = (id: string) => {
+  if (id.includes('memory')) return 'This device';
+  if (id.includes('supabase')) return 'Supabase Cloud';
+  if (id.includes('s3')) return 'Amazon S3';
+  if (id.includes('r2')) return 'Cloudflare R2';
+  if (id.includes('telegram')) return 'Telegram Storage';
+  return id;
 };
 
 /* ─── Component ─── */
@@ -80,8 +89,8 @@ export function ProviderSettings({
               <Activity className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-semibold text-lg text-white">Storage Providers</h3>
-              <p className="text-xs text-slate-400">Your storage. One interface. Any provider.</p>
+              <h3 className="font-semibold text-lg text-white">Connected Storage</h3>
+              <p className="text-xs text-slate-400">Manage where your files are saved.</p>
             </div>
           </div>
           <button
@@ -109,15 +118,30 @@ export function ProviderSettings({
                 <div className="p-2.5 rounded-xl bg-slate-800/80 text-slate-300">
                   {providerIcon(p.providerId)}
                 </div>
-                <div>
-                  <h4 className="font-medium text-sm text-white">{p.providerId}</h4>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium text-sm text-white">{getDisplayName(p.providerId)}</h4>
                   <div className="flex items-center gap-2 mt-0.5">
                     {statusDot(p.status)}
                     <span className="text-xs text-slate-400">{statusLabel(p.status)}</span>
-                    {p.latencyMs !== undefined && (
-                      <span className="text-xs font-mono text-slate-500">{p.latencyMs}ms</span>
-                    )}
                   </div>
+                  
+                  <details className="mt-2 text-xs group cursor-pointer">
+                    <summary className="text-slate-500 hover:text-slate-400 inline-block select-none transition-colors">
+                      Technical details
+                    </summary>
+                    <div className="mt-1.5 p-2 rounded-lg bg-slate-950/50 border border-slate-800/80 space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Provider ID</span>
+                        <span className="text-slate-300 font-mono text-[10px]">{p.providerId}</span>
+                      </div>
+                      {p.latencyMs !== undefined && (
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Latency</span>
+                          <span className="text-slate-300 font-mono text-[10px]">{p.latencyMs}ms</span>
+                        </div>
+                      )}
+                    </div>
+                  </details>
                 </div>
               </div>
 

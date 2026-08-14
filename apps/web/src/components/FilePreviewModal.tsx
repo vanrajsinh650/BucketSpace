@@ -68,7 +68,7 @@ export function FilePreviewModal({
           const text = new TextDecoder('utf-8').decode(bytes);
           setTextContent(text);
         } else {
-          const blob = new Blob([bytes.buffer as ArrayBuffer], { type: file.mimeType });
+          const blob = new Blob([bytes as BlobPart], { type: file.mimeType });
           const url = URL.createObjectURL(blob);
           setObjectUrl(url);
         }
@@ -144,12 +144,24 @@ export function FilePreviewModal({
           {loading ? (
             <div className="flex flex-col items-center gap-3 text-cyan-400 font-mono text-sm">
               <div className="w-8 h-8 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
-              <span>Streaming and reassembling chunk hashes...</span>
+              <span>Loading preview...</span>
             </div>
           ) : error ? (
-            <div className="text-center p-6 space-y-3">
-              <FileQuestion className="w-12 h-12 text-rose-400 mx-auto" />
-              <p className="text-rose-300 text-sm font-mono">{error}</p>
+            <div className="text-center p-6 space-y-4">
+              <div className="space-y-2">
+                <FileQuestion className="w-12 h-12 text-rose-400 mx-auto" />
+                <p className="text-white text-base font-medium">We couldn't safely preview this file.</p>
+              </div>
+              
+              <details className="text-left bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden text-xs">
+                <summary className="p-3 text-slate-400 cursor-pointer hover:text-slate-300 hover:bg-slate-800/50 transition-colors font-medium select-none">
+                  Technical details
+                </summary>
+                <div className="p-3 border-t border-slate-800 text-rose-300 font-mono break-words bg-slate-950/50">
+                  {error}
+                </div>
+              </details>
+
               <button
                 onClick={() => onDownload(file.id)}
                 className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium transition-all shadow-lg"
@@ -182,7 +194,7 @@ export function FilePreviewModal({
               </div>
               <div>
                 <h4 className="font-semibold text-white text-base">{file.name}</h4>
-                <p className="text-xs text-slate-400 mt-1">Audio Stream Playback</p>
+                <p className="text-xs text-slate-400 mt-1">{formatSize(file.size)}</p>
               </div>
               <audio src={objectUrl} controls className="w-full" />
             </div>
@@ -213,15 +225,18 @@ export function FilePreviewModal({
               </div>
               <div className="space-y-1">
                 <h4 className="font-semibold text-white text-base">{file.name}</h4>
-                <p className="text-xs text-slate-400">Inline browser preview unavailable for this file format.</p>
+                <p className="text-xs text-slate-400">Preview isn't available for this file type.</p>
               </div>
-              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-left space-y-1 text-xs">
-                <div className="flex items-center justify-between text-slate-400">
-                  <span>SHA-256 Checksum</span>
-                  <Hash className="w-3 h-3 text-cyan-400" />
+              <details className="group rounded-xl bg-slate-950 border border-slate-800 text-left text-xs overflow-hidden">
+                <summary className="p-3 text-slate-400 cursor-pointer hover:text-slate-300 hover:bg-slate-900/50 transition-colors flex items-center justify-between select-none">
+                  <span className="font-medium">File verification</span>
+                  <Hash className="w-3 h-3 text-cyan-400 group-open:text-cyan-300 transition-colors" />
+                </summary>
+                <div className="px-3 pb-3 pt-1 border-t border-slate-800/50 bg-slate-950">
+                  <div className="text-slate-500 mb-1 text-[10px] uppercase tracking-wider">SHA-256 Checksum</div>
+                  <p className="font-mono text-[11px] text-slate-300 break-all">{file.wholeFileHash}</p>
                 </div>
-                <p className="font-mono text-[11px] text-slate-300 break-all">{file.wholeFileHash}</p>
-              </div>
+              </details>
               <button
                 onClick={() => onDownload(file.id)}
                 className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold text-sm transition-all shadow-lg flex items-center justify-center gap-2"
@@ -234,9 +249,11 @@ export function FilePreviewModal({
         </div>
 
         {/* Footer info bar */}
-        <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-500 shrink-0 font-mono">
-          <span className="truncate max-w-md">SHA-256: {file.wholeFileHash}</span>
-          <span className="shrink-0">{file.chunks.length} Chunks Verified</span>
+        <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-500 shrink-0 font-medium">
+          <span className="flex items-center gap-1 text-emerald-400">
+            Verified ✓
+          </span>
+          <span className="shrink-0">{formatSize(file.size)}</span>
         </div>
       </div>
     </div>

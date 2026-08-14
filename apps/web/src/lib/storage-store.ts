@@ -38,9 +38,21 @@ function bufferToHex(buffer: ArrayBuffer): string {
     .join('');
 }
 
-/** Calculates SHA-256 hash using Web Crypto API */
+/**
+ * Calculates SHA-256 hash using Web Crypto API.
+ *
+ * CRITICAL: Pass the Uint8Array directly, NOT data.buffer.
+ * When data is a subarray/slice, data.buffer returns the entire
+ * underlying ArrayBuffer, ignoring byteOffset and byteLength.
+ * crypto.subtle.digest accepts BufferSource (which includes Uint8Array),
+ * so passing the view directly hashes only the intended bytes.
+ */
 async function calculateSha256(data: Uint8Array): Promise<string> {
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data.buffer as ArrayBuffer);
+  // Slice the underlying buffer to the exact range this view covers.
+  // This avoids the subarray/.buffer bug (which would hash the entire file)
+  // AND satisfies TypeScript's strict BufferSource typing.
+  const safeBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
+  const hashBuffer = await crypto.subtle.digest('SHA-256', safeBuffer);
   return bufferToHex(hashBuffer);
 }
 
@@ -76,9 +88,22 @@ export class StorageStore {
   }
 
   public getActiveProviderName(): string {
-    return this.activeProviderId === 'telegram'
-      ? 'Telegram Private Channel'
-      : 'In-Memory Storage Adapter';
+    if (this.activeProviderId === 'telegram') return 'Telegram';
+    if (this.activeProviderId === 'local') return 'This computer';
+    if (this.activeProviderId === 'r2') return 'Cloudflare R2';
+    if (this.activeProviderId === 's3') return 'AWS S3';
+    if (this.activeProviderId === 'supabase') return 'Supabase';
+    return 'This device';
+  }
+
+  /**
+   * Returns true when at least one user-configured provider is registered.
+   * The built-in in-memory adapter alone does not count — it exists only as
+   * a development/demo fallback.
+   */
+  public hasUserProvider(): boolean {
+    const providers = ProviderRegistry.list();
+    return providers.some((p) => p.providerId !== 'in-memory');
   }
 
   public getFiles(
@@ -429,7 +454,11 @@ export class StorageStore {
 
       const verifiedChunkHash = await calculateSha256(chunkCombined);
       if (verifiedChunkHash !== chunk.hash) {
-        throw new Error(`Chunk ${chunk.index} hash mismatch during preview reassembly!`);
+        throw new Error(
+          `We couldn't verify this file because part of it appears to be different from the original. ` +
+          `Your original file has not been changed. [Technical: chunk ${chunk.index}, ` +
+          `expected ${chunk.hash.substring(0, 12)}…, got ${verifiedChunkHash.substring(0, 12)}…]`
+        );
       }
 
       downloadedPieces.push(chunkCombined);
@@ -481,7 +510,11 @@ export class StorageStore {
 
       const verifiedChunkHash = await calculateSha256(chunkCombined);
       if (verifiedChunkHash !== chunk.hash) {
-        throw new Error(`Chunk ${chunk.index} hash mismatch during download!`);
+        throw new Error(
+          `We couldn't verify this file because part of it appears to be different from the original. ` +
+          `Your original file has not been changed. [Technical: chunk ${chunk.index}, ` +
+          `expected ${chunk.hash.substring(0, 12)}…, got ${verifiedChunkHash.substring(0, 12)}…]`
+        );
       }
 
       downloadedPieces.push(chunkCombined);
@@ -497,7 +530,12 @@ export class StorageStore {
 
     const verifiedWholeHash = await calculateSha256(fullCombined);
     if (verifiedWholeHash !== file.wholeFileHash) {
-      throw new Error(`Whole-file SHA-256 hash mismatch during download reassembly!`);
+      throw new Error(
+        `We couldn't verify this file's integrity after reassembly. ` +
+        `The download has been stopped to protect your data. ` +
+        `[Technical: whole-file expected ${file.wholeFileHash.substring(0, 12)}…, ` +
+        `got ${verifiedWholeHash.substring(0, 12)}…]`
+      );
     }
 
     // Trigger browser file download
