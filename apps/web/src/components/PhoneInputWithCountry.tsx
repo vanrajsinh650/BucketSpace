@@ -151,7 +151,7 @@ export function PhoneInputWithCountry({
 
     // Emit combined full phone number
     const cleanNational = nationalNumber.replace(/\D/g, '');
-    const combined = cleanNational ? `${country.dial}${cleanNational}` : country.dial;
+    const combined = cleanNational ? `${country.dial}${cleanNational}` : '';
     onChange(combined);
 
     setTimeout(() => phoneInputRef.current?.focus(), 50);
@@ -271,15 +271,6 @@ export function PhoneInputWithCountry({
         )}
       </div>
 
-      {/* Helper text with formatted preview */}
-      <div className="flex items-center justify-between text-xs text-slate-500">
-        <span>Includes international country code</span>
-        {nationalNumber && (
-          <span className="font-mono text-cyan-400/90 font-medium">
-            {selectedCountry.dial} {nationalNumber}
-          </span>
-        )}
-      </div>
     </div>
   );
 }
