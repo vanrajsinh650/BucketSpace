@@ -23,7 +23,7 @@ import {
 } from '../lib/storage-store';
 
 export default function BucketSpaceApp() {
-  const [store, setStore] = useState<StorageStore | null>(null);
+  const [store, setStore] = useState<StorageStore>(() => StorageStore.getInstance());
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('date');
@@ -46,18 +46,6 @@ export default function BucketSpaceApp() {
   const [providerList, setProviderList] = useState<ProviderDisplayInfo[]>([]);
   const [rulesList, setRulesList] = useState<StorageRule[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-
-  useEffect(() => {
-    setStore(StorageStore.getInstance());
-  }, []);
-
-  if (!store) {
-    return (
-      <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center text-slate-400 text-sm">
-        Loading BucketSpace…
-      </div>
-    );
-  }
 
   /* ─── Provider Connection Handler (defined early for onboarding gate) ─── */
   const handleConnectProvider = async (
