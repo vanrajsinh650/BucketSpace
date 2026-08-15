@@ -12,6 +12,7 @@ import {
   Send,
   X,
 } from 'lucide-react';
+import { PhoneInputWithCountry } from './PhoneInputWithCountry';
 
 /* ------------------------------------------------------------------ */
 /*  Public Props                                                       */
@@ -365,11 +366,10 @@ export function ProviderOnboardingModal({
         </p>
       </div>
 
-      <InputField
+      <PhoneInputWithCountry
         label="Phone number"
         value={phone}
         onChange={setPhone}
-        placeholder="+1 555 123 4567"
         autoFocus
       />
 
