@@ -103,6 +103,8 @@ graph TD
 | [28_SCALABILITY.md](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/context/28_SCALABILITY.md) | System Scaling Strategies | Horizontal auto-scaling, sharding, caching topologies. |
 | [29_PROJECT_ROADMAP.md](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/context/29_PROJECT_ROADMAP.md) | Phase Roadmap | Development phases (Phase 1 to Phase 4), complexity estimates. |
 | [30_DECISION_LOG.md](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/context/30_DECISION_LOG.md) | Architectural Decision Records | Baseline ADRs (001-010) explaining critical decisions. |
+| [BUG_TRACKER.md](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/context/BUG_TRACKER.md) | Engineering Bug & Issue Tracker | Official registry of all bugs, root causes, remediations, and regression tests. |
+| [SECURITY_FINDINGS.md](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/context/SECURITY_FINDINGS.md) | Vulnerability Inventory | Red-team vulnerability findings and security remediations (SEC-01–SEC-06). |
 
 ---
 
