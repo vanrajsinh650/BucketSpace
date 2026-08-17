@@ -261,11 +261,11 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
 - **Consumer UX + Hash Mismatch Fix** (Commits `5342401`, `1d1a7a0`, `cfbc0da`):
   - **Root Cause Identified & Fixed**: `calculateSha256()` in `storage-store.ts` was calling `crypto.subtle.digest(data.buffer)` — when `data` is a `Uint8Array.subarray()`, `.buffer` returns the entire underlying `ArrayBuffer`, not the slice. Upload hashes silently hashed the whole file while download hashes hashed only the chunk, causing guaranteed mismatches on any multi-chunk file. Fixed with `buffer.slice(byteOffset, byteOffset + byteLength)`.
   - **Dedicated Subarray Slice Regression Suite**: Added `packages/storage-adapters/test/subarray-slice-integrity.test.ts` asserting backing-buffer offset isolation (`SHA256(chunk) !== SHA256(fullBuffer)`), multi-chunk upload $\rightarrow$ storage $\rightarrow$ preview $\rightarrow$ download bit-level equality for `InMemoryStorageProvider` AND real filesystem `LocalStorageAdapter` with simulated app restart and disk readback.
-  - **First-Run Onboarding Gate & Instant Hydration**: New users with zero providers see a full-page welcome screen instead of an empty dashboard. `StorageStore` initializes synchronously in React state, eliminating hydration delay or loading freezes.
-  - **Telegram Phone Flow & Global Country Code Picker**: Removed API ID, API Hash, Channel ID, MTProto, and Bot API terminology from user-facing UI. Built a clean international country picker (`PhoneInputWithCountry`) with flags, dial prefixes (India `+91`, US `+1`, UK `+44`, UAE `+971`, etc.), single-box input, and auto-detection on paste. Flow: Phone → Telegram Code → 2FA Password (only if required) → Connected.
-  - **Error Humanization**: All hash mismatch and integrity errors show user-friendly messages with optional collapsible technical details.
-  - **Component Simplification**: FilePreviewModal, ProviderSettings, and DuplicateConflictModal rewritten with consumer-friendly wording, collapsible technical details, and Google Drive-style language.
-  - **Monorepo Metric**: **117/117 tests passing across 31 test suites, type-check clean, Next.js 15 production build clean**.
+  - **World-Class Obsidian Landing Page** (Commit `672d38c`):
+    - Replaced the basic modal onboarding with an expansive, handcrafted dark-obsidian landing page (`OnboardingLandingPage.tsx`).
+    - Added Interactive Hero Explorer with live storage simulation (Telegram, Local SSD, Cloudflare R2), cryptographic bit-inspection card, 4 multi-backend storage cards, a competitive comparison matrix vs traditional cloud drives, and an FAQ accordion.
+  - **End-to-End Live Browser & API Test Suites**: Added `scripts/e2e-website-inspector.ts` and `scripts/e2e-workflow-stress-tester.ts` verifying real HTTP status codes, CORS headers, SSR DOM structures, client state transitions, search queries, multi-provider switching, and trash/restore lifecycles against active servers.
+  - **Monorepo Metric**: **117/117 automated unit/integration tests passing across 31 test suites, 10/10 live website audit checks passing, 7/7 client workflow tests passing, type-check clean**.
 
 ---
 
