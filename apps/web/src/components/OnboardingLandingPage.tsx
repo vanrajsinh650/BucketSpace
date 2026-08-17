@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -81,6 +81,17 @@ export function OnboardingLandingPage({
   const [apiHash, setApiHash] = useState('');
   const [showAdvancedTelegram, setShowAdvancedTelegram] = useState(false);
   const [codeSentViaApp, setCodeSentViaApp] = useState(true);
+  const [resendCooldown, setResendCooldown] = useState(60);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (activeFlow === 'TELEGRAM_CODE' && resendCooldown > 0) {
+      const timer = setInterval(() => {
+        setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [activeFlow, resendCooldown]);
 
   // Local disk state
   const [localDir, setLocalDir] = useState('C:\\BucketSpace\\Storage');
@@ -134,6 +145,7 @@ export function OnboardingLandingPage({
     if (!phone.trim()) return;
     setLoading(true);
     setError(null);
+    setInfoMessage(null);
     try {
       const payload: Record<string, unknown> = { phone: phone.trim() };
       if (apiId.trim()) payload.apiId = Number(apiId.trim());
@@ -152,9 +164,42 @@ export function OnboardingLandingPage({
 
       setSessionToken(data.sessionToken);
       setCodeSentViaApp(data.isCodeViaApp ?? true);
+      setResendCooldown(60);
       setActiveFlow('TELEGRAM_CODE');
     } catch (err: any) {
       setError(err?.message || 'Failed to connect to Telegram. Please check your credentials.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (!phone.trim() || resendCooldown > 0 || loading) return;
+    setLoading(true);
+    setError(null);
+    setInfoMessage(null);
+    setCode('');
+    try {
+      const payload: Record<string, unknown> = { phone: phone.trim() };
+      if (apiId.trim()) payload.apiId = Number(apiId.trim());
+      if (apiHash.trim()) payload.apiHash = apiHash.trim();
+
+      const response = await fetch('http://localhost:4000/api/v1/telegram/auth/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to resend Telegram code');
+      }
+
+      setSessionToken(data.sessionToken);
+      setResendCooldown(60);
+      setInfoMessage('A fresh verification code was sent to your Telegram app.');
+    } catch (err: any) {
+      setError(err?.message || 'Failed to resend verification code');
     } finally {
       setLoading(false);
     }
@@ -955,9 +1000,15 @@ export function OnboardingLandingPage({
                 <div className="text-center space-y-1">
                   <h3 className="text-lg font-bold text-white">Enter Verification Code</h3>
                   <p className="text-xs text-slate-400">
-                    We sent a login code to your Telegram app.
+                    We sent a login code to your Telegram app for <span className="font-mono text-cyan-400">{phone}</span>.
                   </p>
                 </div>
+
+                {infoMessage && (
+                  <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium text-center">
+                    {infoMessage}
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-xs text-slate-300 font-medium mb-1.5">Verification code</label>
@@ -978,6 +1029,37 @@ export function OnboardingLandingPage({
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify & Connect'}
                 </button>
+
+                <div className="flex flex-col items-center gap-2.5 pt-1 text-xs">
+                  {resendCooldown > 0 ? (
+                    <span className="text-slate-500">
+                      Request new code in{' '}
+                      <span className="font-mono text-slate-400 font-semibold">{resendCooldown}s</span>
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleResendCode}
+                      disabled={loading}
+                      className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors underline"
+                    >
+                      Didn&apos;t get a code? Request new code
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveFlow('TELEGRAM_PHONE');
+                      setError(null);
+                      setInfoMessage(null);
+                      setCode('');
+                    }}
+                    className="text-slate-400 hover:text-slate-200 transition-colors text-[11px]"
+                  >
+                    Wrong number? Change phone number
+                  </button>
+                </div>
               </div>
             )}
 
