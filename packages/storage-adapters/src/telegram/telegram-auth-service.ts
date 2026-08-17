@@ -116,7 +116,12 @@ export class TelegramAuthService {
       this.activeSessions.delete(params.sessionToken);
       return { success: true, sessionString };
     } catch (err: any) {
-      if (err?.errorMessage === 'SESSION_PASSWORD_NEEDED') {
+      const msg = (err?.errorMessage || err?.message || '').toLowerCase();
+      if (
+        msg.includes('session_password_needed') ||
+        msg.includes('2fa') ||
+        msg.includes('password')
+      ) {
         return { success: false, requires2FA: true };
       }
       throw err;

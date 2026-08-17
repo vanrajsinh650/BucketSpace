@@ -172,13 +172,18 @@ export function OnboardingLandingPage({
       });
 
       const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'Invalid verification code');
-      }
 
-      if (data.requires2FA) {
+      if (
+        data.requires2FA ||
+        (data.message && (data.message.toLowerCase().includes('2fa') || data.message.toLowerCase().includes('password')))
+      ) {
+        setError(null);
         setActiveFlow('TELEGRAM_2FA');
         return;
+      }
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Invalid verification code');
       }
 
       if (data.success && data.sessionString) {
