@@ -8,6 +8,7 @@ import { FileInfoModal } from '../components/FileInfoModal';
 import { FilePreviewModal } from '../components/FilePreviewModal';
 import { Header } from '../components/Header';
 import { MoveFileModal } from '../components/MoveFileModal';
+import { OnboardingLandingPage } from '../components/OnboardingLandingPage';
 import { ProviderOnboardingModal } from '../components/ProviderOnboardingModal';
 import { ProviderSettings, ProviderDisplayInfo } from '../components/ProviderSettings';
 import { ShareModal } from '../components/ShareModal';
@@ -50,23 +51,22 @@ export default function BucketSpaceApp() {
   /* ─── Provider Connection Handler (defined early for onboarding gate) ─── */
   const handleConnectProvider = async (
     providerId: string,
-    _config: Record<string, unknown>
+    config: Record<string, unknown>
   ): Promise<{ success: boolean; message?: string }> => {
-    await new Promise((r) => setTimeout(r, 600));
+    await new Promise((r) => setTimeout(r, 500));
+    store.registerUserProvider(providerId, config);
     setRefreshTrigger((prev) => prev + 1);
     return { success: true, message: `${providerId} connected successfully.` };
   };
 
-  /* ─── Onboarding Gate ─── */
-  /* New users with zero real providers see a full-page welcome, not an empty dashboard */
+  /* ─── Onboarding Landing Gate ─── */
+  /* New users with zero real providers see the modern landing page instead of an empty dashboard */
   const isFirstRun = !store.hasUserProvider();
   if (isFirstRun) {
     return (
-      <ProviderOnboardingModal
-        isOpen={true}
-        isFirstRun={true}
-        onClose={() => setRefreshTrigger((prev) => prev + 1)}
+      <OnboardingLandingPage
         onConnectProvider={handleConnectProvider}
+        onFinishOnboarding={() => setRefreshTrigger((prev) => prev + 1)}
       />
     );
   }

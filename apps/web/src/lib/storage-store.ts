@@ -11,9 +11,12 @@ import {
 import {
   DuplicateResolver,
   InMemoryStorageProvider,
+  LocalStorageAdapter,
   ProviderRegistry,
+  S3StorageAdapter,
   StorageApplicationService,
   StorageRouter,
+  SupabaseStorageAdapter,
   TelegramStorageAdapter,
 } from '@bucketspace/storage-adapters';
 
@@ -104,6 +107,58 @@ export class StorageStore {
   public hasUserProvider(): boolean {
     const providers = ProviderRegistry.list();
     return providers.some((p) => p.providerId !== 'in-memory');
+  }
+
+  /**
+   * Registers a user-configured storage provider, updates the router default,
+   * and marks the workspace active.
+   */
+  public registerUserProvider(providerId: string, config?: Record<string, unknown>): void {
+    if (providerId === 'local') {
+      const localProvider = new LocalStorageAdapter({
+        rootDir: (config?.rootDir as string) || 'C:\\BucketSpace\\Storage',
+        providerId: 'local',
+      });
+      ProviderRegistry.register(localProvider);
+      this.activeProvider = localProvider;
+      this.activeProviderId = 'local';
+      this.router.setDefaultProvider('local');
+    } else if (providerId === 'telegram') {
+      const telegramProvider = new TelegramStorageAdapter({
+        mode: 'mtproto',
+        apiId: 0,
+        apiHash: 'vault-secured',
+        sessionString: (config?.sessionString as string) || '',
+      });
+      ProviderRegistry.register(telegramProvider);
+      this.activeProvider = telegramProvider;
+      this.activeProviderId = 'telegram';
+      this.router.setDefaultProvider('telegram');
+    } else if (providerId === 'r2' || providerId === 's3') {
+      const s3Provider = new S3StorageAdapter({
+        endpoint: (config?.endpoint as string) || 'https://r2.cloudflarestorage.com',
+        region: (config?.region as string) || 'auto',
+        bucket: (config?.bucket as string) || 'bucketspace-drive',
+        accessKeyId: (config?.accessKeyId as string) || 'key',
+        secretAccessKey: (config?.secretAccessKey as string) || 'secret',
+        providerId,
+      });
+      ProviderRegistry.register(s3Provider);
+      this.activeProvider = s3Provider;
+      this.activeProviderId = providerId;
+      this.router.setDefaultProvider(providerId);
+    } else if (providerId === 'supabase') {
+      const supabaseProvider = new SupabaseStorageAdapter({
+        supabaseUrl: (config?.supabaseUrl as string) || 'https://supabase.co',
+        supabaseKey: (config?.supabaseKey as string) || 'key',
+        bucketName: (config?.bucketName as string) || 'bucketspace-drive',
+        providerId: 'supabase',
+      });
+      ProviderRegistry.register(supabaseProvider);
+      this.activeProvider = supabaseProvider;
+      this.activeProviderId = 'supabase';
+      this.router.setDefaultProvider('supabase');
+    }
   }
 
   public getFiles(
@@ -560,6 +615,10 @@ export class StorageStore {
       return true;
     }
     return false;
+  }
+
+  public trashFile(fileId: string): boolean {
+    return this.deleteFile(fileId);
   }
 
   public restoreFile(fileId: string): boolean {
