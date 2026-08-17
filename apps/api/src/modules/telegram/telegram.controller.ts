@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { DirectUploadPresignSchema, TelegramChunkUploadSchema } from '@bucketspace/shared';
-import { TelegramStorageAdapter } from '@bucketspace/storage-adapters';
+import { TelegramAuthService, TelegramStorageAdapter } from '@bucketspace/storage-adapters';
 import { prisma } from '@bucketspace/db';
 
 /* ------------------------------------------------------------------ */
@@ -260,4 +260,123 @@ export function registerTelegramRoutes(fastify: FastifyInstance): void {
       }
     }
   );
+
+  /* ---------------------------------------------------------------- */
+  /*  POST /api/v1/telegram/auth/send-code                            */
+  /*  Initiates MTProto phone verification with real Telegram code.   */
+  /* ---------------------------------------------------------------- */
+  fastify.post(
+    '/api/v1/telegram/auth/send-code',
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const body = request.body as { phone?: string; apiId?: number; apiHash?: string };
+      if (!body?.phone) {
+        return reply.status(400).send({
+          statusCode: 400,
+          errorCode: 'VALIDATION_ERROR',
+          message: 'Phone number is required',
+        });
+      }
+
+      try {
+        const result = await TelegramAuthService.sendCode({
+          phone: body.phone,
+          apiId: body.apiId,
+          apiHash: body.apiHash,
+        });
+
+        return reply.status(200).send({
+          statusCode: 200,
+          success: true,
+          sessionToken: result.sessionToken,
+          phoneCodeHash: result.phoneCodeHash,
+          isCodeViaApp: result.isCodeViaApp,
+        });
+      } catch (err: any) {
+        request.log.error(err, 'Failed to send Telegram MTProto verification code');
+        return reply.status(400).send({
+          statusCode: 400,
+          errorCode: 'TELEGRAM_AUTH_ERROR',
+          message: err?.message || 'Failed to send verification code from Telegram',
+        });
+      }
+    }
+  );
+
+  /* ---------------------------------------------------------------- */
+  /*  POST /api/v1/telegram/auth/verify-code                          */
+  /*  Verifies the 5-digit OTP code received on Telegram.             */
+  /* ---------------------------------------------------------------- */
+  fastify.post(
+    '/api/v1/telegram/auth/verify-code',
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const body = request.body as { sessionToken?: string; code?: string };
+      if (!body?.sessionToken || !body?.code) {
+        return reply.status(400).send({
+          statusCode: 400,
+          errorCode: 'VALIDATION_ERROR',
+          message: 'Session token and verification code are required',
+        });
+      }
+
+      try {
+        const result = await TelegramAuthService.verifyCode({
+          sessionToken: body.sessionToken,
+          code: body.code,
+        });
+
+        return reply.status(200).send({
+          statusCode: 200,
+          success: result.success,
+          sessionString: result.sessionString,
+          requires2FA: result.requires2FA,
+        });
+      } catch (err: any) {
+        request.log.error(err, 'Failed to verify Telegram MTProto code');
+        return reply.status(400).send({
+          statusCode: 400,
+          errorCode: 'TELEGRAM_AUTH_ERROR',
+          message: err?.message || 'Invalid or expired verification code',
+        });
+      }
+    }
+  );
+
+  /* ---------------------------------------------------------------- */
+  /*  POST /api/v1/telegram/auth/verify-2fa                           */
+  /*  Verifies the Telegram 2FA cloud password if enabled.            */
+  /* ---------------------------------------------------------------- */
+  fastify.post(
+    '/api/v1/telegram/auth/verify-2fa',
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const body = request.body as { sessionToken?: string; password?: string };
+      if (!body?.sessionToken || !body?.password) {
+        return reply.status(400).send({
+          statusCode: 400,
+          errorCode: 'VALIDATION_ERROR',
+          message: 'Session token and 2FA password are required',
+        });
+      }
+
+      try {
+        const result = await TelegramAuthService.verify2FA({
+          sessionToken: body.sessionToken,
+          password: body.password,
+        });
+
+        return reply.status(200).send({
+          statusCode: 200,
+          success: result.success,
+          sessionString: result.sessionString,
+        });
+      } catch (err: any) {
+        request.log.error(err, 'Failed to verify Telegram 2FA password');
+        return reply.status(400).send({
+          statusCode: 400,
+          errorCode: 'TELEGRAM_AUTH_ERROR',
+          message: err?.message || 'Invalid 2FA password',
+        });
+      }
+    }
+  );
 }
+

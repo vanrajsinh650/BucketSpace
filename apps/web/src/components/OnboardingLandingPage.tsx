@@ -76,7 +76,11 @@ export function OnboardingLandingPage({
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
-  const [needs2FA, setNeeds2FA] = useState(false);
+  const [sessionToken, setSessionToken] = useState('');
+  const [apiId, setApiId] = useState('');
+  const [apiHash, setApiHash] = useState('');
+  const [showAdvancedTelegram, setShowAdvancedTelegram] = useState(false);
+  const [codeSentViaApp, setCodeSentViaApp] = useState(true);
 
   // Local disk state
   const [localDir, setLocalDir] = useState('C:\\BucketSpace\\Storage');
@@ -101,6 +105,7 @@ export function OnboardingLandingPage({
     setLoading(false);
     setCode('');
     setPassword('');
+    setSessionToken('');
   };
 
   const executeConnect = async (
@@ -129,29 +134,95 @@ export function OnboardingLandingPage({
     if (!phone.trim()) return;
     setLoading(true);
     setError(null);
-    await new Promise((r) => setTimeout(r, 600));
-    setLoading(false);
-    setActiveFlow('TELEGRAM_CODE');
+    try {
+      const payload: Record<string, unknown> = { phone: phone.trim() };
+      if (apiId.trim()) payload.apiId = Number(apiId.trim());
+      if (apiHash.trim()) payload.apiHash = apiHash.trim();
+
+      const response = await fetch('http://localhost:4000/api/v1/telegram/auth/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to send Telegram code');
+      }
+
+      setSessionToken(data.sessionToken);
+      setCodeSentViaApp(data.isCodeViaApp ?? true);
+      setActiveFlow('TELEGRAM_CODE');
+    } catch (err: any) {
+      setError(err?.message || 'Failed to connect to Telegram. Please check your credentials.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleTelegramCodeSubmit = async () => {
     if (!code.trim()) return;
     setLoading(true);
     setError(null);
-    await new Promise((r) => setTimeout(r, 500));
+    try {
+      const response = await fetch('http://localhost:4000/api/v1/telegram/auth/verify-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionToken, code: code.trim() }),
+      });
 
-    if (needs2FA) {
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Invalid verification code');
+      }
+
+      if (data.requires2FA) {
+        setActiveFlow('TELEGRAM_2FA');
+        return;
+      }
+
+      if (data.success && data.sessionString) {
+        await executeConnect(
+          'telegram',
+          { mode: 'mtproto', phone, sessionString: data.sessionString },
+          'Telegram Cloud'
+        );
+      } else {
+        throw new Error('Verification failed. Please try again.');
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Verification code failed');
+    } finally {
       setLoading(false);
-      setActiveFlow('TELEGRAM_2FA');
-      return;
     }
-
-    await executeConnect('telegram', { mode: 'mtproto', phone }, 'Telegram Cloud');
   };
 
   const handleTelegram2FASubmit = async () => {
     if (!password.trim()) return;
-    await executeConnect('telegram', { mode: 'mtproto', phone, password }, 'Telegram Cloud');
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('http://localhost:4000/api/v1/telegram/auth/verify-2fa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionToken, password: password.trim() }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success || !data.sessionString) {
+        throw new Error(data.message || 'Invalid 2FA password');
+      }
+
+      await executeConnect(
+        'telegram',
+        { mode: 'mtproto', phone, sessionString: data.sessionString },
+        'Telegram Cloud'
+      );
+    } catch (err: any) {
+      setError(err?.message || '2FA authentication failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLocalSubmit = async () => {
@@ -812,15 +883,63 @@ export function OnboardingLandingPage({
                   autoFocus
                 />
 
+                <div className="pt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvancedTelegram(!showAdvancedTelegram)}
+                    className="text-[11px] text-cyan-400/80 hover:text-cyan-300 transition-colors flex items-center gap-1 mx-auto"
+                  >
+                    <span>{showAdvancedTelegram ? 'Hide' : 'Custom Telegram App API ID / Hash (Optional)'}</span>
+                    <ChevronDown className={`w-3 h-3 transition-transform ${showAdvancedTelegram ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {showAdvancedTelegram && (
+                    <div className="mt-3 p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2.5 text-xs text-left">
+                      <p className="text-[11px] text-slate-400">
+                        Obtain your own free API credentials from{' '}
+                        <a
+                          href="https://my.telegram.org"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-cyan-400 underline"
+                        >
+                          my.telegram.org
+                        </a>{' '}
+                        under <em>API development tools</em>.
+                      </p>
+                      <div>
+                        <label className="block text-[10px] text-slate-400 mb-1">API ID</label>
+                        <input
+                          type="text"
+                          value={apiId}
+                          onChange={(e) => setApiId(e.target.value)}
+                          placeholder="e.g. 12345678"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono focus:border-cyan-500 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-slate-400 mb-1">API Hash</label>
+                        <input
+                          type="password"
+                          value={apiHash}
+                          onChange={(e) => setApiHash(e.target.value)}
+                          placeholder="e.g. abcdef1234567890..."
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono focus:border-cyan-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <button
                   onClick={handleTelegramPhoneSubmit}
                   disabled={!phone.trim() || loading}
                   className="w-full py-3 rounded-xl bg-white text-slate-900 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-sm transition-all flex items-center justify-center gap-2"
                 >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Continue'}
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send Verification Code'}
                 </button>
                 <p className="text-[11px] text-slate-500 text-center">
-                  Your Telegram app will receive a verification code.
+                  Telegram will deliver a real 5-digit verification code to your Telegram app.
                 </p>
               </div>
             )}
