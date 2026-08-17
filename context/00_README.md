@@ -105,6 +105,7 @@ graph TD
 | [30_DECISION_LOG.md](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/context/30_DECISION_LOG.md) | Architectural Decision Records | Baseline ADRs (001-010) explaining critical decisions. |
 | [BUG_TRACKER.md](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/context/BUG_TRACKER.md) | Engineering Bug & Issue Tracker | Official registry of all bugs, root causes, remediations, and regression tests. |
 | [SECURITY_FINDINGS.md](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/context/SECURITY_FINDINGS.md) | Vulnerability Inventory | Red-team vulnerability findings and security remediations (SEC-01–SEC-06). |
+| [TELEGRAM_CREDENTIALS_GUIDE.md](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/context/TELEGRAM_CREDENTIALS_GUIDE.md) | Telegram Credentials Guide | Step-by-step 60-second guide to obtain API ID and API Hash from my.telegram.org. |
 
 ---
 
