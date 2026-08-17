@@ -1,7 +1,9 @@
 # Agent Behavioral Rules
 
 ## 1. Automated Git Commit and Push Protocol
-Whenever a user task or coding request is completed, automatically stage all changes (`git add .`), commit them with a clear, descriptive commit message (`git commit -m "..."`), and push the changes to the remote Git repository (`git push origin <branch>`).
+Whenever a user task or coding request is completed, automatically stage all changes (`git add .`), commit them with a natural, human-written commit message, and push the changes to the remote Git repository (`git push origin <branch>`).
+- **NEVER use conventional commit prefixes** such as `feat:`, `docs:`, `fix:`, `chore:`, `refactor:`, `style:`, or `test:`.
+- Write plain, natural, human sentences in lowercase or sentence case (e.g. `git commit -m "add telegram credentials guide and update env sample"` or `git commit -m "wire mtproto phone authentication to backend"`).
 
 ## 2. Active Architectural & Project State Maintenance
 Maintain a dedicated project state document (`context/PROJECT_STATE.md`) as part of the living `/context` hub.
