@@ -264,10 +264,10 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
   - **World-Class Obsidian Landing Page** (Commit `672d38c`):
     - Replaced the basic modal onboarding with an expansive, handcrafted dark-obsidian landing page (`OnboardingLandingPage.tsx`).
     - Added Interactive Hero Explorer with live storage simulation (Telegram, Local SSD, Cloudflare R2), cryptographic bit-inspection card, 4 multi-backend storage cards, a competitive comparison matrix vs traditional cloud drives, and an FAQ accordion.
-  - **Real Telegram MTProto 2.0 Phone Authentication** (Commit `4c6eeb7`):
-    - Implemented [`TelegramAuthService`](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/packages/storage-adapters/src/telegram/telegram-auth-service.ts) using GramJS MTProto client.
+  - **Real Telegram MTProto 2.0 Phone Authentication & 2FA Flow** (Commits `4c6eeb7`, `2346447`):
+    - Implemented [`TelegramAuthService`](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/packages/storage-adapters/src/telegram/telegram-auth-service.ts) using GramJS MTProto client with automatic root `.env` credential loading (`TELEGRAM_API_ID` & `TELEGRAM_API_HASH`).
+    - Fixed 2FA state transition: when Telegram reports `Account has 2FA enabled`, the UI automatically and smoothly advances to the Two-Step Verification cloud password prompt.
     - Added live API routes in [`telegram.controller.ts`](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/apps/api/src/modules/telegram/telegram.controller.ts): `POST /api/v1/telegram/auth/send-code`, `POST /api/v1/telegram/auth/verify-code`, and `POST /api/v1/telegram/auth/verify-2fa`.
-    - Wired `OnboardingLandingPage.tsx` directly to the live backend endpoints with optional expandable custom Telegram API ID & Hash inputs from [my.telegram.org](https://my.telegram.org).
   - **Monorepo Metric**: **117/117 automated unit/integration tests passing across 31 test suites, 10/10 live website audit checks passing, 7/7 client workflow tests passing, type-check clean**.
 
 ---
