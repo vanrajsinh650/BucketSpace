@@ -53,6 +53,18 @@ export class TelegramAuthService {
       );
     }
 
+    // Clean up any previous session for this phone number or expired sessions (> 10 min)
+    for (const [token, existing] of this.activeSessions.entries()) {
+      if (existing.phone === params.phone || Date.now() - existing.createdAt > 10 * 60 * 1000) {
+        try {
+          await existing.client.disconnect();
+        } catch {
+          // ignore disconnect error
+        }
+        this.activeSessions.delete(token);
+      }
+    }
+
     const session = new StringSession('');
     const client = new TelegramClient(session, apiId, apiHash, {
       connectionRetries: 5,
