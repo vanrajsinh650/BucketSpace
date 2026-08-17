@@ -283,6 +283,7 @@ export default function BucketSpaceApp() {
         onOpenRules={handleOpenRules}
         categoryCounts={categoryCounts}
         storageUsedBytes={storageUsedBytes}
+        providerName={providerName}
       />
 
       {/* Main Content Area */}

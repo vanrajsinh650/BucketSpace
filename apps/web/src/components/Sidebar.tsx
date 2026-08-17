@@ -21,6 +21,7 @@ interface SidebarProps {
   onOpenRules: () => void;
   categoryCounts: Record<CategoryFilter, number>;
   storageUsedBytes: number;
+  providerName?: string;
 }
 
 export function Sidebar({
@@ -30,6 +31,7 @@ export function Sidebar({
   onOpenRules,
   categoryCounts,
   storageUsedBytes,
+  providerName,
 }: SidebarProps) {
   const categories: { id: CategoryFilter; label: string; icon: React.ElementType }[] = [
     { id: 'ALL', label: 'All Files', icon: Layers },
@@ -40,7 +42,10 @@ export function Sidebar({
     { id: 'TRASH', label: 'Trash', icon: Trash2 },
   ];
 
-  const formattedUsed = (storageUsedBytes / 1024 / 1024).toFixed(1);
+  const formattedUsed =
+    storageUsedBytes >= 1024 * 1024 * 1024
+      ? `${(storageUsedBytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
+      : `${(storageUsedBytes / (1024 * 1024)).toFixed(1)} MB`;
 
   return (
     <aside className="w-64 glass-panel border-r border-slate-800/80 flex flex-col justify-between p-4 select-none shrink-0 h-screen sticky top-0">
@@ -48,17 +53,15 @@ export function Sidebar({
         {/* Brand Header */}
         <div className="flex items-center gap-3 px-3 py-4 mb-6">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-            <HardDrive className="w-5 h-5 text-white" />
+            <Layers className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="font-bold text-lg tracking-tight text-white flex items-center gap-1.5">
-              BucketSpace <span className="text-xs px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 font-mono font-normal">v2.1</span>
-            </h1>
-            <p className="text-xs text-slate-400">Your storage. One interface.</p>
+            <h1 className="font-bold text-white tracking-tight">BucketSpace</h1>
+            <p className="text-xs text-slate-500">Personal Cloud</p>
           </div>
         </div>
 
-        {/* Navigation Categories */}
+        {/* Category Navigation */}
         <nav className="space-y-1">
           {categories.map((cat) => {
             const Icon = cat.icon;
@@ -69,9 +72,9 @@ export function Sidebar({
               <button
                 key={cat.id}
                 onClick={() => onSelectCategory(cat.id)}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                   isActive
-                    ? 'bg-gradient-to-r from-cyan-500/20 to-blue-600/10 text-cyan-300 border border-cyan-500/30 shadow-md shadow-cyan-500/10'
+                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                 }`}
               >
@@ -94,19 +97,24 @@ export function Sidebar({
         </nav>
       </div>
 
-      {/* Storage Used Indicator */}
-      <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 space-y-3">
+      {/* Storage Used Indicator (Unlimited Free Cloud) */}
+      <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 space-y-2.5">
         <div className="flex items-center justify-between text-xs">
-          <span className="text-slate-400 font-medium">Storage Engine</span>
-          <span className="text-cyan-400 font-mono font-semibold">{formattedUsed} MB</span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <span className="text-slate-300 font-medium truncate">{providerName || 'Telegram Cloud'}</span>
+          </div>
+          <span className="text-cyan-400 font-mono font-semibold shrink-0">{formattedUsed}</span>
         </div>
-        <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
-          <div
-            className="bg-gradient-to-r from-cyan-500 to-blue-600 h-full rounded-full transition-all duration-500"
-            style={{ width: `${Math.min(100, Math.max(5, (storageUsedBytes / (100 * 1024 * 1024)) * 100))}%` }}
-          />
+        <div className="flex items-center justify-between text-[11px] text-slate-400">
+          <span>Capacity</span>
+          <span className="text-emerald-400 font-mono font-semibold flex items-center gap-1">
+            <span className="text-xs">∞</span> Unlimited
+          </span>
         </div>
-        <p className="text-[11px] text-slate-500">Byte-verified chunk integrity active</p>
+        <p className="text-[10px] text-slate-500 border-t border-slate-800/60 pt-2">
+          Client-side encrypted • Zero storage caps
+        </p>
       </div>
 
       {/* Action Buttons */}

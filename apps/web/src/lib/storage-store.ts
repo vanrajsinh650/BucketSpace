@@ -159,6 +159,11 @@ export class StorageStore {
       this.activeProviderId = 'supabase';
       this.router.setDefaultProvider('supabase');
     }
+
+    // Remove sandbox demo files so user's real storage drive starts clean (0.0 MB)
+    if (this.files.some((f) => f.id.startsWith('demo-file-'))) {
+      this.files = this.files.filter((f) => !f.id.startsWith('demo-file-'));
+    }
   }
 
   public getFiles(
