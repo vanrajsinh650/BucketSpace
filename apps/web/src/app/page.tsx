@@ -272,6 +272,24 @@ export default function BucketSpaceApp() {
     setRulesList(store.getRules());
   };
 
+  /* ─── Multi-Tab Synchronization & Disconnect ─── */
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'bucketspace_file_metadata' || e.key === 'bucketspace_active_provider') {
+        store.restorePersistedSession();
+        setRefreshTrigger((prev) => prev + 1);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  const handleDisconnect = () => {
+    if (confirm('Are you sure you want to disconnect this storage account and switch back to the landing page?')) {
+      store.clearUserSession();
+      setRefreshTrigger((prev) => prev + 1);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#0b0f19] text-slate-100 flex">
@@ -293,6 +311,7 @@ export default function BucketSpaceApp() {
           onSearchChange={setSearchQuery}
           onOpenUpload={() => setUploadModalOpen(true)}
           providerName={providerName}
+          onDisconnect={handleDisconnect}
         />
 
         <main className="p-8 flex-1">

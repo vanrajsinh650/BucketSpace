@@ -243,7 +243,20 @@ export class StorageStore {
     }
   }
 
-  private restorePersistedSession(): void {
+  public clearUserSession(): void {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('bucketspace_active_provider');
+      localStorage.removeItem('bucketspace_file_metadata');
+    }
+    ProviderRegistry.clear();
+    this.activeProvider = new InMemoryStorageProvider();
+    this.activeProviderId = 'in-memory';
+    ProviderRegistry.register(this.activeProvider);
+    this.router = new StorageRouter(this.activeProviderId);
+    this.files = [];
+  }
+
+  public restorePersistedSession(): void {
     if (typeof window === 'undefined') {
       this.seedInitialData();
       return;

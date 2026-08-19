@@ -67,6 +67,33 @@ export class TelegramAuthService {
   }
 
   /**
+   * Check if a sessionString is valid and actively authenticated with Telegram.
+   */
+  public static async checkSession(sessionString: string): Promise<{
+    valid: boolean;
+    user?: { id: string; firstName?: string; username?: string; phone?: string };
+  }> {
+    try {
+      const client = await this.getClient(sessionString);
+      const me = await client.getMe();
+      if (!me) {
+        return { valid: false };
+      }
+      return {
+        valid: true,
+        user: {
+          id: String(me.id),
+          firstName: (me as any).firstName,
+          username: (me as any).username,
+          phone: (me as any).phone,
+        },
+      };
+    } catch {
+      return { valid: false };
+    }
+  }
+
+  /**
    * Request a real verification code from Telegram MTProto servers.
    */
   public static async sendCode(params: {

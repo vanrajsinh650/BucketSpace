@@ -1,13 +1,14 @@
 'use client';
 
 import React from 'react';
-import { Search, Upload, ShieldCheck } from 'lucide-react';
+import { Search, Upload, ShieldCheck, LogOut } from 'lucide-react';
 
 interface HeaderProps {
   searchQuery: string;
   onSearchChange: (q: string) => void;
   onOpenUpload: () => void;
   providerName: string;
+  onDisconnect?: () => void;
 }
 
 export function Header({
@@ -15,6 +16,7 @@ export function Header({
   onSearchChange,
   onOpenUpload,
   providerName,
+  onDisconnect,
 }: HeaderProps) {
   return (
     <header className="h-20 border-b border-slate-800/80 glass-panel sticky top-0 z-10 px-8 flex items-center justify-between gap-4">
@@ -31,7 +33,7 @@ export function Header({
       </div>
 
       {/* Action Controls */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {/* Storage Provider Status Badge */}
         <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/90 border border-slate-800 text-xs font-medium text-slate-300">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
@@ -47,6 +49,18 @@ export function Header({
           <Upload className="w-4 h-4" />
           <span>Upload File</span>
         </button>
+
+        {/* Disconnect/Logout Button */}
+        {onDisconnect && (
+          <button
+            onClick={onDisconnect}
+            title="Log out or switch storage account"
+            className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-400 hover:text-rose-300 hover:bg-rose-500/10 border border-slate-800 hover:border-rose-500/30 transition-all"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">Disconnect</span>
+          </button>
+        )}
       </div>
     </header>
   );

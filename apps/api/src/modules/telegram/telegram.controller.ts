@@ -380,6 +380,33 @@ export function registerTelegramRoutes(fastify: FastifyInstance): void {
   );
 
   /* ---------------------------------------------------------------- */
+  /*  GET /api/v1/telegram/auth/session-check                         */
+  /*  Validates whether a stored MTProto session is still connected.  */
+  /* ---------------------------------------------------------------- */
+  fastify.get(
+    '/api/v1/telegram/auth/session-check',
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const query = request.query as { sessionString?: string };
+      const sessionString = query.sessionString || (request.headers['x-telegram-session'] as string);
+
+      if (!sessionString) {
+        return reply.status(400).send({
+          statusCode: 400,
+          errorCode: 'VALIDATION_ERROR',
+          message: 'sessionString is required for session check',
+        });
+      }
+
+      const result = await TelegramAuthService.checkSession(sessionString);
+      return reply.status(200).send({
+        statusCode: 200,
+        valid: result.valid,
+        user: result.user,
+      });
+    }
+  );
+
+  /* ---------------------------------------------------------------- */
   /*  POST /api/v1/telegram/mtproto/chunk                             */
   /*  Direct MTProto 2.0 binary chunk upload to Telegram Saved Msgs.  */
   /* ---------------------------------------------------------------- */
