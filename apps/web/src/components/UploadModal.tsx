@@ -105,14 +105,39 @@ export function UploadModal({
               />
             </div>
 
+            {/* Status & Details */}
             <div className="flex items-center justify-between text-xs text-slate-400">
-              <span className="capitalize text-slate-300 font-mono">
-                Status: {uploadState.status.toLowerCase()}
-              </span>
-              <span className="font-mono">
+              <div className="flex items-center gap-1.5">
+                {uploadState.status === 'RESUMING' ? (
+                  <span className="text-cyan-400 font-medium flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                    Resuming upload...
+                  </span>
+                ) : uploadState.status === 'FAILED' ? (
+                  <span className="text-rose-400 font-medium">Upload interrupted</span>
+                ) : (
+                  <span className="capitalize text-slate-300 font-mono">
+                    Status: {uploadState.status.toLowerCase()}
+                  </span>
+                )}
+              </div>
+              <span className="font-mono text-slate-400">
                 Chunk {uploadState.currentChunk} of {uploadState.totalChunks}
               </span>
             </div>
+
+            {uploadState.status === 'FAILED' && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs space-y-2">
+                <p>{uploadState.errorMessage || 'Network interrupted. Your uploaded chunks are safely preserved.'}</p>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full py-2 rounded-lg bg-rose-500 hover:bg-rose-400 text-white font-medium text-xs transition-colors"
+                >
+                  Select File to Resume Upload
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

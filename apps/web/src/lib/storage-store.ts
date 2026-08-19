@@ -29,7 +29,7 @@ export interface UploadProgressState {
   currentChunk: number;
   totalChunks: number;
   percent: number;
-  status: 'HASHING' | 'UPLOADING' | 'VERIFYING' | 'COMPLETE' | 'FAILED';
+  status: 'HASHING' | 'UPLOADING' | 'VERIFYING' | 'COMPLETE' | 'FAILED' | 'RESUMING';
   errorMessage?: string;
 }
 
@@ -109,21 +109,33 @@ export class HttpTelegramStorageAdapter implements IStorageProvider {
     const blobSafe = new Blob([combined.buffer as ArrayBuffer], { type: 'application/octet-stream' });
     formData.append('file', blobSafe);
 
-    const res = await fetch(`${this.apiBaseUrl}/api/v1/telegram/mtproto/chunk`, {
-      method: 'POST',
-      body: formData,
-    });
+    let lastError: Error | null = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const res = await fetch(`${this.apiBaseUrl}/api/v1/telegram/mtproto/chunk`, {
+          method: 'POST',
+          body: formData,
+        });
 
-    if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson.message || `Failed to upload chunk to Telegram MTProto (HTTP ${res.status})`);
+        if (!res.ok) {
+          const errJson = await res.json().catch(() => ({}));
+          throw new Error(errJson.message || `Failed to upload chunk to Telegram MTProto (HTTP ${res.status})`);
+        }
+
+        const data = await res.json();
+        return {
+          providerId: 'telegram',
+          reference: data.reference,
+        };
+      } catch (err: any) {
+        lastError = err;
+        if (attempt < 3) {
+          await new Promise((r) => setTimeout(r, attempt * 1000));
+        }
+      }
     }
 
-    const data = await res.json();
-    return {
-      providerId: 'telegram',
-      reference: data.reference,
-    };
+    throw lastError || new Error('Failed to upload chunk after 3 network retries');
   }
 
   public async getChunk(ref: import('@bucketspace/shared').ProviderChunkRef): Promise<AsyncIterable<Uint8Array>> {
@@ -445,8 +457,37 @@ export class StorageStore {
     return this.files.filter((f) => f.status === 'ACTIVE').reduce((sum, f) => sum + f.size, 0);
   }
 
+  private getResumableSession(key: string): { fileId: string; chunks: ChunkMetadata[] } | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = localStorage.getItem(`bucketspace_resumable_${key}`);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private saveResumableSession(key: string, session: { fileId: string; chunks: ChunkMetadata[] }): void {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(`bucketspace_resumable_${key}`, JSON.stringify(session));
+    } catch {
+      // ignore
+    }
+  }
+
+  private clearResumableSession(key: string): void {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.removeItem(`bucketspace_resumable_${key}`);
+    } catch {
+      // ignore
+    }
+  }
+
   /**
    * Upload a File object using 5MB chunks and SHA-256 digest calculations routed via ProviderRegistry.
+   * Supports automatic resume after network interruption or page reload.
    */
   public async uploadFile(
     file: File,
@@ -454,7 +495,6 @@ export class StorageStore {
   ): Promise<FileMetadata> {
     const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunk invariant
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-    const fileId = createFileId(`file-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`);
 
     onProgress?.({
       fileName: file.name,
@@ -467,9 +507,30 @@ export class StorageStore {
     const fileBuffer = new Uint8Array(await file.arrayBuffer());
     const wholeFileHash = await calculateSha256(fileBuffer);
 
-    const uploadedChunks: ChunkMetadata[] = [];
+    const sessionKey = `${file.name}_${file.size}_${wholeFileHash.substring(0, 16)}`;
+    const savedSession = this.getResumableSession(sessionKey);
+    const fileId = savedSession?.fileId
+      ? createFileId(savedSession.fileId)
+      : createFileId(`file-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`);
+    const uploadedChunks: ChunkMetadata[] = savedSession?.chunks ? [...savedSession.chunks] : [];
+
+    if (uploadedChunks.length > 0) {
+      onProgress?.({
+        fileName: file.name,
+        currentChunk: uploadedChunks.length,
+        totalChunks,
+        percent: Math.round((uploadedChunks.length / totalChunks) * 85),
+        status: 'RESUMING',
+      });
+    }
 
     for (let index = 0; index < totalChunks; index++) {
+      const existingChunk = uploadedChunks.find((c) => c.index === index);
+      if (existingChunk && existingChunk.providerRef) {
+        // Already uploaded on provider; skip chunk transmission
+        continue;
+      }
+
       const start = index * CHUNK_SIZE;
       const end = Math.min(start + CHUNK_SIZE, file.size);
       const chunkBytes = fileBuffer.subarray(start, end);
@@ -513,7 +574,11 @@ export class StorageStore {
         hash: chunkHash,
         providerRef,
       });
+
+      this.saveResumableSession(sessionKey, { fileId, chunks: uploadedChunks });
     }
+
+    this.clearResumableSession(sessionKey);
 
     onProgress?.({
       fileName: file.name,
