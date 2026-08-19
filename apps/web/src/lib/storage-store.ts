@@ -60,6 +60,122 @@ async function calculateSha256(data: Uint8Array): Promise<string> {
 }
 
 /**
+ * Real MTProto 2.0 Browser Storage Adapter.
+ * Streams encrypted 5MB chunks via the Fastify API Gateway directly to Telegram Saved Messages ('me').
+ */
+export class HttpTelegramStorageAdapter implements IStorageProvider {
+  public readonly providerId: string = 'telegram';
+
+  private sessionString: string;
+  private apiBaseUrl: string;
+
+  constructor(sessionString: string, apiBaseUrl = 'http://localhost:4000') {
+    this.sessionString = sessionString;
+    this.apiBaseUrl = apiBaseUrl;
+  }
+
+  public getCapabilities(): import('@bucketspace/shared').StorageProviderCapabilities {
+    return {
+      providerId: this.providerId,
+      maxObjectSizeBytes: 2000000000, // 2 GB per chunk
+      optimalChunkSizeBytes: 5 * 1024 * 1024, // 5 MB chunks
+      supportsStreamingRead: true,
+      supportsStreamingWrite: true,
+      supportsByteRangeRead: false,
+      supportsParallelUploads: true,
+      supportsResumableUpload: true,
+      supportsDirectMediaPlayback: false,
+      supportsMultipartLogicalFiles: true,
+    };
+  }
+
+  public async putChunk(input: import('@bucketspace/shared').PutChunkInput): Promise<import('@bucketspace/shared').ProviderChunkRef> {
+    const buffers: Uint8Array[] = [];
+    for await (const chunk of input.data) {
+      buffers.push(chunk);
+    }
+    const totalLength = buffers.reduce((acc, b) => acc + b.length, 0);
+    const combined = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const b of buffers) {
+      combined.set(b, offset);
+      offset += b.length;
+    }
+
+    const formData = new FormData();
+    formData.append('sessionString', this.sessionString);
+    formData.append('chunkId', input.chunkId);
+    formData.append('filename', `chunk_${input.chunkId}.bin`);
+    const blobSafe = new Blob([combined.buffer as ArrayBuffer], { type: 'application/octet-stream' });
+    formData.append('file', blobSafe);
+
+    const res = await fetch(`${this.apiBaseUrl}/api/v1/telegram/mtproto/chunk`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.message || `Failed to upload chunk to Telegram MTProto (HTTP ${res.status})`);
+    }
+
+    const data = await res.json();
+    return {
+      providerId: 'telegram',
+      reference: data.reference,
+    };
+  }
+
+  public async getChunk(ref: import('@bucketspace/shared').ProviderChunkRef): Promise<AsyncIterable<Uint8Array>> {
+    const refObj = (ref.reference || {}) as Record<string, unknown>;
+    const messageId = refObj.messageId;
+    const targetChatId = (refObj.chatId as string) || 'me';
+
+    const res = await fetch(
+      `${this.apiBaseUrl}/api/v1/telegram/mtproto/chunk?sessionString=${encodeURIComponent(
+        this.sessionString
+      )}&messageId=${messageId}&targetChatId=${encodeURIComponent(targetChatId)}`
+    );
+
+    if (!res.ok) {
+      throw new Error(`Failed to download chunk from Telegram MTProto (HTTP ${res.status})`);
+    }
+
+    const arrayBuffer = await res.arrayBuffer();
+    const uint8 = new Uint8Array(arrayBuffer);
+    return (async function* () {
+      yield uint8;
+    })();
+  }
+
+  public async hasChunk(ref: import('@bucketspace/shared').ProviderChunkRef): Promise<import('@bucketspace/shared').ChunkStat> {
+    const refObj = (ref.reference || {}) as Record<string, unknown>;
+    const exists = Boolean(refObj.messageId);
+    return {
+      exists,
+      size: typeof refObj.size === 'number' ? refObj.size : undefined,
+    };
+  }
+
+  public async deleteChunk(ref: import('@bucketspace/shared').ProviderChunkRef): Promise<boolean> {
+    const refObj = (ref.reference || {}) as Record<string, unknown>;
+    const messageId = refObj.messageId;
+    const targetChatId = (refObj.chatId as string) || 'me';
+
+    const res = await fetch(`${this.apiBaseUrl}/api/v1/telegram/mtproto/chunk`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionString: this.sessionString,
+        messageId,
+        targetChatId,
+      }),
+    });
+    return res.ok;
+  }
+}
+
+/**
  * StorageStore is the UI state adapter for BucketSpace.
  * Binds the React UI to StorageApplicationService, ensuring all upload,
  * download, trash, restore, and purge actions use core domain abstractions.
@@ -80,7 +196,7 @@ export class StorageStore {
 
     ProviderRegistry.register(this.activeProvider);
     this.router = new StorageRouter(this.activeProviderId);
-    this.seedInitialData();
+    this.restorePersistedSession();
   }
 
   public static getInstance(): StorageStore {
@@ -91,7 +207,7 @@ export class StorageStore {
   }
 
   public getActiveProviderName(): string {
-    if (this.activeProviderId === 'telegram') return 'Telegram';
+    if (this.activeProviderId === 'telegram') return 'Telegram Cloud';
     if (this.activeProviderId === 'local') return 'This computer';
     if (this.activeProviderId === 'r2') return 'Cloudflare R2';
     if (this.activeProviderId === 's3') return 'AWS S3';
@@ -109,11 +225,61 @@ export class StorageStore {
     return providers.some((p) => p.providerId !== 'in-memory');
   }
 
+  private savePersistedSession(providerId: string, config?: Record<string, unknown>): void {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem('bucketspace_active_provider', JSON.stringify({ providerId, config }));
+    } catch {
+      // localStorage quota or private mode
+    }
+  }
+
+  private savePersistedFiles(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem('bucketspace_file_metadata', JSON.stringify(this.files));
+    } catch {
+      // ignore
+    }
+  }
+
+  private restorePersistedSession(): void {
+    if (typeof window === 'undefined') {
+      this.seedInitialData();
+      return;
+    }
+
+    try {
+      const savedProviderRaw = localStorage.getItem('bucketspace_active_provider');
+      const savedFilesRaw = localStorage.getItem('bucketspace_file_metadata');
+
+      if (savedProviderRaw) {
+        const { providerId, config } = JSON.parse(savedProviderRaw);
+        this.registerUserProvider(providerId, config, false);
+      } else {
+        this.seedInitialData();
+      }
+
+      if (savedFilesRaw) {
+        const parsedFiles = JSON.parse(savedFilesRaw);
+        if (Array.isArray(parsedFiles)) {
+          this.files = parsedFiles;
+        }
+      }
+    } catch {
+      this.seedInitialData();
+    }
+  }
+
   /**
    * Registers a user-configured storage provider, updates the router default,
    * and marks the workspace active.
    */
-  public registerUserProvider(providerId: string, config?: Record<string, unknown>): void {
+  public registerUserProvider(
+    providerId: string,
+    config?: Record<string, unknown>,
+    persist = true
+  ): void {
     if (providerId === 'local') {
       const localProvider = new LocalStorageAdapter({
         rootDir: (config?.rootDir as string) || 'C:\\BucketSpace\\Storage',
@@ -124,12 +290,8 @@ export class StorageStore {
       this.activeProviderId = 'local';
       this.router.setDefaultProvider('local');
     } else if (providerId === 'telegram') {
-      const telegramProvider = new TelegramStorageAdapter({
-        mode: 'mtproto',
-        apiId: 0,
-        apiHash: 'vault-secured',
-        sessionString: (config?.sessionString as string) || '',
-      });
+      const sessionString = (config?.sessionString as string) || '';
+      const telegramProvider = new HttpTelegramStorageAdapter(sessionString);
       ProviderRegistry.register(telegramProvider);
       this.activeProvider = telegramProvider;
       this.activeProviderId = 'telegram';
@@ -160,9 +322,14 @@ export class StorageStore {
       this.router.setDefaultProvider('supabase');
     }
 
+    if (persist) {
+      this.savePersistedSession(providerId, config);
+    }
+
     // Remove sandbox demo files so user's real storage drive starts clean (0.0 MB)
     if (this.files.some((f) => f.id.startsWith('demo-file-'))) {
       this.files = this.files.filter((f) => !f.id.startsWith('demo-file-'));
+      this.savePersistedFiles();
     }
   }
 
@@ -356,6 +523,7 @@ export class StorageStore {
     };
 
     this.files.unshift(fileMetadata);
+    this.savePersistedFiles();
 
     onProgress?.({
       fileName: file.name,
@@ -468,6 +636,7 @@ export class StorageStore {
     existing.wholeFileHash = wholeFileHash;
     existing.chunks = uploadedChunks;
     existing.updatedAt = new Date();
+    this.savePersistedFiles();
 
     onProgress?.({
       fileName: file.name,
@@ -536,70 +705,14 @@ export class StorageStore {
   }
 
   /**
-   * Download a file by ID, reassemble byte chunks from registered ProviderRegistry adapter, and trigger browser download.
+   * Download a file: fetches and verifies all chunks, reassembles whole file,
+   * performs final whole-file SHA-256 verification, then triggers browser download.
    */
   public async downloadFile(fileId: string): Promise<{ verifiedHash: string }> {
-    const file = this.files.find((f) => f.id === fileId);
-    if (!file) {
-      throw new Error(`File '${fileId}' not found`);
-    }
-
-    const provider = ProviderRegistry.get(file.chunks[0]?.providerRef?.providerId ?? this.activeProviderId);
-    const downloadedPieces: Uint8Array[] = [];
-
-    for (const chunk of file.chunks) {
-      if (!chunk.providerRef) {
-        throw new Error(`Chunk ${chunk.index} missing provider reference`);
-      }
-
-      const stream = await provider.getChunk(chunk.providerRef);
-      const pieces: Uint8Array[] = [];
-      let totalLength = 0;
-
-      for await (const piece of stream) {
-        pieces.push(piece);
-        totalLength += piece.byteLength;
-      }
-
-      const chunkCombined = new Uint8Array(totalLength);
-      let offset = 0;
-      for (const piece of pieces) {
-        chunkCombined.set(piece, offset);
-        offset += piece.byteLength;
-      }
-
-      const verifiedChunkHash = await calculateSha256(chunkCombined);
-      if (verifiedChunkHash !== chunk.hash) {
-        throw new Error(
-          `We couldn't verify this file because part of it appears to be different from the original. ` +
-          `Your original file has not been changed. [Technical: chunk ${chunk.index}, ` +
-          `expected ${chunk.hash.substring(0, 12)}…, got ${verifiedChunkHash.substring(0, 12)}…]`
-        );
-      }
-
-      downloadedPieces.push(chunkCombined);
-    }
-
-    const fullTotalSize = downloadedPieces.reduce((sum, p) => sum + p.byteLength, 0);
-    const fullCombined = new Uint8Array(fullTotalSize);
-    let fullOffset = 0;
-    for (const piece of downloadedPieces) {
-      fullCombined.set(piece, fullOffset);
-      fullOffset += piece.byteLength;
-    }
-
-    const verifiedWholeHash = await calculateSha256(fullCombined);
-    if (verifiedWholeHash !== file.wholeFileHash) {
-      throw new Error(
-        `We couldn't verify this file's integrity after reassembly. ` +
-        `The download has been stopped to protect your data. ` +
-        `[Technical: whole-file expected ${file.wholeFileHash.substring(0, 12)}…, ` +
-        `got ${verifiedWholeHash.substring(0, 12)}…]`
-      );
-    }
+    const { bytes, file } = await this.getFileBytes(fileId);
 
     // Trigger browser file download
-    const blob = new Blob([fullCombined], { type: file.mimeType });
+    const blob = new Blob([bytes.buffer as ArrayBuffer], { type: file.mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -609,7 +722,7 @@ export class StorageStore {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    return { verifiedHash: verifiedWholeHash };
+    return { verifiedHash: file.wholeFileHash };
   }
 
   public deleteFile(fileId: string): boolean {
@@ -617,6 +730,7 @@ export class StorageStore {
     if (file) {
       file.status = 'TRASHED';
       file.updatedAt = new Date();
+      this.savePersistedFiles();
       return true;
     }
     return false;
@@ -631,6 +745,7 @@ export class StorageStore {
     if (file) {
       file.status = 'ACTIVE';
       file.updatedAt = new Date();
+      this.savePersistedFiles();
       return true;
     }
     return false;
@@ -651,6 +766,7 @@ export class StorageStore {
         }
       }
       this.files.splice(index, 1);
+      this.savePersistedFiles();
       return true;
     }
     return false;

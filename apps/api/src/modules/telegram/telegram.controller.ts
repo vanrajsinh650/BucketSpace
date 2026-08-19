@@ -378,5 +378,157 @@ export function registerTelegramRoutes(fastify: FastifyInstance): void {
       }
     }
   );
+
+  /* ---------------------------------------------------------------- */
+  /*  POST /api/v1/telegram/mtproto/chunk                             */
+  /*  Direct MTProto 2.0 binary chunk upload to Telegram Saved Msgs.  */
+  /* ---------------------------------------------------------------- */
+  fastify.post(
+    '/api/v1/telegram/mtproto/chunk',
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const multipartData = await request.file();
+      if (!multipartData) {
+        return reply.status(400).send({
+          statusCode: 400,
+          errorCode: 'MISSING_FILE',
+          message: 'Multipart chunk file is required',
+        });
+      }
+
+      const fields = multipartData.fields as Record<string, { value?: string }>;
+      const sessionString = fields['sessionString']?.value || (request.headers['x-telegram-session'] as string);
+      const chunkId = fields['chunkId']?.value || `chk_${Date.now()}`;
+      const filename = fields['filename']?.value || multipartData.filename || `chunk_${chunkId}.bin`;
+      const targetChatId = fields['targetChatId']?.value || 'me';
+
+      if (!sessionString) {
+        return reply.status(401).send({
+          statusCode: 401,
+          errorCode: 'UNAUTHORIZED',
+          message: 'Telegram MTProto sessionString is required',
+        });
+      }
+
+      try {
+        const chunkBuffer = await multipartData.toBuffer();
+        const refData = await TelegramAuthService.uploadChunk({
+          sessionString,
+          chunkId,
+          buffer: chunkBuffer,
+          filename,
+          targetChatId,
+        });
+
+        return reply.status(201).send({
+          statusCode: 201,
+          success: true,
+          providerId: 'telegram',
+          chunkId,
+          reference: refData,
+        });
+      } catch (err: any) {
+        request.log.error(err, `Failed to upload MTProto chunk ${chunkId}`);
+        return reply.status(500).send({
+          statusCode: 500,
+          errorCode: 'TELEGRAM_UPLOAD_ERROR',
+          message: err?.message || 'Failed to upload chunk to Telegram MTProto storage',
+        });
+      }
+    }
+  );
+
+  /* ---------------------------------------------------------------- */
+  /*  GET /api/v1/telegram/mtproto/chunk                              */
+  /*  Direct MTProto 2.0 binary chunk download from Telegram DC.      */
+  /* ---------------------------------------------------------------- */
+  fastify.get(
+    '/api/v1/telegram/mtproto/chunk',
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const query = request.query as {
+        sessionString?: string;
+        messageId?: string;
+        targetChatId?: string;
+      };
+
+      const sessionString = query.sessionString || (request.headers['x-telegram-session'] as string);
+      const messageId = Number(query.messageId);
+      const targetChatId = query.targetChatId || 'me';
+
+      if (!sessionString || !messageId) {
+        return reply.status(400).send({
+          statusCode: 400,
+          errorCode: 'VALIDATION_ERROR',
+          message: 'sessionString and messageId are required',
+        });
+      }
+
+      try {
+        const buffer = await TelegramAuthService.downloadChunk({
+          sessionString,
+          messageId,
+          targetChatId,
+        });
+
+        reply.header('Content-Type', 'application/octet-stream');
+        reply.header('Content-Length', buffer.length);
+        return reply.send(buffer);
+      } catch (err: any) {
+        request.log.error(err, `Failed to download MTProto chunk message #${messageId}`);
+        return reply.status(500).send({
+          statusCode: 500,
+          errorCode: 'TELEGRAM_DOWNLOAD_ERROR',
+          message: err?.message || 'Failed to download chunk from Telegram MTProto storage',
+        });
+      }
+    }
+  );
+
+  /* ---------------------------------------------------------------- */
+  /*  DELETE /api/v1/telegram/mtproto/chunk                           */
+  /*  Deletes chunk message from Telegram chat.                       */
+  /* ---------------------------------------------------------------- */
+  fastify.delete(
+    '/api/v1/telegram/mtproto/chunk',
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const body = (request.body || request.query) as {
+        sessionString?: string;
+        messageId?: number | string;
+        targetChatId?: string;
+      };
+
+      const sessionString = body?.sessionString || (request.headers['x-telegram-session'] as string);
+      const messageId = Number(body?.messageId);
+      const targetChatId = body?.targetChatId || 'me';
+
+      if (!sessionString || !messageId) {
+        return reply.status(400).send({
+          statusCode: 400,
+          errorCode: 'VALIDATION_ERROR',
+          message: 'sessionString and messageId are required',
+        });
+      }
+
+      try {
+        await TelegramAuthService.deleteChunk({
+          sessionString,
+          messageId,
+          targetChatId,
+        });
+
+        return reply.status(200).send({
+          statusCode: 200,
+          success: true,
+          message: `Chunk message #${messageId} purged from Telegram`,
+        });
+      } catch (err: any) {
+        request.log.error(err, `Failed to purge MTProto chunk #${messageId}`);
+        return reply.status(500).send({
+          statusCode: 500,
+          errorCode: 'TELEGRAM_PURGE_ERROR',
+          message: err?.message || 'Failed to purge chunk from Telegram',
+        });
+      }
+    }
+  );
 }
 

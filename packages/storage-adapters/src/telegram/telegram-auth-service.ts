@@ -1,5 +1,7 @@
 import { TelegramClient } from 'telegram';
 import { StringSession } from 'telegram/sessions';
+import { CustomFile } from 'telegram/client/uploads';
+import type { TelegramRefData } from './telegram-storage-provider';
 
 interface ActiveLoginSession {
   client: TelegramClient;
@@ -28,13 +30,41 @@ export interface Verify2FAResult {
 }
 
 /**
- * Real Telegram MTProto 2.0 Authentication Service.
+ * Real Telegram MTProto 2.0 Authentication & Chunk Storage Service.
  *
- * Dispatches real OTP verification codes directly to the user's Telegram app/SMS
- * using GramJS MTProto client and handles 2FA cloud password challenges.
+ * Provides phone OTP login, 2FA password handling, client connection pooling,
+ * and direct MTProto binary chunk upload/download streaming to Telegram Saved Messages.
  */
 export class TelegramAuthService {
   private static activeSessions = new Map<string, ActiveLoginSession>();
+  private static clientPool = new Map<string, { client: TelegramClient; lastUsed: number }>();
+
+  /**
+   * Get or create a connected TelegramClient instance for a saved sessionString.
+   */
+  public static async getClient(sessionString: string): Promise<TelegramClient> {
+    const cached = this.clientPool.get(sessionString);
+    if (cached && cached.client.connected) {
+      cached.lastUsed = Date.now();
+      return cached.client;
+    }
+
+    const apiId = Number(process.env.TELEGRAM_API_ID) || 0;
+    const apiHash = process.env.TELEGRAM_API_HASH || '';
+
+    if (!apiId || !apiHash) {
+      throw new Error('Telegram API ID and Hash are required for MTProto storage.');
+    }
+
+    const session = new StringSession(sessionString);
+    const client = new TelegramClient(session, apiId, apiHash, {
+      connectionRetries: 5,
+    });
+
+    await client.connect();
+    this.clientPool.set(sessionString, { client, lastUsed: Date.now() });
+    return client;
+  }
 
   /**
    * Request a real verification code from Telegram MTProto servers.
@@ -168,5 +198,81 @@ export class TelegramAuthService {
     const sessionString = session.client.session.save() as unknown as string;
     this.activeSessions.delete(params.sessionToken);
     return { success: true, sessionString };
+  }
+
+  /**
+   * Upload a chunk binary buffer directly to Telegram Saved Messages ('me') via MTProto.
+   */
+  public static async uploadChunk(params: {
+    sessionString: string;
+    chunkId: string;
+    buffer: Buffer;
+    filename?: string;
+    targetChatId?: string;
+  }): Promise<TelegramRefData> {
+    const client = await this.getClient(params.sessionString);
+    const targetEntity = params.targetChatId || 'me';
+    const filename = params.filename || `chunk_${params.chunkId}.bin`;
+
+    const customFile = new CustomFile(filename, params.buffer.length, '', params.buffer);
+    const message = await client.sendFile(targetEntity, {
+      file: customFile,
+      caption: `[bucketspace-chunk:${params.chunkId}]`,
+    });
+
+    const doc = message.media && 'document' in message.media ? (message.media.document as any) : undefined;
+
+    return {
+      chatId: targetEntity,
+      messageId: message.id,
+      fileId: doc ? String(doc.id) : `msg_${message.id}`,
+      documentId: doc ? String(doc.id) : undefined,
+      accessHash: doc ? String(doc.accessHash) : undefined,
+      dcId: doc ? doc.dcId : undefined,
+      fileReference: doc?.fileReference ? Buffer.from(doc.fileReference).toString('base64') : undefined,
+      size: doc?.size ? Number(doc.size) : params.buffer.length,
+    };
+  }
+
+  /**
+   * Download chunk bytes directly from Telegram Data Center by message ID.
+   */
+  public static async downloadChunk(params: {
+    sessionString: string;
+    messageId: number;
+    targetChatId?: string;
+  }): Promise<Buffer> {
+    const client = await this.getClient(params.sessionString);
+    const targetEntity = params.targetChatId || 'me';
+
+    const messages = await client.getMessages(targetEntity, { ids: [params.messageId] });
+    if (!messages || messages.length === 0 || !messages[0]) {
+      throw new Error(`Telegram message #${params.messageId} not found in chat '${targetEntity}'`);
+    }
+
+    const message = messages[0];
+    if (!message.media) {
+      throw new Error(`Telegram message #${params.messageId} does not contain media`);
+    }
+
+    const buffer = (await client.downloadMedia(message.media, {})) as Buffer | undefined;
+    if (!buffer) {
+      throw new Error(`Failed to download media for message #${params.messageId}`);
+    }
+
+    return Buffer.from(buffer);
+  }
+
+  /**
+   * Delete a chunk message from Telegram chat.
+   */
+  public static async deleteChunk(params: {
+    sessionString: string;
+    messageId: number;
+    targetChatId?: string;
+  }): Promise<void> {
+    const client = await this.getClient(params.sessionString);
+    const targetEntity = params.targetChatId || 'me';
+    await client.deleteMessages(targetEntity, [params.messageId], { revoke: true });
   }
 }
