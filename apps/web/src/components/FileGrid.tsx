@@ -53,17 +53,17 @@ export function FileGrid({
   return (
     <div className="space-y-4">
       {/* Controls Bar */}
-      <div className="flex items-center justify-between gap-3 pb-3 border-b border-zinc-800/80">
-        <div className="flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
-          <span className="text-zinc-500 hidden sm:inline">Sort:</span>
+      <div className="flex items-center justify-between gap-3 pb-3 border-b border-[#222]">
+        <div className="flex items-center gap-1.5 text-xs text-[#999] font-medium">
+          <span className="text-[#666] hidden sm:inline">Sort:</span>
           {(['name', 'size', 'date'] as SortField[]).map((field) => (
             <button
               key={field}
               onClick={() => onSortChange(field)}
               className={`px-2.5 py-1 rounded-lg capitalize transition-all text-xs ${
                 sortField === field
-                  ? 'bg-zinc-800 text-white font-semibold border border-zinc-700'
-                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900'
+                  ? 'bg-[#222] text-white font-semibold border border-[#333]'
+                  : 'text-[#666] hover:text-[#ccc] hover:bg-[#111]'
               }`}
             >
               {field} {sortField === field && (sortDirection === 'asc' ? '↑' : '↓')}
@@ -72,17 +72,17 @@ export function FileGrid({
         </div>
 
         {/* Grid vs List Toggle */}
-        <div className="flex items-center gap-1 p-1 bg-zinc-950 rounded-xl border border-zinc-800">
+        <div className="flex items-center gap-1 p-1 bg-black rounded-xl border border-[#222]">
           <button
             onClick={() => onToggleViewMode('grid')}
             className={`relative p-1.5 rounded-lg transition-colors z-10 ${
-              viewMode === 'grid' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
+              viewMode === 'grid' ? 'text-white' : 'text-[#666] hover:text-[#ccc]'
             }`}
           >
             {viewMode === 'grid' && (
               <motion.div
                 layoutId="view-toggle-bg"
-                className="absolute inset-0 bg-zinc-800 rounded-lg -z-10"
+                className="absolute inset-0 bg-[#222] rounded-lg -z-10"
                 transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
               />
             )}
@@ -91,13 +91,13 @@ export function FileGrid({
           <button
             onClick={() => onToggleViewMode('list')}
             className={`relative p-1.5 rounded-lg transition-colors z-10 ${
-              viewMode === 'list' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
+              viewMode === 'list' ? 'text-white' : 'text-[#666] hover:text-[#ccc]'
             }`}
           >
             {viewMode === 'list' && (
               <motion.div
                 layoutId="view-toggle-bg"
-                className="absolute inset-0 bg-zinc-800 rounded-lg -z-10"
+                className="absolute inset-0 bg-[#222] rounded-lg -z-10"
                 transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
               />
             )}
@@ -111,14 +111,14 @@ export function FileGrid({
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="py-16 px-6 text-center space-y-5 rounded-3xl bg-zinc-950 border border-zinc-800/90 max-w-lg mx-auto my-8"
+          className="py-16 px-6 text-center space-y-5 rounded-3xl bg-black border border-[#222] max-w-lg mx-auto my-8"
         >
-          <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300 mx-auto">
+          <div className="w-12 h-12 rounded-2xl bg-[#111] border border-[#222] flex items-center justify-center text-[#ccc] mx-auto">
             <FolderPlus className="w-6 h-6" />
           </div>
           <div className="space-y-1">
             <h3 className="text-base font-semibold text-white">No files found</h3>
-            <p className="text-xs text-zinc-400 max-w-xs mx-auto">
+            <p className="text-xs text-[#999] max-w-xs mx-auto">
               Upload files or connect storage backends to start storing your files securely.
             </p>
           </div>
@@ -138,7 +138,7 @@ export function FileGrid({
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.96 }}
                 onClick={onOpenOnboarding}
-                className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white font-medium text-xs transition-all"
+                className="px-4 py-2 rounded-xl bg-[#111] border border-[#222] text-[#ccc] hover:text-white font-medium text-xs transition-all"
               >
                 Connect Storage
               </motion.button>

@@ -70,18 +70,18 @@ export function FileCard({
 
   const getFileIcon = (mimeType: string, filename: string) => {
     if (mimeType.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(filename)) {
-      return <ImageIcon className="w-5 h-5 text-zinc-300" />;
+      return <ImageIcon className="w-5 h-5 text-[#ccc]" />;
     }
     if (mimeType.startsWith('video/') || /\.(mp4|mkv|mov|avi|webm)$/i.test(filename)) {
-      return <Film className="w-5 h-5 text-zinc-300" />;
+      return <Film className="w-5 h-5 text-[#ccc]" />;
     }
     if (mimeType.startsWith('text/') || mimeType.includes('pdf') || /\.(pdf|doc|docx|txt|md|csv)$/i.test(filename)) {
-      return <FileText className="w-5 h-5 text-zinc-300" />;
+      return <FileText className="w-5 h-5 text-[#ccc]" />;
     }
     if (/\.(zip|tar|gz|rar|7z)$/i.test(filename)) {
-      return <FileArchive className="w-5 h-5 text-zinc-300" />;
+      return <FileArchive className="w-5 h-5 text-[#ccc]" />;
     }
-    return <File className="w-5 h-5 text-zinc-400" />;
+    return <File className="w-5 h-5 text-[#999]" />;
   };
 
   const isTrashed = file.status === 'TRASHED';
@@ -118,15 +118,15 @@ export function FileCard({
         onHoverEnd={() => setIsHovered(false)}
         className={`relative rounded-xl p-3 sm:p-3.5 flex items-center justify-between gap-3 border ${
           isSelected
-            ? 'bg-zinc-900 border-white text-white z-10'
-            : 'bg-zinc-950 border-zinc-850 text-zinc-300'
+            ? 'bg-[#111] border-white text-white z-10'
+            : 'bg-black border-[#222] text-[#ccc]'
         }`}
       >
         {/* Animated background glow on hover */}
         {isHovered && !isSelected && (
           <motion.div
             layoutId="file-hover-bg"
-            className="absolute inset-0 bg-zinc-900/50 rounded-xl -z-10"
+            className="absolute inset-0 bg-[#111]/50 rounded-xl -z-10"
             transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
           />
         )}
@@ -135,7 +135,7 @@ export function FileCard({
           {onToggleSelect && !isTrashed && (
             <button
               onClick={(e) => { e.stopPropagation(); onToggleSelect(file.id); }}
-              className="p-1 rounded text-zinc-500 hover:text-white focus:outline-none transition-colors"
+              className="p-1 rounded text-[#666] hover:text-white focus:outline-none transition-colors"
               title={isSelected ? 'Deselect file' : 'Select file'}
             >
               {isSelected ? (
@@ -143,18 +143,18 @@ export function FileCard({
                   <CheckSquare className="w-4 h-4 text-white" />
                 </motion.div>
               ) : (
-                <Square className="w-4 h-4 text-zinc-600 hover:text-zinc-400" />
+                <Square className="w-4 h-4 text-[#444] hover:text-[#999]" />
               )}
             </button>
           )}
-          <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 shrink-0">
+          <div className="p-2 rounded-lg bg-[#111] border border-[#222] shrink-0">
             {getFileIcon(file.mimeType, file.name)}
           </div>
           <div className="min-w-0 flex-1">
-            <h4 className="font-medium text-xs sm:text-sm text-zinc-200 truncate group-hover:text-white transition-colors">
+            <h4 className="font-medium text-xs sm:text-sm text-white truncate group-hover:text-white transition-colors">
               {file.name}
             </h4>
-            <div className="flex items-center gap-2.5 text-[11px] text-zinc-500 mt-0.5 font-mono">
+            <div className="flex items-center gap-2.5 text-[11px] text-[#666] mt-0.5 font-mono">
               <span>{formatSize(file.size)}</span>
               <span>•</span>
               <span>{new Date(file.createdAt).toLocaleDateString()}</span>
@@ -170,7 +170,7 @@ export function FileCard({
                 <button
                   onClick={(e) => { e.stopPropagation(); onPreview(file); }}
                   title="View File"
-                  className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                  className="p-2 rounded-lg text-[#999] hover:text-white hover:bg-[#222] transition-colors"
                 >
                   <Eye className="w-4 h-4" />
                 </button>
@@ -178,14 +178,14 @@ export function FileCard({
               <button
                 onClick={(e) => { e.stopPropagation(); onDownload(file.id); }}
                 title="Download"
-                className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                className="p-2 rounded-lg text-[#999] hover:text-white hover:bg-[#222] transition-colors"
               >
                 <Download className="w-4 h-4" />
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); onInfo(file); }}
                 title="Details"
-                className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors hidden sm:block"
+                className="p-2 rounded-lg text-[#999] hover:text-white hover:bg-[#222] transition-colors hidden sm:block"
               >
                 <Info className="w-4 h-4" />
               </button>
@@ -193,7 +193,7 @@ export function FileCard({
                 <button
                   onClick={(e) => { e.stopPropagation(); onShare(file); }}
                   title="Share"
-                  className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                  className="p-2 rounded-lg text-[#999] hover:text-white hover:bg-[#222] transition-colors"
                 >
                   <Share2 className="w-4 h-4" />
                 </button>
@@ -202,7 +202,7 @@ export function FileCard({
                 <button
                   onClick={(e) => { e.stopPropagation(); onRedundancy(file); }}
                   title="Redundancy"
-                  className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors hidden sm:block"
+                  className="p-2 rounded-lg text-[#999] hover:text-white hover:bg-[#222] transition-colors hidden sm:block"
                 >
                   <ShieldCheck className="w-4 h-4" />
                 </button>
@@ -210,7 +210,7 @@ export function FileCard({
               <button
                 onClick={(e) => { e.stopPropagation(); onDelete(file.id); }}
                 title="Move to Trash"
-                className="p-2 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                className="p-2 rounded-lg text-[#999] hover:text-white hover:text-white hover:bg-[#222] transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -221,7 +221,7 @@ export function FileCard({
                 <button
                   onClick={(e) => { e.stopPropagation(); onRestore(file.id); }}
                   title="Restore File"
-                  className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                  className="p-2 rounded-lg text-[#999] hover:text-white hover:bg-[#222] transition-colors"
                 >
                   <RotateCcw className="w-4 h-4" />
                 </button>
@@ -230,7 +230,7 @@ export function FileCard({
                 <button
                   onClick={(e) => { e.stopPropagation(); onPurge(file.id); }}
                   title="Permanently Purge"
-                  className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                  className="p-2 rounded-lg text-[#999] hover:text-white hover:bg-[#222] transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -255,15 +255,15 @@ export function FileCard({
       onHoverEnd={() => setIsHovered(false)}
       className={`relative rounded-2xl p-4 flex flex-col justify-between h-48 border ${
         isSelected
-          ? 'bg-zinc-900 border-white text-white shadow-sm z-10'
-          : 'bg-zinc-950 border-zinc-800/90 text-zinc-300'
+          ? 'bg-[#111] border-white text-white shadow-sm z-10'
+          : 'bg-black border-[#222] text-[#ccc]'
       }`}
     >
       {/* Animated background glow on hover */}
       {isHovered && !isSelected && (
         <motion.div
           layoutId="file-hover-bg"
-          className="absolute inset-0 bg-zinc-900/40 rounded-2xl -z-10"
+          className="absolute inset-0 bg-[#111]/40 rounded-2xl -z-10"
           transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
         />
       )}
@@ -274,7 +274,7 @@ export function FileCard({
             {onToggleSelect && !isTrashed && (
               <button
                 onClick={(e) => { e.stopPropagation(); onToggleSelect(file.id); }}
-                className="p-1 rounded text-zinc-500 hover:text-white focus:outline-none transition-colors"
+                className="p-1 rounded text-[#666] hover:text-white focus:outline-none transition-colors"
                 title={isSelected ? 'Deselect file' : 'Select file'}
               >
                 {isSelected ? (
@@ -282,37 +282,37 @@ export function FileCard({
                     <CheckSquare className="w-4 h-4 text-white" />
                   </motion.div>
                 ) : (
-                  <Square className="w-4 h-4 text-zinc-600 hover:text-zinc-400" />
+                  <Square className="w-4 h-4 text-[#444] hover:text-[#999]" />
                 )}
               </button>
             )}
-            <div className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800">
+            <div className="p-2.5 rounded-xl bg-[#111] border border-[#222]">
               {getFileIcon(file.mimeType, file.name)}
             </div>
           </div>
           <button
             onClick={(e) => { e.stopPropagation(); onInfo(file); }}
-            className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+            className="p-1.5 rounded-lg text-[#666] hover:text-white hover:bg-[#222] transition-colors"
           >
             <Info className="w-4 h-4" />
           </button>
         </div>
 
-        <h4 className="font-medium text-xs sm:text-sm text-zinc-200 truncate hover:text-white transition-colors">
+        <h4 className="font-medium text-xs sm:text-sm text-white truncate hover:text-white transition-colors">
           {file.name}
         </h4>
         <div className="flex items-center gap-2 mt-1">
-          <span className="text-xs text-zinc-500 font-mono">{formatSize(file.size)}</span>
+          <span className="text-xs text-[#666] font-mono">{formatSize(file.size)}</span>
           {getFileProviderId(file) && (
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-400 border border-zinc-800">
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#111] text-[#999] border border-[#222]">
               {getFileProviderId(file)}
             </span>
           )}
         </div>
       </div>
 
-      <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between relative z-10">
-        <span className="text-[10px] font-mono text-zinc-500">
+      <div className="pt-3 border-t border-[#222] flex items-center justify-between relative z-10">
+        <span className="text-[10px] font-mono text-[#666]">
           {new Date(file.createdAt).toLocaleDateString()}
         </span>
 
@@ -322,7 +322,7 @@ export function FileCard({
               {onPreview && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onPreview(file); }}
-                  className="px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800 text-xs font-medium flex items-center gap-1 transition-all"
+                  className="px-2.5 py-1 rounded-lg bg-[#111] border border-[#222] text-[#ccc] hover:text-white hover:bg-[#222] text-xs font-medium flex items-center gap-1 transition-all"
                   title="View File"
                 >
                   <Eye className="w-3.5 h-3.5" />
@@ -340,7 +340,7 @@ export function FileCard({
                 <button
                   onClick={(e) => { e.stopPropagation(); onRedundancy(file); }}
                   title="Redundancy"
-                  className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors"
+                  className="p-1.5 rounded-lg text-[#666] hover:text-white hover:bg-[#222] transition-colors"
                 >
                   <ShieldCheck className="w-3.5 h-3.5" />
                 </button>
@@ -349,14 +349,14 @@ export function FileCard({
                 <button
                   onClick={(e) => { e.stopPropagation(); onMove(file); }}
                   title="Move"
-                  className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors"
+                  className="p-1.5 rounded-lg text-[#666] hover:text-white hover:bg-[#222] transition-colors"
                 >
                   <ArrowRightLeft className="w-3.5 h-3.5" />
                 </button>
               )}
               <button
                 onClick={(e) => { e.stopPropagation(); onDelete(file.id); }}
-                className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                className="p-1.5 rounded-lg text-[#666] hover:text-white hover:text-white hover:bg-[#222] transition-colors"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -366,7 +366,7 @@ export function FileCard({
               {onRestore && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onRestore(file.id); }}
-                  className="px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium flex items-center gap-1 transition-all"
+                  className="px-2.5 py-1 rounded-lg bg-[#111] border border-[#222] text-[#ccc] hover:text-white text-xs font-medium flex items-center gap-1 transition-all"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   <span>Restore</span>
@@ -375,7 +375,7 @@ export function FileCard({
               {onPurge && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onPurge(file.id); }}
-                  className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                  className="p-1.5 rounded-lg text-[#666] hover:text-white hover:text-white hover:bg-[#222] transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
