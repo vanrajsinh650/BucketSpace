@@ -27,8 +27,8 @@ export function BulkActionBar({
   if (selectedCount === 0) return null;
 
   return (
-    <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-[95vw]">
-      <div className="bg-zinc-950 border border-zinc-700 shadow-2xl shadow-black/80 backdrop-blur-xl px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs">
+    <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-[95vw] pop-in">
+      <div className="bg-zinc-950/80 border border-zinc-700 shadow-2xl shadow-black/80 backdrop-blur-xl px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs">
         {/* Selected Counter */}
         <div className="flex items-center gap-1.5 pr-2 sm:pr-3 border-r border-zinc-800">
           <span className="w-5 h-5 rounded-full bg-white text-black font-bold text-[11px] flex items-center justify-center font-mono">

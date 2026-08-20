@@ -41,8 +41,11 @@ export function Header({
             placeholder="Search files..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full bg-zinc-900/90 border border-zinc-800 text-zinc-200 placeholder-zinc-500 rounded-xl pl-9 pr-4 py-2 text-xs sm:text-sm focus:outline-none focus:border-zinc-500 transition-all"
+            className="w-full bg-zinc-900/90 border border-zinc-800 text-zinc-200 placeholder-zinc-500 rounded-xl pl-9 pr-14 py-2 text-xs sm:text-sm focus:outline-none focus:border-zinc-500 transition-all"
           />
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none hidden sm:block">
+            <kbd>⌘K</kbd>
+          </div>
         </div>
       </div>
 
@@ -57,7 +60,7 @@ export function Header({
         {/* Upload Button */}
         <button
           onClick={onOpenUpload}
-          className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-white hover:bg-zinc-200 text-black font-semibold text-xs sm:text-sm transition-all duration-150 active:scale-95 shadow-sm"
+          className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-white hover:bg-zinc-200 text-black font-semibold text-xs sm:text-sm shadow-sm pop-in active-press"
         >
           <Upload className="w-3.5 h-3.5" />
           <span>Upload</span>

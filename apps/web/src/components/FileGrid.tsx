@@ -130,8 +130,9 @@ export function FileGrid({
               : 'space-y-2'
           }
         >
-          {files.map((file) => (
+          {files.map((file, i) => (
             <FileCard
+              index={i}
               key={file.id}
               file={file}
               viewMode={viewMode}

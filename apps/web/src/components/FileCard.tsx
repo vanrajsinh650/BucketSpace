@@ -22,6 +22,7 @@ import { FileMetadata } from '@bucketspace/shared';
 
 interface FileCardProps {
   file: FileMetadata;
+  index?: number;
   viewMode: 'grid' | 'list';
   isSelected?: boolean;
   onToggleSelect?: (fileId: string) => void;
@@ -44,6 +45,7 @@ const getFileProviderId = (file: FileMetadata): string | null => {
 
 export function FileCard({
   file,
+  index = 0,
   viewMode,
   isSelected = false,
   onToggleSelect,
@@ -84,7 +86,8 @@ export function FileCard({
   if (viewMode === 'list') {
     return (
       <div
-        className={`rounded-xl p-3 sm:p-3.5 flex items-center justify-between gap-3 transition-all border ${
+        style={{ '--index': index } as React.CSSProperties}
+        className={`stagger-entry active-press pop-in rounded-xl p-3 sm:p-3.5 flex items-center justify-between gap-3 transition-all border ${
           isSelected
             ? 'bg-zinc-900 border-white text-white'
             : 'bg-zinc-950 border-zinc-850 hover:border-zinc-700 text-zinc-300'
@@ -201,7 +204,8 @@ export function FileCard({
 
   return (
     <div
-      className={`rounded-2xl p-4 flex flex-col justify-between h-48 transition-all border relative ${
+      style={{ '--index': index } as React.CSSProperties}
+      className={`stagger-entry active-press pop-in rounded-2xl p-4 flex flex-col justify-between h-48 transition-all border relative ${
         isSelected
           ? 'bg-zinc-900 border-white text-white shadow-sm'
           : 'bg-zinc-950 border-zinc-800/90 hover:border-zinc-700 text-zinc-300'

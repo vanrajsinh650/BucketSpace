@@ -15,6 +15,9 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
+import { GeistSans } from 'geist/font/sans';
+import { GeistMono } from 'geist/font/mono';
+
 export default function RootLayout({
   children,
 }: {
@@ -22,7 +25,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className="min-h-screen bg-black text-zinc-100 font-sans antialiased selection:bg-zinc-800 selection:text-white">
+      <body className={`${GeistSans.variable} ${GeistMono.variable} min-h-[100dvh] bg-black text-zinc-100 font-sans antialiased selection:bg-zinc-800 selection:text-white`}>
         {children}
       </body>
     </html>
