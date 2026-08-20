@@ -36,7 +36,6 @@ import fastifyWebsocket from '@fastify/websocket';
 import { registerTelegramRoutes } from './modules/telegram/telegram.controller';
 import { registerMediaRoutes } from './modules/media/media.controller';
 import { registerWebSocketRoutes } from './modules/websocket/websocket.controller';
-import { registerAIRoutes } from './modules/ai/ai.controller';
 import { registerSyncRoutes } from './modules/sync/sync.controller';
 import { registerEnterpriseRoutes } from './modules/enterprise/enterprise.controller';
 import { prisma } from '@bucketspace/db';
@@ -89,7 +88,6 @@ async function main(): Promise<void> {
   registerTelegramRoutes(server);
   registerMediaRoutes(server);
   registerWebSocketRoutes(server);
-  registerAIRoutes(server);
   registerSyncRoutes(server);
   registerEnterpriseRoutes(server);
 
