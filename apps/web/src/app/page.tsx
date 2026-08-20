@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { DuplicateCheckResult, FileMetadata, StorageRule } from '@bucketspace/shared';
+import { AnalysisTab } from '../components/AnalysisTab';
 import { BulkActionBar } from '../components/BulkActionBar';
 import { DuplicateConflictModal } from '../components/DuplicateConflictModal';
 import { FileGrid } from '../components/FileGrid';
@@ -14,7 +15,7 @@ import { ProviderOnboardingModal } from '../components/ProviderOnboardingModal';
 import { ProviderSettings, ProviderDisplayInfo } from '../components/ProviderSettings';
 import { RedundancyModal } from '../components/RedundancyModal';
 import { ShareModal } from '../components/ShareModal';
-import { Sidebar } from '../components/Sidebar';
+import { Sidebar, MainTab } from '../components/Sidebar';
 import { StorageRulesPanel } from '../components/storage-rules/StorageRulesPanel';
 import { UploadModal } from '../components/UploadModal';
 import {
@@ -28,6 +29,8 @@ import { createZipArchive } from '../lib/zip-builder';
 
 export default function BucketSpaceApp() {
   const [store, setStore] = useState<StorageStore>(() => StorageStore.getInstance());
+  const [activeTab, setActiveTab] = useState<MainTab>('files');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<SortField>('date');
@@ -367,9 +370,11 @@ export default function BucketSpaceApp() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] text-slate-100 flex">
-      {/* Sidebar */}
+    <div className="min-h-screen bg-black text-zinc-100 flex">
+      {/* Sidebar (Responsive desktop & mobile drawer) */}
       <Sidebar
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
         activeCategory={activeCategory}
         onSelectCategory={setActiveCategory}
         onOpenSettings={handleOpenSettings}
@@ -377,51 +382,60 @@ export default function BucketSpaceApp() {
         categoryCounts={categoryCounts}
         storageUsedBytes={storageUsedBytes}
         providerName={providerName}
+        isMobileOpen={isMobileMenuOpen}
+        onCloseMobile={() => setIsMobileMenuOpen(false)}
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 bg-black">
         <Header
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onOpenUpload={() => setUploadModalOpen(true)}
           providerName={providerName}
           onDisconnect={handleDisconnect}
+          onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
         />
 
-        <main className="p-8 flex-1">
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-white capitalize tracking-tight">
-                {activeCategory === 'ALL' ? 'My Files' : activeCategory.toLowerCase()}
-              </h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Showing {files.length} {files.length === 1 ? 'file' : 'files'}
-              </p>
-            </div>
-          </div>
+        <main className="p-4 sm:p-8 flex-1">
+          {activeTab === 'analysis' ? (
+            <AnalysisTab files={files} activeProviderName={providerName} />
+          ) : (
+            <>
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-semibold text-white capitalize tracking-tight">
+                    {activeCategory === 'ALL' ? 'My Files' : activeCategory.toLowerCase()}
+                  </h2>
+                  <p className="text-xs text-zinc-500 mt-0.5 font-mono">
+                    Showing {files.length} {files.length === 1 ? 'file' : 'files'}
+                  </p>
+                </div>
+              </div>
 
-          <FileGrid
-            files={files}
-            viewMode={viewMode}
-            onToggleViewMode={setViewMode}
-            sortField={sortField}
-            sortDirection={sortDirection}
-            onSortChange={handleSortChange}
-            selectedFileIds={selectedFileIds}
-            onToggleSelectFile={handleToggleSelectFile}
-            onDownload={handleDownload}
-            onInfo={setSelectedFileForInfo}
-            onPreview={setSelectedFileForPreview}
-            onShare={setSelectedFileForShare}
-            onMove={setSelectedFileForMove}
-            onRedundancy={(file) => setSelectedFileForRedundancy(file)}
-            onDelete={handleDelete}
-            onRestore={handleRestore}
-            onPurge={handlePurge}
-            onOpenUpload={() => setUploadModalOpen(true)}
-            onOpenOnboarding={() => setOnboardingOpen(true)}
-          />
+              <FileGrid
+                files={files}
+                viewMode={viewMode}
+                onToggleViewMode={setViewMode}
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSortChange={handleSortChange}
+                selectedFileIds={selectedFileIds}
+                onToggleSelectFile={handleToggleSelectFile}
+                onDownload={handleDownload}
+                onInfo={setSelectedFileForInfo}
+                onPreview={setSelectedFileForPreview}
+                onShare={setSelectedFileForShare}
+                onMove={setSelectedFileForMove}
+                onRedundancy={(file) => setSelectedFileForRedundancy(file)}
+                onDelete={handleDelete}
+                onRestore={handleRestore}
+                onPurge={handlePurge}
+                onOpenUpload={() => setUploadModalOpen(true)}
+                onOpenOnboarding={() => setOnboardingOpen(true)}
+              />
+            </>
+          )}
         </main>
       </div>
 

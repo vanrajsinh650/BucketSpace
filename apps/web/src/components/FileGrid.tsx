@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { LayoutGrid, List, SlidersHorizontal } from 'lucide-react';
+import { LayoutGrid, List, FolderPlus } from 'lucide-react';
 import { FileMetadata } from '@bucketspace/shared';
 import { SortDirection, SortField } from '../lib/storage-store';
 import { FileCard } from './FileCard';
@@ -52,17 +52,17 @@ export function FileGrid({
   return (
     <div className="space-y-4">
       {/* Controls Bar */}
-      <div className="flex items-center justify-between gap-4 pb-2 border-b border-slate-800/80">
-        <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
-          <span>Sort by:</span>
+      <div className="flex items-center justify-between gap-3 pb-3 border-b border-zinc-800/80">
+        <div className="flex items-center gap-1.5 text-xs text-zinc-400 font-medium">
+          <span className="text-zinc-500 hidden sm:inline">Sort:</span>
           {(['name', 'size', 'date'] as SortField[]).map((field) => (
             <button
               key={field}
               onClick={() => onSortChange(field)}
-              className={`px-3 py-1.5 rounded-lg capitalize transition-all ${
+              className={`px-2.5 py-1 rounded-lg capitalize transition-all text-xs ${
                 sortField === field
-                  ? 'bg-slate-800 text-cyan-400 font-semibold border border-slate-700 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-300 hover:bg-slate-900/60'
+                  ? 'bg-zinc-800 text-white font-semibold border border-zinc-700'
+                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900'
               }`}
             >
               {field} {sortField === field && (sortDirection === 'asc' ? '↑' : '↓')}
@@ -71,43 +71,43 @@ export function FileGrid({
         </div>
 
         {/* Grid vs List Toggle */}
-        <div className="flex items-center gap-1 p-1 bg-slate-900/90 rounded-xl border border-slate-800">
+        <div className="flex items-center gap-1 p-1 bg-zinc-950 rounded-xl border border-zinc-800">
           <button
             onClick={() => onToggleViewMode('grid')}
             className={`p-1.5 rounded-lg transition-colors ${
-              viewMode === 'grid' ? 'bg-slate-800 text-cyan-400' : 'text-slate-500 hover:text-slate-300'
+              viewMode === 'grid' ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
-            <LayoutGrid className="w-4 h-4" />
+            <LayoutGrid className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => onToggleViewMode('list')}
             className={`p-1.5 rounded-lg transition-colors ${
-              viewMode === 'list' ? 'bg-slate-800 text-cyan-400' : 'text-slate-500 hover:text-slate-300'
+              viewMode === 'list' ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
-            <List className="w-4 h-4" />
+            <List className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
       {/* Grid or List Display */}
       {files.length === 0 ? (
-        <div className="py-16 px-6 text-center space-y-6 glass-panel rounded-3xl border border-slate-800/80 max-w-xl mx-auto my-8">
-          <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mx-auto">
-            <SlidersHorizontal className="w-8 h-8" />
+        <div className="py-16 px-6 text-center space-y-5 rounded-3xl bg-zinc-950 border border-zinc-800/90 max-w-lg mx-auto my-8">
+          <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300 mx-auto">
+            <FolderPlus className="w-6 h-6" />
           </div>
-          <div className="space-y-1.5">
-            <h3 className="text-lg font-semibold text-white">No files in this view</h3>
-            <p className="text-xs text-slate-400 max-w-sm mx-auto">
-              Upload files or connect your preferred storage backend to get started.
+          <div className="space-y-1">
+            <h3 className="text-base font-semibold text-white">No files found</h3>
+            <p className="text-xs text-zinc-400 max-w-xs mx-auto">
+              Upload files or connect storage backends to start storing your files securely.
             </p>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
             {onOpenUpload && (
               <button
                 onClick={onOpenUpload}
-                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium text-xs shadow-lg shadow-cyan-500/20 transition-all active:scale-95"
+                className="px-4 py-2 rounded-xl bg-white text-black font-semibold text-xs hover:bg-zinc-200 transition-all"
               >
                 Upload File
               </button>
@@ -115,9 +115,9 @@ export function FileGrid({
             {onOpenOnboarding && (
               <button
                 onClick={onOpenOnboarding}
-                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 hover:text-white font-medium text-xs transition-all"
+                className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white font-medium text-xs hover:bg-zinc-800 transition-all"
               >
-                + Connect Storage Provider
+                Connect Storage
               </button>
             )}
           </div>
@@ -126,7 +126,7 @@ export function FileGrid({
         <div
           className={
             viewMode === 'grid'
-              ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
+              ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5'
               : 'space-y-2'
           }
         >

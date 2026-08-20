@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   ArrowRightLeft,
   CheckSquare,
@@ -11,9 +11,7 @@ import {
   Film,
   Image as ImageIcon,
   Info,
-  MoreVertical,
   RotateCcw,
-  ShieldAlert,
   ShieldCheck,
   Square,
   Trash2,
@@ -58,10 +56,7 @@ export function FileCard({
   onDelete,
   onRestore,
   onPurge,
-  onVerify,
 }: FileCardProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
-
   const formatSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -70,56 +65,56 @@ export function FileCard({
 
   const getFileIcon = (mimeType: string, filename: string) => {
     if (mimeType.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(filename)) {
-      return <ImageIcon className="w-6 h-6 text-cyan-400" />;
+      return <ImageIcon className="w-5 h-5 text-zinc-300" />;
     }
     if (mimeType.startsWith('video/') || /\.(mp4|mkv|mov|avi|webm)$/i.test(filename)) {
-      return <Film className="w-6 h-6 text-purple-400" />;
+      return <Film className="w-5 h-5 text-zinc-300" />;
     }
     if (mimeType.startsWith('text/') || mimeType.includes('pdf') || /\.(pdf|doc|docx|txt|md|csv)$/i.test(filename)) {
-      return <FileText className="w-6 h-6 text-emerald-400" />;
+      return <FileText className="w-5 h-5 text-zinc-300" />;
     }
     if (/\.(zip|tar|gz|rar|7z)$/i.test(filename)) {
-      return <FileArchive className="w-6 h-6 text-amber-400" />;
+      return <FileArchive className="w-5 h-5 text-zinc-300" />;
     }
-    return <File className="w-6 h-6 text-slate-400" />;
+    return <File className="w-5 h-5 text-zinc-400" />;
   };
 
   const isTrashed = file.status === 'TRASHED';
 
   if (viewMode === 'list') {
     return (
-      <div className={`glass-panel glass-panel-hover rounded-xl p-3.5 flex items-center justify-between gap-4 transition-all group ${
-        isSelected ? 'border-cyan-500/80 bg-cyan-950/20 shadow-md shadow-cyan-950/40' : ''
-      }`}>
-        <div className="flex items-center gap-3.5 min-w-0 flex-1">
+      <div
+        className={`rounded-xl p-3 sm:p-3.5 flex items-center justify-between gap-3 transition-all border ${
+          isSelected
+            ? 'bg-zinc-900 border-white text-white'
+            : 'bg-zinc-950 border-zinc-850 hover:border-zinc-700 text-zinc-300'
+        }`}
+      >
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           {onToggleSelect && !isTrashed && (
             <button
               onClick={() => onToggleSelect(file.id)}
-              className="p-1 rounded text-slate-500 hover:text-cyan-400 focus:outline-none transition-colors"
+              className="p-1 rounded text-zinc-500 hover:text-white focus:outline-none transition-colors"
               title={isSelected ? 'Deselect file' : 'Select file'}
             >
               {isSelected ? (
-                <CheckSquare className="w-4 h-4 text-cyan-400" />
+                <CheckSquare className="w-4 h-4 text-white" />
               ) : (
-                <Square className="w-4 h-4 text-slate-600 group-hover:text-slate-400" />
+                <Square className="w-4 h-4 text-zinc-600 hover:text-zinc-400" />
               )}
             </button>
           )}
-          <div className="p-2 rounded-lg bg-slate-900/90 border border-slate-800 shrink-0">
+          <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 shrink-0">
             {getFileIcon(file.mimeType, file.name)}
           </div>
           <div className="min-w-0 flex-1">
-            <h4 className="font-medium text-sm text-slate-200 truncate group-hover:text-white transition-colors">
+            <h4 className="font-medium text-xs sm:text-sm text-zinc-200 truncate group-hover:text-white transition-colors">
               {file.name}
             </h4>
-            <div className="flex items-center gap-3 text-xs text-slate-400 mt-0.5">
+            <div className="flex items-center gap-2.5 text-[11px] text-zinc-500 mt-0.5 font-mono">
               <span>{formatSize(file.size)}</span>
               <span>•</span>
               <span>{new Date(file.createdAt).toLocaleDateString()}</span>
-              <span>•</span>
-              <span className="font-mono text-[10px] text-slate-500 truncate max-w-[120px]">
-                {file.wholeFileHash.substring(0, 12)}...
-              </span>
             </div>
           </div>
         </div>
@@ -131,31 +126,31 @@ export function FileCard({
               {onPreview && (
                 <button
                   onClick={() => onPreview(file)}
-                  title="Preview / View File"
-                  className="p-2 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-800/80 transition-colors"
+                  title="View File"
+                  className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors"
                 >
                   <Eye className="w-4 h-4" />
                 </button>
               )}
               <button
                 onClick={() => onDownload(file.id)}
-                title="Download & Verify"
-                className="p-2 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-800/80 transition-colors"
+                title="Download"
+                className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors"
               >
                 <Download className="w-4 h-4" />
               </button>
               <button
                 onClick={() => onInfo(file)}
-                title="File Details & SHA-256 Digest"
-                className="p-2 rounded-lg text-slate-400 hover:text-purple-400 hover:bg-slate-800/80 transition-colors"
+                title="Details"
+                className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors hidden sm:block"
               >
                 <Info className="w-4 h-4" />
               </button>
               {onShare && (
                 <button
                   onClick={() => onShare(file)}
-                  title="Share Secure Link"
-                  className="p-2 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-800/80 transition-colors"
+                  title="Share"
+                  className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors"
                 >
                   <Share2 className="w-4 h-4" />
                 </button>
@@ -163,8 +158,8 @@ export function FileCard({
               {onRedundancy && (
                 <button
                   onClick={() => onRedundancy(file)}
-                  title="Manage Redundancy & Replicas"
-                  className="p-2 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-slate-800/80 transition-colors"
+                  title="Redundancy"
+                  className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors hidden sm:block"
                 >
                   <ShieldCheck className="w-4 h-4" />
                 </button>
@@ -172,7 +167,7 @@ export function FileCard({
               <button
                 onClick={() => onDelete(file.id)}
                 title="Move to Trash"
-                className="p-2 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 transition-colors"
+                className="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -183,7 +178,7 @@ export function FileCard({
                 <button
                   onClick={() => onRestore(file.id)}
                   title="Restore File"
-                  className="p-2 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-slate-800/80 transition-colors"
+                  className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors"
                 >
                   <RotateCcw className="w-4 h-4" />
                 </button>
@@ -192,7 +187,7 @@ export function FileCard({
                 <button
                   onClick={() => onPurge(file.id)}
                   title="Permanently Purge"
-                  className="p-2 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 transition-colors"
+                  className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -205,52 +200,56 @@ export function FileCard({
   }
 
   return (
-    <div className={`glass-panel glass-panel-hover rounded-2xl p-4 flex flex-col justify-between h-48 transition-all group relative ${
-      isSelected ? 'border-cyan-500/80 bg-cyan-950/20 shadow-lg shadow-cyan-950/30' : ''
-    }`}>
+    <div
+      className={`rounded-2xl p-4 flex flex-col justify-between h-48 transition-all border relative ${
+        isSelected
+          ? 'bg-zinc-900 border-white text-white shadow-sm'
+          : 'bg-zinc-950 border-zinc-800/90 hover:border-zinc-700 text-zinc-300'
+      }`}
+    >
       <div>
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex items-center gap-2">
             {onToggleSelect && !isTrashed && (
               <button
                 onClick={() => onToggleSelect(file.id)}
-                className="p-1 rounded text-slate-500 hover:text-cyan-400 focus:outline-none transition-colors"
+                className="p-1 rounded text-zinc-500 hover:text-white focus:outline-none transition-colors"
                 title={isSelected ? 'Deselect file' : 'Select file'}
               >
                 {isSelected ? (
-                  <CheckSquare className="w-4 h-4 text-cyan-400" />
+                  <CheckSquare className="w-4 h-4 text-white" />
                 ) : (
-                  <Square className="w-4 h-4 text-slate-600 group-hover:text-slate-400" />
+                  <Square className="w-4 h-4 text-zinc-600 hover:text-zinc-400" />
                 )}
               </button>
             )}
-            <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+            <div className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800">
               {getFileIcon(file.mimeType, file.name)}
             </div>
           </div>
           <button
             onClick={() => onInfo(file)}
-            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-slate-800/60 transition-colors"
+            className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900 transition-colors"
           >
             <Info className="w-4 h-4" />
           </button>
         </div>
 
-        <h4 className="font-semibold text-sm text-slate-200 truncate group-hover:text-white transition-colors">
+        <h4 className="font-medium text-xs sm:text-sm text-zinc-200 truncate hover:text-white transition-colors">
           {file.name}
         </h4>
         <div className="flex items-center gap-2 mt-1">
-          <span className="text-xs text-slate-400">{formatSize(file.size)}</span>
+          <span className="text-xs text-zinc-500 font-mono">{formatSize(file.size)}</span>
           {getFileProviderId(file) && (
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-slate-800/80 text-cyan-400 border border-slate-700/60">
-              📦 {getFileProviderId(file)}
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-400 border border-zinc-800">
+              {getFileProviderId(file)}
             </span>
           )}
         </div>
       </div>
 
-      <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
-        <span className="text-[11px] font-mono text-slate-500">
+      <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between">
+        <span className="text-[10px] font-mono text-zinc-500">
           {new Date(file.createdAt).toLocaleDateString()}
         </span>
 
@@ -260,16 +259,16 @@ export function FileCard({
               {onPreview && (
                 <button
                   onClick={() => onPreview(file)}
-                  className="px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 text-xs font-medium flex items-center gap-1.5 transition-all"
+                  className="px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800 text-xs font-medium flex items-center gap-1 transition-all"
                   title="View File"
                 >
-                  <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                  <Eye className="w-3.5 h-3.5" />
                   <span>View</span>
                 </button>
               )}
               <button
                 onClick={() => onDownload(file.id)}
-                className="px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 text-xs font-medium flex items-center gap-1.5 transition-all"
+                className="px-2.5 py-1 rounded-lg bg-white text-black hover:bg-zinc-200 text-xs font-semibold flex items-center gap-1 transition-all"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Get</span>
@@ -277,8 +276,8 @@ export function FileCard({
               {onRedundancy && (
                 <button
                   onClick={() => onRedundancy(file)}
-                  title="Redundancy & Replicas"
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-400 hover:bg-slate-800/80 transition-colors"
+                  title="Redundancy"
+                  className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-900 transition-colors"
                 >
                   <ShieldCheck className="w-3.5 h-3.5" />
                 </button>
@@ -286,15 +285,15 @@ export function FileCard({
               {onMove && (
                 <button
                   onClick={() => onMove(file)}
-                  title="Move to another provider"
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-purple-400 hover:bg-slate-800/80 transition-colors"
+                  title="Move"
+                  className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-900 transition-colors"
                 >
                   <ArrowRightLeft className="w-3.5 h-3.5" />
                 </button>
               )}
               <button
                 onClick={() => onDelete(file.id)}
-                className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800/80 transition-colors"
+                className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-900 transition-colors"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -304,7 +303,7 @@ export function FileCard({
               {onRestore && (
                 <button
                   onClick={() => onRestore(file.id)}
-                  className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 text-xs font-medium flex items-center gap-1 transition-all"
+                  className="px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-medium flex items-center gap-1 transition-all"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   <span>Restore</span>
@@ -313,7 +312,7 @@ export function FileCard({
               {onPurge && (
                 <button
                   onClick={() => onPurge(file.id)}
-                  className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800/80 transition-colors"
+                  className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-900 transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>

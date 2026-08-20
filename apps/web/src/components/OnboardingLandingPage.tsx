@@ -358,39 +358,32 @@ export function OnboardingLandingPage({
   ];
 
   return (
-    <div className="min-h-screen bg-[#07090e] text-slate-100 relative overflow-x-hidden selection:bg-cyan-500/30 selection:text-cyan-200">
-      {/* Background Ambient Glow Gradients */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[600px] bg-gradient-to-b from-cyan-600/15 via-blue-600/10 to-transparent blur-3xl pointer-events-none -z-10" />
-      <div className="absolute top-[800px] right-[-150px] w-[600px] h-[600px] bg-indigo-600/10 blur-3xl pointer-events-none -z-10" />
-      <div className="absolute top-[1400px] left-[-150px] w-[600px] h-[600px] bg-purple-600/10 blur-3xl pointer-events-none -z-10" />
-
+    <div className="min-h-screen bg-black text-zinc-100 relative overflow-x-hidden selection:bg-zinc-800 selection:text-white">
       {/* ─── Top Navigation Bar ─── */}
-      <header className="w-full max-w-7xl mx-auto px-6 py-6 flex items-center justify-between border-b border-white/5">
+      <header className="w-full max-w-7xl mx-auto px-6 py-6 flex items-center justify-between border-b border-zinc-800/80">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 p-0.5 shadow-lg shadow-cyan-500/20">
-            <div className="w-full h-full bg-[#0b0f19] rounded-[14px] flex items-center justify-center">
-              <Layers className="w-5 h-5 text-cyan-400" />
-            </div>
+          <div className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-700 flex items-center justify-center text-white">
+            <Layers className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-bold text-lg text-white tracking-tight">BucketSpace</span>
-              <span className="text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                v1.0 RC
+              <span className="font-semibold text-base text-white tracking-tight">BucketSpace</span>
+              <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-zinc-900 text-zinc-400 border border-zinc-800">
+                v1.0
               </span>
             </div>
-            <p className="text-xs text-slate-400">Personal Multi-Cloud Drive System</p>
+            <p className="text-xs text-zinc-500">Personal Multi-Cloud Drive System</p>
           </div>
         </div>
 
-        <div className="hidden md:flex items-center gap-6 text-xs text-slate-400 font-medium">
-          <a href="#demo" className="hover:text-cyan-400 transition-colors">Interactive Demo</a>
-          <a href="#providers" className="hover:text-cyan-400 transition-colors">Storage Backends</a>
-          <a href="#comparison" className="hover:text-cyan-400 transition-colors">Comparison</a>
-          <a href="#faq" className="hover:text-cyan-400 transition-colors">FAQ</a>
+        <div className="hidden md:flex items-center gap-6 text-xs text-zinc-400 font-medium">
+          <a href="#demo" className="hover:text-white transition-colors">Demo</a>
+          <a href="#providers" className="hover:text-white transition-colors">Storage Backends</a>
+          <a href="#comparison" className="hover:text-white transition-colors">Comparison</a>
+          <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
           <button
             onClick={() => setActiveFlow('TELEGRAM_PHONE')}
-            className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-white font-medium transition-all"
+            className="px-3.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-white font-medium transition-all text-xs"
           >
             Get Started
           </button>
@@ -398,41 +391,37 @@ export function OnboardingLandingPage({
       </header>
 
       {/* ─── Hero Section ─── */}
-      <main className="max-w-7xl mx-auto px-6 pt-16 pb-24 space-y-28">
-        <div className="text-center max-w-3xl mx-auto space-y-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-800 text-xs text-slate-300 shadow-inner">
-            <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-            <span>Turn any free or enterprise storage into a unified personal cloud</span>
+      <main className="max-w-7xl mx-auto px-6 pt-16 pb-24 space-y-24">
+        <div className="text-center max-w-3xl mx-auto space-y-5">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-950 border border-zinc-800 text-xs text-zinc-400">
+            <ShieldCheck className="w-3.5 h-3.5 text-zinc-300" />
+            <span>Turn any free or cloud storage into a private personal drive</span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-extrabold text-white tracking-tight leading-[1.1]">
-            Your Storage.{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400">
-              One Workspace.
-            </span>{' '}
-            Zero Lock-in.
+          <h1 className="text-4xl sm:text-6xl font-semibold text-white tracking-tight leading-[1.1]">
+            Your Storage. One Workspace. Zero Lock-in.
           </h1>
 
-          <p className="text-base sm:text-lg text-slate-400 leading-relaxed max-w-2xl mx-auto">
-            Transform Telegram Cloud, your local SSD, Cloudflare R2, and AWS S3 into a private, encrypted personal drive.
-            Enjoy unlimited capacity, zero monthly subscription costs, and instant hybrid search.
+          <p className="text-sm sm:text-base text-zinc-400 leading-relaxed max-w-2xl mx-auto">
+            Connect Telegram Cloud, your local SSD, Cloudflare R2, and AWS S3 into a private, encrypted personal drive.
+            Enjoy unlimited storage capacity and zero subscription costs.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <button
               onClick={() => setActiveFlow('TELEGRAM_PHONE')}
-              className="w-full sm:w-auto px-7 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold text-sm transition-all shadow-xl shadow-cyan-500/20 flex items-center justify-center gap-2 group"
+              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-white hover:bg-zinc-200 text-black font-semibold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 group"
             >
-              <Send className="w-4 h-4 text-white" />
+              <Send className="w-4 h-4 fill-current" />
               <span>Connect Telegram Cloud</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </button>
             <button
               onClick={() => setActiveFlow('LOCAL_FOLDER')}
-              className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:text-white font-semibold text-sm transition-all flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white font-medium text-xs sm:text-sm transition-all flex items-center justify-center gap-2"
             >
-              <HardDrive className="w-4 h-4 text-amber-400" />
-              <span>Use Local Storage Folder</span>
+              <HardDrive className="w-4 h-4 text-zinc-400" />
+              <span>Use Local Storage</span>
             </button>
           </div>
         </div>

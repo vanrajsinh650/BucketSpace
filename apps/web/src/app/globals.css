@@ -3,52 +3,55 @@
 @tailwind utilities;
 
 :root {
-  --background: 11 15 25;
-  --foreground: 248 250 252;
+  --background: 0 0 0;
+  --foreground: 255 255 255;
 }
 
 body {
-  background-color: #0b0f19;
-  color: #f8fafc;
-  font-family: var(--font-sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
+  background-color: #000000;
+  color: #ededed;
+  font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* Custom Scrollbar */
+/* Minimalist Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: #09090b;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
+  background: #27272a;
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #3f3f46;
 }
 
-/* Glassmorphism utilities */
-.glass-panel {
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+/* Monochrome Panels */
+.mono-card {
+  background-color: #09090b;
+  border: 1px solid #27272a;
 }
 
-.glass-panel-hover:hover {
-  background: rgba(30, 41, 59, 0.75);
-  border-color: rgba(6, 182, 212, 0.4);
+.mono-card-hover {
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
-.glass-modal {
-  background: rgba(11, 15, 25, 0.85);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+.mono-card-hover:hover {
+  border-color: #52525b;
+  background-color: #121215;
+}
+
+.mono-modal {
+  background-color: #0a0a0c;
+  border: 1px solid #27272a;
 }
