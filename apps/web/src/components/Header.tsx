@@ -60,7 +60,7 @@ export function Header({
         {/* Upload Button */}
         <button
           onClick={onOpenUpload}
-          className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-white hover:bg-zinc-200 text-black font-semibold text-xs sm:text-sm shadow-sm pop-in active-press"
+          className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-white hover:bg-zinc-200 text-black font-semibold text-xs sm:text-sm transition-all duration-150 shadow-sm active-press"
         >
           <Upload className="w-3.5 h-3.5" />
           <span>Upload</span>

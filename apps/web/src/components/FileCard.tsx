@@ -87,7 +87,7 @@ export function FileCard({
     return (
       <div
         style={{ '--index': index } as React.CSSProperties}
-        className={`stagger-entry active-press pop-in rounded-xl p-3 sm:p-3.5 flex items-center justify-between gap-3 transition-all border ${
+        className={`stagger-entry active-press rounded-xl p-3 sm:p-3.5 flex items-center justify-between gap-3 transition-all border ${
           isSelected
             ? 'bg-zinc-900 border-white text-white'
             : 'bg-zinc-950 border-zinc-850 hover:border-zinc-700 text-zinc-300'
@@ -205,7 +205,7 @@ export function FileCard({
   return (
     <div
       style={{ '--index': index } as React.CSSProperties}
-      className={`stagger-entry active-press pop-in rounded-2xl p-4 flex flex-col justify-between h-48 transition-all border relative ${
+      className={`stagger-entry active-press rounded-2xl p-4 flex flex-col justify-between h-48 transition-all border relative ${
         isSelected
           ? 'bg-zinc-900 border-white text-white shadow-sm'
           : 'bg-zinc-950 border-zinc-800/90 hover:border-zinc-700 text-zinc-300'
