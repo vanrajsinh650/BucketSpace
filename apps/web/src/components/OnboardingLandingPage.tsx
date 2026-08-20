@@ -418,7 +418,7 @@ export function OnboardingLandingPage({
               {activeFlow === 'TELEGRAM_PHONE' && (
                 <div className="space-y-4">
                   <label className="block text-xs font-mono uppercase text-[#888]">Phone Number</label>
-                  <PhoneInputWithCountry value={phone} onChange={setPhone} className="w-full bg-black border border-[#444] text-white p-3 focus:border-white outline-none font-mono" />
+                  <PhoneInputWithCountry value={phone} onChange={setPhone} />
                   <button onClick={handleTelegramPhoneSubmit} disabled={loading} className="w-full bg-white text-black font-bold uppercase tracking-widest p-4 mt-4 disabled:opacity-50">
                     {loading ? 'Processing...' : 'Send Code'}
                   </button>
@@ -449,7 +449,7 @@ export function OnboardingLandingPage({
                 <div className="space-y-4">
                   <label className="block text-xs font-mono uppercase text-[#888]">Local Directory Path</label>
                   <input type="text" value={localDir} onChange={e => setLocalDir(e.target.value)} className="w-full bg-black border border-[#444] text-white p-3 focus:border-white outline-none font-mono" />
-                  <button onClick={handleLocalFolderSubmit} disabled={loading} className="w-full bg-white text-black font-bold uppercase tracking-widest p-4 mt-4 disabled:opacity-50">
+                  <button onClick={handleLocalSubmit} disabled={loading} className="w-full bg-white text-black font-bold uppercase tracking-widest p-4 mt-4 disabled:opacity-50">
                     {loading ? 'Connecting...' : 'Mount'}
                   </button>
                 </div>
