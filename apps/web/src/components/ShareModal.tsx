@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Check, Copy, Link, ShieldCheck, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Check, Copy, Link, Lock, ShieldCheck, X } from 'lucide-react';
 import { FileMetadata } from '@bucketspace/shared';
+import { StorageStore } from '../lib/storage-store';
 
 interface ShareModalProps {
   file: FileMetadata | null;
@@ -12,10 +13,21 @@ interface ShareModalProps {
 export function ShareModal({ file, onClose }: ShareModalProps) {
   const [copied, setCopied] = useState(false);
   const [expiryHours, setExpiryHours] = useState(24);
+  const [passcode, setPasscode] = useState('');
+  const [shareUrl, setShareUrl] = useState('');
+
+  useEffect(() => {
+    if (file) {
+      const store = StorageStore.getInstance();
+      const link = store.createShareLink(file.id, {
+        expiresInHours: expiryHours,
+        passcode: passcode.trim() || undefined,
+      });
+      setShareUrl(link.url);
+    }
+  }, [file, expiryHours, passcode]);
 
   if (!file) return null;
-
-  const shareUrl = `${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}/share/token-${file.id.substring(0, 12)}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(shareUrl);
@@ -52,18 +64,34 @@ export function ShareModal({ file, onClose }: ShareModalProps) {
             </div>
           </div>
 
-          <div>
-            <label className="text-xs text-slate-400 font-medium block mb-1.5">Link Expiration</label>
-            <select
-              value={expiryHours}
-              onChange={(e) => setExpiryHours(Number(e.target.value))}
-              className="w-full bg-slate-900 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-cyan-500/50"
-            >
-              <option value={1}>Expires in 1 Hour</option>
-              <option value={24}>Expires in 24 Hours</option>
-              <option value={168}>Expires in 7 Days</option>
-              <option value={0}>Never Expires</option>
-            </select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-slate-400 font-medium block mb-1.5">Link Expiration</label>
+              <select
+                value={expiryHours}
+                onChange={(e) => setExpiryHours(Number(e.target.value))}
+                className="w-full bg-slate-900 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-cyan-500/50"
+              >
+                <option value={1}>Expires in 1 Hour</option>
+                <option value={24}>Expires in 24 Hours</option>
+                <option value={168}>Expires in 7 Days</option>
+                <option value={0}>Never Expires</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-400 font-medium block mb-1.5">Optional Passcode</label>
+              <div className="relative">
+                <Lock className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Set download password"
+                  value={passcode}
+                  onChange={(e) => setPasscode(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 text-slate-200 placeholder-slate-600 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-cyan-500/50"
+                />
+              </div>
+            </div>
           </div>
 
           <div>

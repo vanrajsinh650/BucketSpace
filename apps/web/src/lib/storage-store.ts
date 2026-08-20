@@ -980,6 +980,118 @@ export class StorageStore {
     file.updatedAt = new Date();
   }
 
+  /* ─── Share Management ─── */
+
+  public createShareLink(
+    fileId: string,
+    options?: { expiresInHours?: number; passcode?: string }
+  ): { token: string; url: string; expiresAt?: string } {
+    const file = this.files.find((f) => f.id === fileId);
+    if (!file) {
+      throw new Error(`File '${fileId}' not found for sharing`);
+    }
+
+    const token = `tok_${Math.random().toString(36).substring(2, 10)}_${Date.now().toString(36)}`;
+    const expiresAt = options?.expiresInHours && options.expiresInHours > 0
+      ? new Date(Date.now() + options.expiresInHours * 3600 * 1000).toISOString()
+      : undefined;
+
+    const shareRecord = {
+      token,
+      fileId: file.id,
+      fileName: file.name,
+      fileSize: file.size,
+      mimeType: file.mimeType,
+      wholeFileHash: file.wholeFileHash,
+      chunks: file.chunks,
+      createdAt: new Date().toISOString(),
+      expiresAt,
+      passcode: options?.passcode,
+    };
+
+    if (typeof window !== 'undefined') {
+      try {
+        const existing = JSON.parse(localStorage.getItem('bucketspace_shares') || '{}');
+        existing[token] = shareRecord;
+        localStorage.setItem('bucketspace_shares', JSON.stringify(existing));
+      } catch {
+        // Ignore localStorage write failures
+      }
+    }
+
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    return {
+      token,
+      url: `${origin}/s/${token}`,
+      expiresAt,
+    };
+  }
+
+  public getShareRecord(token: string): {
+    token: string;
+    fileId: string;
+    fileName: string;
+    fileSize: number;
+    mimeType: string;
+    wholeFileHash: string;
+    chunks: ChunkMetadata[];
+    createdAt: string;
+    expiresAt?: string;
+    hasPasscode: boolean;
+    passcode?: string;
+  } | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      const shares = JSON.parse(localStorage.getItem('bucketspace_shares') || '{}');
+      const rec = shares[token];
+      if (!rec) return null;
+
+      // Check expiration
+      if (rec.expiresAt && new Date(rec.expiresAt).getTime() <= Date.now()) {
+        delete shares[token];
+        localStorage.setItem('bucketspace_shares', JSON.stringify(shares));
+        return null;
+      }
+
+      return {
+        ...rec,
+        hasPasscode: Boolean(rec.passcode),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /* ─── Disaster Recovery Snapshot Export & Restore ─── */
+
+  public exportBackupSnapshot(): string {
+    const snapshot = {
+      version: '2.5',
+      exportedAt: new Date().toISOString(),
+      activeProviderId: this.activeProviderId,
+      files: this.files,
+      rules: this.router.getRules(),
+    };
+    return JSON.stringify(snapshot, null, 2);
+  }
+
+  public restoreBackupSnapshot(jsonStr: string): { success: boolean; filesCount: number } {
+    try {
+      const snapshot = JSON.parse(jsonStr);
+      if (!snapshot || !Array.isArray(snapshot.files)) {
+        throw new Error('Invalid backup file format.');
+      }
+      this.files = snapshot.files;
+      if (Array.isArray(snapshot.rules)) {
+        this.router.setRules(snapshot.rules);
+      }
+      this.savePersistedFiles();
+      return { success: true, filesCount: this.files.length };
+    } catch (err: any) {
+      throw new Error(`Failed to restore backup: ${err.message}`);
+    }
+  }
+
   private seedInitialData(): void {
     const sampleText = 'Welcome to BucketSpace v2.1 — Your storage. One interface. Any provider.';
     const textBytes = new TextEncoder().encode(sampleText);

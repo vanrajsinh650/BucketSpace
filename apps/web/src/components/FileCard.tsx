@@ -28,6 +28,7 @@ interface FileCardProps {
   onPreview?: (file: FileMetadata) => void;
   onShare?: (file: FileMetadata) => void;
   onMove?: (file: FileMetadata) => void;
+  onRedundancy?: (file: FileMetadata) => void;
   onDelete: (fileId: string) => void;
   onRestore?: (fileId: string) => void;
   onPurge?: (fileId: string) => void;
@@ -47,6 +48,7 @@ export function FileCard({
   onInfo,
   onPreview,
   onShare,
+  onRedundancy,
   onDelete,
   onRestore,
   onPurge,
@@ -137,6 +139,15 @@ export function FileCard({
                   <Share2 className="w-4 h-4" />
                 </button>
               )}
+              {onRedundancy && (
+                <button
+                  onClick={() => onRedundancy(file)}
+                  title="Manage Redundancy & Replicas"
+                  className="p-2 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-slate-800/80 transition-colors"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                </button>
+              )}
               <button
                 onClick={() => onDelete(file.id)}
                 title="Move to Trash"
@@ -193,7 +204,7 @@ export function FileCard({
         <div className="flex items-center gap-2 mt-1">
           <span className="text-xs text-slate-400">{formatSize(file.size)}</span>
           {getFileProviderId(file) && (
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700/50">
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-slate-800/80 text-cyan-400 border border-slate-700/60">
               📦 {getFileProviderId(file)}
             </span>
           )}
@@ -225,6 +236,15 @@ export function FileCard({
                 <Download className="w-3.5 h-3.5" />
                 <span>Get</span>
               </button>
+              {onRedundancy && (
+                <button
+                  onClick={() => onRedundancy(file)}
+                  title="Redundancy & Replicas"
+                  className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-400 hover:bg-slate-800/80 transition-colors"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                </button>
+              )}
               {onMove && (
                 <button
                   onClick={() => onMove(file)}
