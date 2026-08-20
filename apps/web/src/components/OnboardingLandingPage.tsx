@@ -39,6 +39,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { PhoneInputWithCountry } from './PhoneInputWithCountry';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export interface OnboardingLandingPageProps {
   onConnectProvider: (
