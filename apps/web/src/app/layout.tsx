@@ -2,8 +2,8 @@ import React from 'react';
 import './globals.css';
 
 export const metadata = {
-  title: 'BucketSpace | AI-First Telegram Cloud Drive Workspace',
-  description: 'High-performance visual cloud drive powered by Telegram Private Channel Storage and pgvector AI search.',
+  title: 'BucketSpace | Unlimited Cloud Storage Workspace',
+  description: 'High-performance visual cloud drive powered by Telegram MTProto and multi-provider storage.',
 };
 
 export default function RootLayout({
