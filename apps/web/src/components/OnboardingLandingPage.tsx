@@ -47,6 +47,7 @@ export interface OnboardingLandingPageProps {
     config: Record<string, unknown>
   ) => Promise<{ success: boolean; message?: string }>;
   onFinishOnboarding: () => void;
+  onLaunchSandbox?: () => void;
 }
 
 type ModalFlow =
@@ -63,6 +64,7 @@ type ModalFlow =
 export function OnboardingLandingPage({
   onConnectProvider,
   onFinishOnboarding,
+  onLaunchSandbox,
 }: OnboardingLandingPageProps) {
   // Modal flow state
   const [activeFlow, setActiveFlow] = useState<ModalFlow>(null);
@@ -360,103 +362,222 @@ export function OnboardingLandingPage({
 
   return (
     <div className="min-h-screen bg-black text-white relative selection:bg-white selection:text-black overflow-hidden font-sans">
-      {/* Brutalist Grid Background overlay */}
+      {/* Structural Grid Background */}
       <div className="absolute inset-0 pointer-events-none opacity-20" style={{ backgroundImage: 'linear-gradient(#222 1px, transparent 1px), linear-gradient(90deg, #222 1px, transparent 1px)', backgroundSize: '64px 64px' }} />
 
-      <header className="w-full px-6 py-6 flex items-center justify-between border-b border-[#222] relative z-10">
+      {/* Header */}
+      <header className="w-full max-w-7xl mx-auto px-6 py-6 flex items-center justify-between border-b border-[#222] relative z-10">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-white text-black flex items-center justify-center font-bold text-lg leading-none tracking-tighter">
             B
           </div>
           <span className="font-bold tracking-tight uppercase text-sm">BucketSpace</span>
         </div>
-        <div className="flex gap-6 text-xs font-mono text-[#888] uppercase tracking-widest">
-          <span className="hover:text-white cursor-pointer transition-colors">V 1.0</span>
+        <div className="flex items-center gap-4 text-xs font-mono text-[#888]">
+          <button
+            onClick={() => onLaunchSandbox ? onLaunchSandbox() : executeConnect('in-memory', {}, 'Sandbox Drive')}
+            className="px-3 py-1.5 border border-[#333] hover:border-white text-white uppercase tracking-wider text-[11px] transition-colors"
+          >
+            Launch Sandbox Demo
+          </button>
+          <span className="hidden sm:inline text-[#555]">V 1.0</span>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-6 pt-32 pb-24 relative z-10">
-        <div className="space-y-12">
-          <h1 className="text-5xl sm:text-7xl font-bold tracking-tighter leading-[0.9]">
+      {/* Hero Section */}
+      <main className="max-w-5xl mx-auto px-6 pt-20 pb-24 relative z-10 space-y-16">
+        <div className="space-y-6 max-w-3xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 border border-[#333] text-xs font-mono text-[#888] uppercase tracking-wider">
+            <ShieldCheck className="w-3.5 h-3.5 text-white" />
+            <span>Zero-Knowledge Personal Cloud</span>
+          </div>
+
+          <h1 className="text-5xl sm:text-7xl font-bold tracking-tighter leading-[0.95]">
             ZERO <br/><span className="text-[#666]">COMPROMISE</span><br/> STORAGE.
           </h1>
 
-          <p className="text-lg text-[#888] max-w-xl leading-relaxed">
-            A brutally simple personal drive. Local disk, Telegram, S3, or R2. 
-            No subscriptions. No AI bloat. Just your files.
+          <p className="text-base sm:text-lg text-[#888] max-w-2xl leading-relaxed">
+            Turn Telegram Cloud, Local Disk, Cloudflare R2, or AWS S3 into a private encrypted personal drive.
+            No subscriptions. No AI telemetry. Just your files.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 pt-8 border-t border-[#222]">
+          <div className="flex flex-wrap gap-3 pt-4">
             <button
               onClick={() => setActiveFlow('TELEGRAM_PHONE')}
-              className="px-8 py-4 bg-white hover:bg-[#e5e5e5] text-black font-bold uppercase tracking-widest text-xs transition-colors"
+              className="px-6 py-3.5 bg-white hover:bg-[#e5e5e5] text-black font-bold uppercase tracking-widest text-xs transition-colors flex items-center gap-2"
             >
-              Connect Telegram
+              <Send className="w-4 h-4 fill-current" />
+              <span>Connect Telegram</span>
             </button>
             <button
               onClick={() => setActiveFlow('LOCAL_FOLDER')}
-              className="px-8 py-4 bg-black border border-[#444] hover:border-white text-white font-bold uppercase tracking-widest text-xs transition-colors"
+              className="px-6 py-3.5 bg-black border border-[#444] hover:border-white text-white font-bold uppercase tracking-widest text-xs transition-colors flex items-center gap-2"
             >
-              Local Disk
+              <HardDrive className="w-4 h-4 text-[#888]" />
+              <span>Local Storage</span>
             </button>
+            <button
+              onClick={() => setActiveFlow('CLOUD_R2')}
+              className="px-6 py-3.5 bg-black border border-[#444] hover:border-white text-white font-bold uppercase tracking-widest text-xs transition-colors flex items-center gap-2"
+            >
+              <Cloud className="w-4 h-4 text-[#888]" />
+              <span>Cloud Storage (R2/S3)</span>
+            </button>
+            <button
+              onClick={() => onLaunchSandbox ? onLaunchSandbox() : executeConnect('in-memory', {}, 'Sandbox Drive')}
+              className="px-6 py-3.5 bg-[#111] border border-[#333] hover:border-white text-[#aaa] hover:text-white font-bold uppercase tracking-widest text-xs transition-colors flex items-center gap-2"
+            >
+              <Zap className="w-4 h-4 text-white" />
+              <span>Try Sandbox (Instant)</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Interactive Architecture Preview */}
+        <div className="border border-[#222] bg-[#050505] p-6 space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#222] pb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse" />
+              <span className="text-xs font-mono uppercase tracking-wider text-[#aaa]">Live Storage Architecture</span>
+            </div>
+            <div className="flex gap-2 text-xs font-mono">
+              {(['telegram', 'local', 'r2'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveDemoTab(tab)}
+                  className={`px-3 py-1 border uppercase text-[11px] transition-colors ${
+                    activeDemoTab === tab ? 'border-white text-white bg-[#151515]' : 'border-[#222] text-[#666] hover:text-white'
+                  }`}
+                >
+                  {tab === 'telegram' ? 'Telegram Cloud' : tab === 'local' ? 'Local SSD' : 'Cloudflare R2'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {demoFiles.map((file, idx) => (
+              <div
+                key={idx}
+                onClick={() => setSelectedDemoFile(idx)}
+                className={`p-4 border cursor-pointer transition-all space-y-3 ${
+                  selectedDemoFile === idx ? 'border-white bg-[#111]' : 'border-[#222] bg-black hover:border-[#444]'
+                }`}
+              >
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold font-mono text-white">{file.name}</span>
+                  <span className="text-[#888] font-mono">{file.size}</span>
+                </div>
+                <div className="flex items-center justify-between text-[11px] font-mono text-[#666] border-t border-[#222] pt-2">
+                  <span>{file.chunks} Chunks</span>
+                  <span className="text-white">{file.badge}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </main>
 
-      {/* MONOCHROME MODAL OVERLAY */}
+      {/* Connection Modals */}
       <AnimatePresence>
-      {activeFlow && activeFlow !== 'SUCCESS' && (
+      {activeFlow && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
-          <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} transition={{ type: 'spring', bounce: 0 }} className="w-full max-w-md bg-black border border-[#333] p-8 relative">
-            <button onClick={() => setActiveFlow(null)} className="absolute top-4 right-4 text-[#666] hover:text-white transition-colors">
+          <motion.div initial={{ scale: 0.95, y: 15 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 15 }} transition={{ type: 'spring', bounce: 0 }} className="w-full max-w-md bg-black border border-[#333] p-8 relative">
+            <button onClick={resetModalState} className="absolute top-4 right-4 text-[#666] hover:text-white transition-colors">
               <X className="w-5 h-5" />
             </button>
             
-            <h2 className="text-2xl font-bold tracking-tight mb-2">CONNECT</h2>
-            
-            <div className="space-y-6 mt-8">
+            <h2 className="text-xl font-bold tracking-tight uppercase font-mono mb-1">
+              {activeFlow === 'SUCCESS' ? 'Status' : 'Connect Storage'}
+            </h2>
+            <p className="text-xs text-[#888] font-mono mb-6">
+              {activeFlow === 'TELEGRAM_PHONE' && 'Enter your Telegram phone number'}
+              {activeFlow === 'TELEGRAM_CODE' && 'Enter the 5-digit verification code'}
+              {activeFlow === 'TELEGRAM_2FA' && 'Two-step verification password'}
+              {activeFlow === 'LOCAL_FOLDER' && 'Select your local storage folder'}
+              {(activeFlow === 'CLOUD_R2' || activeFlow === 'CLOUD_S3') && 'Enter S3/R2 API Credentials'}
+              {activeFlow === 'CLOUD_SUPABASE' && 'Enter Supabase Storage Credentials'}
+              {activeFlow === 'SUCCESS' && 'Storage registered successfully'}
+            </p>
+
+            <div className="space-y-4">
               {activeFlow === 'TELEGRAM_PHONE' && (
                 <div className="space-y-4">
-                  <label className="block text-xs font-mono uppercase text-[#888]">Phone Number</label>
                   <PhoneInputWithCountry value={phone} onChange={setPhone} />
-                  <button onClick={handleTelegramPhoneSubmit} disabled={loading} className="w-full bg-white text-black font-bold uppercase tracking-widest p-4 mt-4 disabled:opacity-50">
-                    {loading ? 'Processing...' : 'Send Code'}
+                  <button onClick={handleTelegramPhoneSubmit} disabled={loading || !phone.trim()} className="w-full bg-white text-black font-bold uppercase tracking-widest p-3.5 text-xs hover:bg-[#e5e5e5] disabled:opacity-40 transition-all">
+                    {loading ? 'Sending Code...' : 'Send Verification Code'}
                   </button>
                 </div>
               )}
 
               {activeFlow === 'TELEGRAM_CODE' && (
                 <div className="space-y-4">
-                  <label className="block text-xs font-mono uppercase text-[#888]">Verification Code</label>
-                  <input type="text" value={code} onChange={e => setCode(e.target.value)} className="w-full bg-black border border-[#444] text-white p-3 focus:border-white outline-none font-mono text-center tracking-[1em]" placeholder="00000" />
-                  <button onClick={handleTelegramCodeSubmit} disabled={loading} className="w-full bg-white text-black font-bold uppercase tracking-widest p-4 mt-4 disabled:opacity-50">
-                    {loading ? 'Verifying...' : 'Verify'}
+                  <input type="text" value={code} onChange={e => setCode(e.target.value)} className="w-full bg-black border border-[#444] text-white p-3 focus:border-white outline-none font-mono text-center tracking-[0.6em] text-lg" placeholder="00000" />
+                  <button onClick={handleTelegramCodeSubmit} disabled={loading || !code.trim()} className="w-full bg-white text-black font-bold uppercase tracking-widest p-3.5 text-xs hover:bg-[#e5e5e5] disabled:opacity-40 transition-all">
+                    {loading ? 'Verifying...' : 'Verify Code'}
                   </button>
+                  {resendCooldown > 0 ? (
+                    <p className="text-[11px] font-mono text-center text-[#666]">Resend code in {resendCooldown}s</p>
+                  ) : (
+                    <button onClick={handleResendCode} className="w-full text-[11px] font-mono text-center text-white underline">Resend code</button>
+                  )}
                 </div>
               )}
 
               {activeFlow === 'TELEGRAM_2FA' && (
                 <div className="space-y-4">
-                  <label className="block text-xs font-mono uppercase text-[#888]">2FA Password</label>
-                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-black border border-[#444] text-white p-3 focus:border-white outline-none font-mono" />
-                  <button onClick={handleTelegram2FASubmit} disabled={loading} className="w-full bg-white text-black font-bold uppercase tracking-widest p-4 mt-4 disabled:opacity-50">
-                    {loading ? 'Authenticating...' : 'Submit'}
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-black border border-[#444] text-white p-3 focus:border-white outline-none font-mono" placeholder="Password" />
+                  <button onClick={handleTelegram2FASubmit} disabled={loading || !password.trim()} className="w-full bg-white text-black font-bold uppercase tracking-widest p-3.5 text-xs hover:bg-[#e5e5e5] disabled:opacity-40 transition-all">
+                    {loading ? 'Authenticating...' : 'Authenticate'}
                   </button>
                 </div>
               )}
 
               {activeFlow === 'LOCAL_FOLDER' && (
                 <div className="space-y-4">
-                  <label className="block text-xs font-mono uppercase text-[#888]">Local Directory Path</label>
-                  <input type="text" value={localDir} onChange={e => setLocalDir(e.target.value)} className="w-full bg-black border border-[#444] text-white p-3 focus:border-white outline-none font-mono" />
-                  <button onClick={handleLocalSubmit} disabled={loading} className="w-full bg-white text-black font-bold uppercase tracking-widest p-4 mt-4 disabled:opacity-50">
-                    {loading ? 'Connecting...' : 'Mount'}
+                  <input type="text" value={localDir} onChange={e => setLocalDir(e.target.value)} className="w-full bg-black border border-[#444] text-white p-3 focus:border-white outline-none font-mono text-xs" placeholder="C:\\BucketSpace\\Storage" />
+                  <button onClick={handleLocalSubmit} disabled={loading || !localDir.trim()} className="w-full bg-white text-black font-bold uppercase tracking-widest p-3.5 text-xs hover:bg-[#e5e5e5] disabled:opacity-40 transition-all">
+                    {loading ? 'Mounting...' : 'Mount Storage'}
+                  </button>
+                </div>
+              )}
+
+              {(activeFlow === 'CLOUD_R2' || activeFlow === 'CLOUD_S3') && (
+                <div className="space-y-3">
+                  <input type="text" value={s3Endpoint} onChange={e => setS3Endpoint(e.target.value)} className="w-full bg-black border border-[#444] text-white p-2.5 focus:border-white outline-none font-mono text-xs" placeholder="Endpoint URL" />
+                  <input type="text" value={s3Bucket} onChange={e => setS3Bucket(e.target.value)} className="w-full bg-black border border-[#444] text-white p-2.5 focus:border-white outline-none font-mono text-xs" placeholder="Bucket Name" />
+                  <input type="text" value={s3AccessKey} onChange={e => setS3AccessKey(e.target.value)} className="w-full bg-black border border-[#444] text-white p-2.5 focus:border-white outline-none font-mono text-xs" placeholder="Access Key ID" />
+                  <input type="password" value={s3SecretKey} onChange={e => setS3SecretKey(e.target.value)} className="w-full bg-black border border-[#444] text-white p-2.5 focus:border-white outline-none font-mono text-xs" placeholder="Secret Access Key" />
+                  <button onClick={() => handleCloudSubmit(activeFlow === 'CLOUD_R2' ? 'r2' : 's3')} disabled={loading || !s3Bucket.trim()} className="w-full bg-white text-black font-bold uppercase tracking-widest p-3.5 text-xs hover:bg-[#e5e5e5] disabled:opacity-40 transition-all mt-2">
+                    {loading ? 'Connecting...' : 'Connect Cloud Bucket'}
+                  </button>
+                </div>
+              )}
+
+              {activeFlow === 'SUCCESS' && (
+                <div className="space-y-6 text-center py-2">
+                  <div className="w-12 h-12 border border-white flex items-center justify-center mx-auto text-white">
+                    <Check className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold tracking-tight uppercase font-mono">Connected</h3>
+                    <p className="text-xs text-[#888] font-mono mt-1">{connectedProviderTitle} is ready</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      resetModalState();
+                      onFinishOnboarding();
+                    }}
+                    className="w-full bg-white text-black font-bold uppercase tracking-widest p-3.5 text-xs hover:bg-[#e5e5e5] transition-colors"
+                  >
+                    Open Workspace
                   </button>
                 </div>
               )}
             </div>
             
-            {error && <div className="mt-4 p-3 border border-red-500/30 bg-red-500/10 text-red-500 text-xs font-mono">{error}</div>}
+            {error && <div className="mt-4 p-3 border border-red-500/30 bg-red-500/10 text-red-400 text-xs font-mono">{error}</div>}
+            {infoMessage && <div className="mt-4 p-3 border border-white/20 bg-white/5 text-white text-xs font-mono">{infoMessage}</div>}
           </motion.div>
         </motion.div>
       )}

@@ -224,6 +224,7 @@ export class StorageStore {
     if (this.activeProviderId === 'r2') return 'Cloudflare R2';
     if (this.activeProviderId === 's3') return 'AWS S3';
     if (this.activeProviderId === 'supabase') return 'Supabase';
+    if (this.activeProviderId === 'demo-sandbox') return 'Sandbox (In-Memory)';
     return 'This device';
   }
 
@@ -235,6 +236,23 @@ export class StorageStore {
   public hasUserProvider(): boolean {
     const providers = ProviderRegistry.list();
     return providers.some((p) => p.providerId !== 'in-memory');
+  }
+
+  public enableSandboxMode(): void {
+    this.seedInitialData();
+    const sandboxProvider = new InMemoryStorageProvider();
+    ProviderRegistry.register(sandboxProvider);
+    this.activeProvider = sandboxProvider;
+    this.activeProviderId = 'demo-sandbox';
+    this.router.setDefaultProvider('demo-sandbox');
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('bucketspace_active_provider', JSON.stringify({ providerId: 'demo-sandbox', config: {} }));
+        localStorage.setItem('bucketspace_file_metadata', JSON.stringify(this.files));
+      } catch {
+        // ignore
+      }
+    }
   }
 
   private savePersistedSession(providerId: string, config?: Record<string, unknown>): void {

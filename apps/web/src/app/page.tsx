@@ -77,6 +77,10 @@ export default function BucketSpaceApp() {
       <OnboardingLandingPage
         onConnectProvider={handleConnectProvider}
         onFinishOnboarding={() => setRefreshTrigger((prev) => prev + 1)}
+        onLaunchSandbox={() => {
+          store.enableSandboxMode();
+          setRefreshTrigger((prev) => prev + 1);
+        }}
       />
     );
   }

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { CheckCircle2, CloudUpload, HardDrive, X } from 'lucide-react';
+import { CloudUpload, X } from 'lucide-react';
 import { UploadProgressState } from '../lib/storage-store';
 
 interface UploadModalProps {
@@ -37,21 +37,21 @@ export function UploadModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fadeIn">
-      <div className="glass-modal w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-6 relative border border-slate-700/80">
-        <div className="flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
+      <div className="w-full max-w-lg bg-black border border-[#333] p-6 space-y-6 relative">
+        <div className="flex items-center justify-between border-b border-[#222] pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-              <CloudUpload className="w-5 h-5" />
+            <div className="w-8 h-8 bg-white text-black flex items-center justify-center font-bold">
+              <CloudUpload className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-semibold text-lg text-white">Upload File to BucketSpace</h3>
-              <p className="text-xs text-slate-400">Stream chunked & SHA-256 byte verified</p>
+              <h3 className="font-bold text-sm text-white uppercase tracking-wider font-mono">Upload File</h3>
+              <p className="text-[11px] text-[#888] font-mono">Client-side chunked & SHA-256 verified</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1 text-[#666] hover:text-white transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -66,10 +66,10 @@ export function UploadModal({
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all duration-200 ${
+            className={`border border-dashed p-10 text-center cursor-pointer transition-colors ${
               dragOver
-                ? 'border-cyan-400 bg-cyan-500/10'
-                : 'border-slate-800 hover:border-slate-600 bg-slate-900/50'
+                ? 'border-white bg-[#151515]'
+                : 'border-[#333] hover:border-[#666] bg-[#050505]'
             }`}
           >
             <input
@@ -78,61 +78,58 @@ export function UploadModal({
               onChange={handleFileChange}
               className="hidden"
             />
-            <CloudUpload className="w-12 h-12 text-cyan-400 mx-auto mb-4 animate-bounce" />
-            <p className="text-sm font-medium text-slate-200">
-              Drag and drop your file here, or <span className="text-cyan-400 underline">browse</span>
+            <CloudUpload className="w-8 h-8 text-[#888] mx-auto mb-3" />
+            <p className="text-xs font-mono uppercase tracking-wider text-white">
+              Drag & Drop file here, or <span className="underline">Browse</span>
             </p>
-            <p className="text-xs text-slate-500 mt-2">
-              Files are dynamically chunked according to provider capabilities, hashed with SHA-256, and verified at rest.
+            <p className="text-[11px] text-[#666] font-mono mt-2">
+              Slices file into 5 MB chunks with SHA-256 verification
             </p>
           </div>
         ) : (
-          <div className="p-6 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4">
-            <div className="flex items-center justify-between text-sm">
-              <span className="font-medium text-slate-200 truncate max-w-[240px]">
+          <div className="p-6 bg-[#0a0a0a] border border-[#222] space-y-4">
+            <div className="flex items-center justify-between text-xs font-mono">
+              <span className="font-bold text-white truncate max-w-[240px]">
                 {uploadState.fileName}
               </span>
-              <span className="font-mono text-xs text-cyan-400 font-semibold">
+              <span className="text-white font-bold">
                 {uploadState.percent}%
               </span>
             </div>
 
             {/* Progress Bar */}
-            <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden p-0.5 border border-slate-700">
+            <div className="w-full bg-[#222] h-2 overflow-hidden">
               <div
-                className="bg-gradient-to-r from-cyan-500 to-blue-600 h-full rounded-full transition-all duration-300 shadow-md shadow-cyan-500/50"
+                className="bg-white h-full transition-all duration-200"
                 style={{ width: `${uploadState.percent}%` }}
               />
             </div>
 
             {/* Status & Details */}
-            <div className="flex items-center justify-between text-xs text-slate-400">
-              <div className="flex items-center gap-1.5">
+            <div className="flex items-center justify-between text-[11px] font-mono text-[#888]">
+              <div>
                 {uploadState.status === 'RESUMING' ? (
-                  <span className="text-cyan-400 font-medium flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-                    Resuming upload...
-                  </span>
+                  <span className="text-white">Resuming upload...</span>
                 ) : uploadState.status === 'FAILED' ? (
-                  <span className="text-rose-400 font-medium">Upload interrupted</span>
+                  <span className="text-red-400">Upload interrupted</span>
                 ) : (
-                  <span className="capitalize text-slate-300 font-mono">
+                  <span className="uppercase">
                     Status: {uploadState.status.toLowerCase()}
                   </span>
                 )}
               </div>
-              <span className="font-mono text-slate-400">
+              <span>
                 Chunk {uploadState.currentChunk} of {uploadState.totalChunks}
               </span>
             </div>
 
             {uploadState.status === 'FAILED' && (
-              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs space-y-2">
-                <p>{uploadState.errorMessage || 'Network interrupted. Your uploaded chunks are safely preserved.'}</p>
+              <div className="p-3 border border-red-500/30 bg-red-500/10 text-red-400 text-xs font-mono space-y-2">
+                <p>{uploadState.errorMessage || 'Network interrupted. Uploaded chunks are safely preserved.'}</p>
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full py-2 rounded-lg bg-rose-500 hover:bg-rose-400 text-white font-medium text-xs transition-colors"
+                  className="w-full py-2 bg-white text-black font-bold uppercase tracking-wider text-xs"
                 >
                   Select File to Resume Upload
                 </button>
