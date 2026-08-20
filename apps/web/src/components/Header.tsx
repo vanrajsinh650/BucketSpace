@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Search, Upload, ShieldCheck, LogOut, Menu } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface HeaderProps {
   searchQuery: string;
@@ -34,14 +35,14 @@ export function Header({
           </button>
         )}
 
-        <div className="relative flex-1">
-          <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <div className="relative flex-1 group">
+          <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none group-focus-within:text-white transition-colors" />
           <input
             type="text"
             placeholder="Search files..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full bg-zinc-900/90 border border-zinc-800 text-zinc-200 placeholder-zinc-500 rounded-xl pl-9 pr-14 py-2 text-xs sm:text-sm focus:outline-none focus:border-zinc-500 transition-all"
+            className="w-full bg-zinc-900 border border-zinc-800 text-zinc-200 placeholder-zinc-500 rounded-xl pl-9 pr-14 py-2 text-xs sm:text-sm focus:outline-none focus:border-zinc-500 focus:bg-zinc-800 transition-all"
           />
           <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none hidden sm:block">
             <kbd>⌘K</kbd>
@@ -58,24 +59,28 @@ export function Header({
         </div>
 
         {/* Upload Button */}
-        <button
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.96 }}
           onClick={onOpenUpload}
-          className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-white hover:bg-zinc-200 text-black font-semibold text-xs sm:text-sm transition-all duration-150 shadow-sm active-press"
+          className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-white text-black font-semibold text-xs sm:text-sm transition-colors shadow-sm"
         >
           <Upload className="w-3.5 h-3.5" />
           <span>Upload</span>
-        </button>
+        </motion.button>
 
         {/* Disconnect/Logout Button */}
         {onDisconnect && (
-          <button
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={onDisconnect}
             title="Disconnect or switch storage account"
-            className="flex items-center gap-1.5 px-2.5 py-2 sm:px-3 sm:py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-900 border border-zinc-800 transition-all"
+            className="flex items-center gap-1.5 px-2.5 py-2 sm:px-3 sm:py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-900 border border-zinc-800 transition-colors"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Logout</span>
-          </button>
+          </motion.button>
         )}
       </div>
     </header>

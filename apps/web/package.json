@@ -14,12 +14,13 @@
     "@bucketspace/shared": "workspace:*",
     "@bucketspace/storage-adapters": "workspace:*",
     "clsx": "^2.1.1",
+    "framer-motion": "^13.1.0",
     "geist": "^1.7.2",
     "lucide-react": "^0.395.0",
     "next": "15.0.0",
     "react": "^19.0.0-rc-6f23342f1d-20240625",
     "react-dom": "^19.0.0-rc-6f23342f1d-20240625",
-    "tailwind-merge": "^2.3.0"
+    "tailwind-merge": "^2.6.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -56,46 +56,6 @@ body {
   border: 1px solid #27272a;
 }
 
-/* Staggered file entry animation — fade in and slide up */
-.stagger-entry {
-  opacity: 0;
-  transform: translateY(10px);
-  animation: stagger-fade-in 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-  animation-delay: calc(var(--index, 0) * 60ms);
-}
-
-@keyframes stagger-fade-in {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Smooth pop-in for floating UI elements (bulk bar, modals) */
-.pop-in {
-  animation: pop-in-anim 0.25s cubic-bezier(0.23, 1, 0.32, 1) both;
-}
-
-@keyframes pop-in-anim {
-  from {
-    opacity: 0;
-    transform: scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* Physical press feedback on interactive elements */
-.active-press {
-  transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.active-press:active {
-  transform: scale(0.97);
-}
-
 /* Keystroke Micro-UI badges */
 kbd {
   display: inline-block;

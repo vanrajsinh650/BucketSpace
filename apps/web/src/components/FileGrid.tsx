@@ -5,6 +5,7 @@ import { LayoutGrid, List, FolderPlus } from 'lucide-react';
 import { FileMetadata } from '@bucketspace/shared';
 import { SortDirection, SortField } from '../lib/storage-store';
 import { FileCard } from './FileCard';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface FileGridProps {
   files: FileMetadata[];
@@ -74,18 +75,32 @@ export function FileGrid({
         <div className="flex items-center gap-1 p-1 bg-zinc-950 rounded-xl border border-zinc-800">
           <button
             onClick={() => onToggleViewMode('grid')}
-            className={`p-1.5 rounded-lg transition-colors ${
-              viewMode === 'grid' ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'
+            className={`relative p-1.5 rounded-lg transition-colors z-10 ${
+              viewMode === 'grid' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
+            {viewMode === 'grid' && (
+              <motion.div
+                layoutId="view-toggle-bg"
+                className="absolute inset-0 bg-zinc-800 rounded-lg -z-10"
+                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+              />
+            )}
             <LayoutGrid className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => onToggleViewMode('list')}
-            className={`p-1.5 rounded-lg transition-colors ${
-              viewMode === 'list' ? 'bg-zinc-800 text-white' : 'text-zinc-500 hover:text-zinc-300'
+            className={`relative p-1.5 rounded-lg transition-colors z-10 ${
+              viewMode === 'list' ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
+            {viewMode === 'list' && (
+              <motion.div
+                layoutId="view-toggle-bg"
+                className="absolute inset-0 bg-zinc-800 rounded-lg -z-10"
+                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+              />
+            )}
             <List className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -93,7 +108,11 @@ export function FileGrid({
 
       {/* Grid or List Display */}
       {files.length === 0 ? (
-        <div className="py-16 px-6 text-center space-y-5 rounded-3xl bg-zinc-950 border border-zinc-800/90 max-w-lg mx-auto my-8">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="py-16 px-6 text-center space-y-5 rounded-3xl bg-zinc-950 border border-zinc-800/90 max-w-lg mx-auto my-8"
+        >
           <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300 mx-auto">
             <FolderPlus className="w-6 h-6" />
           </div>
@@ -105,51 +124,58 @@ export function FileGrid({
           </div>
           <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
             {onOpenUpload && (
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.96 }}
                 onClick={onOpenUpload}
-                className="px-4 py-2 rounded-xl bg-white text-black font-semibold text-xs hover:bg-zinc-200 transition-all"
+                className="px-4 py-2 rounded-xl bg-white text-black font-semibold text-xs transition-all"
               >
                 Upload File
-              </button>
+              </motion.button>
             )}
             {onOpenOnboarding && (
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.96 }}
                 onClick={onOpenOnboarding}
-                className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white font-medium text-xs hover:bg-zinc-800 transition-all"
+                className="px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white font-medium text-xs transition-all"
               >
                 Connect Storage
-              </button>
+              </motion.button>
             )}
           </div>
-        </div>
+        </motion.div>
       ) : (
-        <div
+        <motion.div
+          layout
           className={
             viewMode === 'grid'
               ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5'
               : 'space-y-2'
           }
         >
-          {files.map((file, i) => (
-            <FileCard
-              index={i}
-              key={file.id}
-              file={file}
-              viewMode={viewMode}
-              isSelected={selectedFileIds?.has(file.id)}
-              onToggleSelect={onToggleSelectFile}
-              onDownload={onDownload}
-              onInfo={onInfo}
-              onPreview={onPreview}
-              onShare={onShare}
-              onMove={onMove}
-              onRedundancy={onRedundancy}
-              onDelete={onDelete}
-              onRestore={onRestore}
-              onPurge={onPurge}
-            />
-          ))}
-        </div>
+          <AnimatePresence mode="popLayout">
+            {files.map((file, i) => (
+              <FileCard
+                index={i}
+                key={file.id}
+                file={file}
+                viewMode={viewMode}
+                isSelected={selectedFileIds?.has(file.id)}
+                onToggleSelect={onToggleSelectFile}
+                onDownload={onDownload}
+                onInfo={onInfo}
+                onPreview={onPreview}
+                onShare={onShare}
+                onMove={onMove}
+                onRedundancy={onRedundancy}
+                onDelete={onDelete}
+                onRestore={onRestore}
+                onPurge={onPurge}
+              />
+            ))}
+          </AnimatePresence>
+        </motion.div>
       )}
     </div>
   );
