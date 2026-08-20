@@ -725,43 +725,39 @@ export function OnboardingLandingPage({
         </section>
 
         {/* ─── Engineering Highlights ─── */}
-        <div className="border-t border-slate-800/60 pt-16 space-y-10">
+        <div className="border-t border-zinc-800/80 pt-16 space-y-10">
           <div className="text-center space-y-2">
-            <h3 className="text-2xl font-bold text-white">Built for Security, Performance & Autonomy</h3>
-            <p className="text-sm text-slate-400">Engineered with high cryptographic standards across every layer.</p>
+            <h3 className="text-xl sm:text-2xl font-semibold text-white">Built for Security, Performance & Autonomy</h3>
+            <p className="text-xs sm:text-sm text-zinc-400">Engineered with high cryptographic standards across every layer.</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               {
                 icon: Shield,
                 title: 'Envelope Encryption',
                 desc: 'scrypt key derivation + AES-256-GCM with unique 96-bit nonces. Zero plaintext secrets.',
-                color: 'text-cyan-400',
               },
               {
                 icon: CheckCircle2,
                 title: 'Bit-Fidelity Checks',
                 desc: 'Every chunk is verified with SHA-256 on upload, download, and background repair cycles.',
-                color: 'text-emerald-400',
               },
               {
                 icon: Search,
-                title: 'Zero-Cost Hybrid Search',
-                desc: 'Instant SQLite FTS5 BM25 text indexing paired with optional local AI vector embeddings.',
-                color: 'text-amber-400',
+                title: 'Instant Fast Search',
+                desc: 'Instant line-speed metadata and filename search with zero server latency.',
               },
               {
                 icon: RefreshCw,
                 title: 'Self-Healing Redundancy',
                 desc: 'Replicate files across multiple providers with automated parity verification.',
-                color: 'text-purple-400',
               },
             ].map((f, i) => (
-              <div key={i} className="p-5 rounded-2xl bg-slate-900/40 border border-slate-800/80 space-y-2.5">
-                <f.icon className={`w-5 h-5 ${f.color}`} />
+              <div key={i} className="p-5 rounded-2xl bg-zinc-950 border border-zinc-850 space-y-2.5">
+                <f.icon className="w-5 h-5 text-zinc-300" />
                 <h4 className="font-semibold text-sm text-white">{f.title}</h4>
-                <p className="text-xs text-slate-400 leading-relaxed">{f.desc}</p>
+                <p className="text-xs text-zinc-400 leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
