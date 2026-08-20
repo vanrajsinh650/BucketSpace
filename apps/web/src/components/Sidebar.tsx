@@ -19,7 +19,6 @@ interface SidebarProps {
   onSelectCategory: (cat: CategoryFilter) => void;
   onOpenSettings: () => void;
   onOpenRules: () => void;
-  onOpenAssistant?: () => void;
   categoryCounts: Record<CategoryFilter, number>;
   storageUsedBytes: number;
   providerName?: string;
@@ -30,7 +29,6 @@ export function Sidebar({
   onSelectCategory,
   onOpenSettings,
   onOpenRules,
-  onOpenAssistant,
   categoryCounts,
   storageUsedBytes,
   providerName,
@@ -101,16 +99,6 @@ export function Sidebar({
 
       {/* Storage Used Indicator (Unlimited Free Cloud) */}
       <div className="space-y-3">
-        {onOpenAssistant && (
-          <button
-            onClick={onOpenAssistant}
-            className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-violet-600/30 to-cyan-600/30 hover:from-violet-600/40 hover:to-cyan-600/40 border border-violet-500/40 text-violet-200 font-semibold text-xs shadow-lg shadow-violet-500/10 transition-all active:scale-[0.98]"
-          >
-            <span className="text-sm">✨</span>
-            <span>Ask AI Assistant</span>
-          </button>
-        )}
-
         <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 space-y-2.5">
           <div className="flex items-center justify-between text-xs">
             <div className="flex items-center gap-1.5 min-w-0">

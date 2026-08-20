@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import {
   ArrowRightLeft,
+  CheckSquare,
   Download,
   Eye,
   File,
@@ -14,6 +15,7 @@ import {
   RotateCcw,
   ShieldAlert,
   ShieldCheck,
+  Square,
   Trash2,
   FileArchive,
   Share2,
@@ -23,6 +25,8 @@ import { FileMetadata } from '@bucketspace/shared';
 interface FileCardProps {
   file: FileMetadata;
   viewMode: 'grid' | 'list';
+  isSelected?: boolean;
+  onToggleSelect?: (fileId: string) => void;
   onDownload: (fileId: string) => void;
   onInfo: (file: FileMetadata) => void;
   onPreview?: (file: FileMetadata) => void;
@@ -43,6 +47,8 @@ const getFileProviderId = (file: FileMetadata): string | null => {
 export function FileCard({
   file,
   viewMode,
+  isSelected = false,
+  onToggleSelect,
   onMove,
   onDownload,
   onInfo,
@@ -82,8 +88,23 @@ export function FileCard({
 
   if (viewMode === 'list') {
     return (
-      <div className="glass-panel glass-panel-hover rounded-xl p-3.5 flex items-center justify-between gap-4 transition-all group">
+      <div className={`glass-panel glass-panel-hover rounded-xl p-3.5 flex items-center justify-between gap-4 transition-all group ${
+        isSelected ? 'border-cyan-500/80 bg-cyan-950/20 shadow-md shadow-cyan-950/40' : ''
+      }`}>
         <div className="flex items-center gap-3.5 min-w-0 flex-1">
+          {onToggleSelect && !isTrashed && (
+            <button
+              onClick={() => onToggleSelect(file.id)}
+              className="p-1 rounded text-slate-500 hover:text-cyan-400 focus:outline-none transition-colors"
+              title={isSelected ? 'Deselect file' : 'Select file'}
+            >
+              {isSelected ? (
+                <CheckSquare className="w-4 h-4 text-cyan-400" />
+              ) : (
+                <Square className="w-4 h-4 text-slate-600 group-hover:text-slate-400" />
+              )}
+            </button>
+          )}
           <div className="p-2 rounded-lg bg-slate-900/90 border border-slate-800 shrink-0">
             {getFileIcon(file.mimeType, file.name)}
           </div>
@@ -184,11 +205,28 @@ export function FileCard({
   }
 
   return (
-    <div className="glass-panel glass-panel-hover rounded-2xl p-4 flex flex-col justify-between h-48 transition-all group relative">
+    <div className={`glass-panel glass-panel-hover rounded-2xl p-4 flex flex-col justify-between h-48 transition-all group relative ${
+      isSelected ? 'border-cyan-500/80 bg-cyan-950/20 shadow-lg shadow-cyan-950/30' : ''
+    }`}>
       <div>
         <div className="flex items-start justify-between gap-2 mb-3">
-          <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800">
-            {getFileIcon(file.mimeType, file.name)}
+          <div className="flex items-center gap-2">
+            {onToggleSelect && !isTrashed && (
+              <button
+                onClick={() => onToggleSelect(file.id)}
+                className="p-1 rounded text-slate-500 hover:text-cyan-400 focus:outline-none transition-colors"
+                title={isSelected ? 'Deselect file' : 'Select file'}
+              >
+                {isSelected ? (
+                  <CheckSquare className="w-4 h-4 text-cyan-400" />
+                ) : (
+                  <Square className="w-4 h-4 text-slate-600 group-hover:text-slate-400" />
+                )}
+              </button>
+            )}
+            <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+              {getFileIcon(file.mimeType, file.name)}
+            </div>
           </div>
           <button
             onClick={() => onInfo(file)}

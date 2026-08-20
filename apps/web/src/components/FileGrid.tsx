@@ -13,6 +13,8 @@ interface FileGridProps {
   sortField: SortField;
   sortDirection: SortDirection;
   onSortChange: (field: SortField) => void;
+  selectedFileIds?: Set<string>;
+  onToggleSelectFile?: (fileId: string) => void;
   onDownload: (fileId: string) => void;
   onInfo: (file: FileMetadata) => void;
   onPreview?: (file: FileMetadata) => void;
@@ -33,6 +35,8 @@ export function FileGrid({
   sortField,
   sortDirection,
   onSortChange,
+  selectedFileIds,
+  onToggleSelectFile,
   onDownload,
   onInfo,
   onPreview,
@@ -131,6 +135,8 @@ export function FileGrid({
               key={file.id}
               file={file}
               viewMode={viewMode}
+              isSelected={selectedFileIds?.has(file.id)}
+              onToggleSelect={onToggleSelectFile}
               onDownload={onDownload}
               onInfo={onInfo}
               onPreview={onPreview}

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { DuplicateCheckResult, FileMetadata, StorageRule } from '@bucketspace/shared';
-import { AssistantChatModal } from '../components/AssistantChatModal';
+import { BulkActionBar } from '../components/BulkActionBar';
 import { DuplicateConflictModal } from '../components/DuplicateConflictModal';
 import { FileGrid } from '../components/FileGrid';
 import { FileInfoModal } from '../components/FileInfoModal';
@@ -24,6 +24,7 @@ import {
   StorageStore,
   UploadProgressState,
 } from '../lib/storage-store';
+import { createZipArchive } from '../lib/zip-builder';
 
 export default function BucketSpaceApp() {
   const [store, setStore] = useState<StorageStore>(() => StorageStore.getInstance());
@@ -32,6 +33,9 @@ export default function BucketSpaceApp() {
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
+  const [isDownloadingZip, setIsDownloadingZip] = useState(false);
 
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [uploadState, setUploadState] = useState<UploadProgressState | null>(null);
@@ -46,7 +50,6 @@ export default function BucketSpaceApp() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
-  const [assistantOpen, setAssistantOpen] = useState(false);
   const [selectedFileForRedundancy, setSelectedFileForRedundancy] = useState<FileMetadata | null>(null);
   const [providerList, setProviderList] = useState<ProviderDisplayInfo[]>([]);
   const [rulesList, setRulesList] = useState<StorageRule[]>([]);
@@ -276,6 +279,74 @@ export default function BucketSpaceApp() {
     setRulesList(store.getRules());
   };
 
+  /* ─── Multi-Select Bulk Actions Handlers ─── */
+  const handleToggleSelectFile = (fileId: string) => {
+    setSelectedFileIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(fileId)) {
+        next.delete(fileId);
+      } else {
+        next.add(fileId);
+      }
+      return next;
+    });
+  };
+
+  const handleToggleSelectAll = () => {
+    if (selectedFileIds.size === files.length) {
+      setSelectedFileIds(new Set());
+    } else {
+      setSelectedFileIds(new Set(files.map((f) => f.id)));
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedFileIds(new Set());
+  };
+
+  const handleBulkDownloadZip = async () => {
+    if (selectedFileIds.size === 0) return;
+    setIsDownloadingZip(true);
+    try {
+      const filesToDownload = files.filter((f) => selectedFileIds.has(f.id));
+      const zipEntries = [];
+
+      for (const file of filesToDownload) {
+        const { bytes } = await store.getFileBytes(file.id);
+        zipEntries.push({
+          name: file.name,
+          bytes,
+        });
+      }
+
+      const zipBytes = createZipArchive(zipEntries);
+      const blob = new Blob([zipBytes.buffer as ArrayBuffer], { type: 'application/zip' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bucketspace_archive_${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert(`Bulk download error: ${err?.message || 'Failed to create ZIP'}`);
+    } finally {
+      setIsDownloadingZip(false);
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedFileIds.size === 0) return;
+    if (confirm(`Move ${selectedFileIds.size} files to Trash?`)) {
+      Array.from(selectedFileIds).forEach((id) => {
+        store.deleteFile(id);
+      });
+      setSelectedFileIds(new Set());
+      setRefreshTrigger((prev) => prev + 1);
+    }
+  };
+
   /* ─── Multi-Tab Synchronization & Disconnect ─── */
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
@@ -303,7 +374,6 @@ export default function BucketSpaceApp() {
         onSelectCategory={setActiveCategory}
         onOpenSettings={handleOpenSettings}
         onOpenRules={handleOpenRules}
-        onOpenAssistant={() => setAssistantOpen(true)}
         categoryCounts={categoryCounts}
         storageUsedBytes={storageUsedBytes}
         providerName={providerName}
@@ -338,6 +408,8 @@ export default function BucketSpaceApp() {
             sortField={sortField}
             sortDirection={sortDirection}
             onSortChange={handleSortChange}
+            selectedFileIds={selectedFileIds}
+            onToggleSelectFile={handleToggleSelectFile}
             onDownload={handleDownload}
             onInfo={setSelectedFileForInfo}
             onPreview={setSelectedFileForPreview}
@@ -353,14 +425,16 @@ export default function BucketSpaceApp() {
         </main>
       </div>
 
-      {/* AI Assistant Modal */}
-      <AssistantChatModal
-        isOpen={assistantOpen}
-        onClose={() => setAssistantOpen(false)}
-        onSelectCitation={(fileId) => {
-          const file = files.find((f) => f.id === fileId);
-          if (file) setSelectedFileForPreview(file);
-        }}
+      {/* Floating Multi-Select Bulk Actions Bar */}
+      <BulkActionBar
+        selectedCount={selectedFileIds.size}
+        totalCount={files.length}
+        isAllSelected={files.length > 0 && selectedFileIds.size === files.length}
+        onToggleSelectAll={handleToggleSelectAll}
+        onBulkDownloadZip={handleBulkDownloadZip}
+        onBulkDelete={handleBulkDelete}
+        onClearSelection={handleClearSelection}
+        isDownloadingZip={isDownloadingZip}
       />
 
       {/* Redundancy & Replicas Modal */}
