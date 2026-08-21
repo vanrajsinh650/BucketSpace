@@ -69,21 +69,7 @@ export default function BucketSpaceApp() {
     return { success: true, message: `${providerId} connected successfully.` };
   };
 
-  /* ─── Onboarding Landing Gate ─── */
-  /* New users with zero real providers see the modern landing page instead of an empty dashboard */
-  const isFirstRun = !store.hasUserProvider();
-  if (isFirstRun) {
-    return (
-      <OnboardingLandingPage
-        onConnectProvider={handleConnectProvider}
-        onFinishOnboarding={() => setRefreshTrigger((prev) => prev + 1)}
-        onLaunchSandbox={() => {
-          store.enableSandboxMode();
-          setRefreshTrigger((prev) => prev + 1);
-        }}
-      />
-    );
-  }
+
 
   const files = store.getFiles(activeCategory, searchQuery, sortField, sortDirection);
   const categoryCounts = store.getCategoryCounts();
@@ -372,6 +358,21 @@ export default function BucketSpaceApp() {
       setRefreshTrigger((prev) => prev + 1);
     }
   };
+
+  /* ─── Onboarding Landing Gate (Rendered AFTER all hooks are called) ─── */
+  const isFirstRun = !store.hasUserProvider();
+  if (isFirstRun) {
+    return (
+      <OnboardingLandingPage
+        onConnectProvider={handleConnectProvider}
+        onFinishOnboarding={() => setRefreshTrigger((prev) => prev + 1)}
+        onLaunchSandbox={() => {
+          store.enableSandboxMode();
+          setRefreshTrigger((prev) => prev + 1);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-zinc-100 flex">

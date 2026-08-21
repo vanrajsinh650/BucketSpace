@@ -1,34 +1,22 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Send,
   HardDrive,
   Cloud,
-  ShieldCheck,
   Lock,
   Play,
   Layers,
   ArrowRight,
-  Check,
-  Copy,
-  Terminal,
   Cpu,
-  Zap,
-  Database,
-  RefreshCw,
+  Terminal,
   Sliders,
-  Globe,
-  Server,
-  FileText,
-  CheckCircle2,
-  Activity,
   X,
-  ChevronRight,
-  Download,
-  Flame,
+  AlertCircle,
+  Loader2,
+  CheckCircle2,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { PhoneInputWithCountry } from './PhoneInputWithCountry';
 
 interface OnboardingLandingPageProps {
@@ -50,15 +38,17 @@ export function OnboardingLandingPage({
   const [activeProvider, setActiveProvider] = useState<'telegram' | 'local' | 'cloud'>('telegram');
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
-  const [step, setStep] = useState<'phone' | 'code'>('phone');
+  const [password2FA, setPassword2FA] = useState('');
+  const [step, setStep] = useState<'phone' | 'code' | '2fa'>('phone');
+  const [sessionToken, setSessionToken] = useState('');
   const [localPath, setLocalPath] = useState('C:\\BucketSpace\\Storage');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Interactive Live Vault Demo State
   const [selectedDemoFile, setSelectedDemoFile] = useState(0);
   const [isSimulatingChunking, setIsSimulatingChunking] = useState(false);
   const [simulatedProgress, setSimulatedProgress] = useState(100);
-  const [activeArchTab, setActiveArchTab] = useState<'chunking' | 'crypto' | 'routing' | 'reassembly'>('chunking');
 
   const demoFiles = [
     {
@@ -103,25 +93,98 @@ export function OnboardingLandingPage({
     }, 150);
   };
 
-  const handleTelegramPhone = (e: React.FormEvent) => {
+  /* ─── REAL Telegram MTProto Auth Handlers ─── */
+
+  const handleTelegramPhone = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone) return;
-    setStep('code');
+    setIsSubmitting(true);
+    setErrorMessage('');
+
+    try {
+      const res = await fetch('http://localhost:4000/api/v1/telegram/auth/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to send verification code from Telegram.');
+      }
+
+      setSessionToken(data.sessionToken);
+      setStep('code');
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Network error connecting to API gateway on port 4000.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleTelegramCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!code) return;
+    if (!code || !sessionToken) return;
     setIsSubmitting(true);
-    await onConnectProvider('telegram', { phone, code });
-    setIsSubmitting(false);
-    onFinishOnboarding();
+    setErrorMessage('');
+
+    try {
+      const res = await fetch('http://localhost:4000/api/v1/telegram/auth/verify-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionToken, code }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Invalid or expired verification code.');
+      }
+
+      if (data.requires2FA) {
+        setStep('2fa');
+        return;
+      }
+
+      await onConnectProvider('telegram', { sessionString: data.sessionString, phone });
+      onFinishOnboarding();
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Verification failed.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleTelegram2FA = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!password2FA || !sessionToken) return;
+    setIsSubmitting(true);
+    setErrorMessage('');
+
+    try {
+      const res = await fetch('http://localhost:4000/api/v1/telegram/auth/verify-2fa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionToken, password: password2FA }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Invalid 2FA password.');
+      }
+
+      await onConnectProvider('telegram', { sessionString: data.sessionString, phone });
+      onFinishOnboarding();
+    } catch (err: any) {
+      setErrorMessage(err.message || '2FA Authentication failed.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleLocalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    await onConnectProvider('local-disk', { path: localPath });
+    await onConnectProvider('local', { rootDir: localPath });
     setIsSubmitting(false);
     onFinishOnboarding();
   };
@@ -159,7 +222,6 @@ export function OnboardingLandingPage({
           <a href="#features" className="hover:text-white transition-colors">Capabilities</a>
           <a href="#architecture" className="hover:text-white transition-colors">Architecture</a>
           <a href="#benchmarks" className="hover:text-white transition-colors">Comparison</a>
-          <a href="#security" className="hover:text-white transition-colors">Security</a>
         </nav>
 
         {/* Header Actions */}
@@ -175,7 +237,11 @@ export function OnboardingLandingPage({
           )}
 
           <button
-            onClick={() => setModalOpen(true)}
+            onClick={() => {
+              setModalOpen(true);
+              setStep('phone');
+              setErrorMessage('');
+            }}
             className="bg-white text-black hover:bg-[#e0e0e0] px-4 py-1.5 rounded font-mono font-bold text-xs uppercase tracking-wider transition-colors btn-press shadow-sm"
           >
             Connect Drive
@@ -206,7 +272,11 @@ export function OnboardingLandingPage({
           {/* Hero CTAs */}
           <div className="flex flex-wrap items-center gap-4 pt-2">
             <button
-              onClick={() => setModalOpen(true)}
+              onClick={() => {
+                setModalOpen(true);
+                setStep('phone');
+                setErrorMessage('');
+              }}
               className="bg-white text-black hover:bg-[#e0e0e0] px-6 py-3 rounded-lg font-mono font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-colors btn-press shadow-lg"
             >
               <span>Connect Storage Provider</span>
@@ -354,9 +424,6 @@ export function OnboardingLandingPage({
           <h2 className="text-3xl sm:text-5xl font-light tracking-tight text-white uppercase">
             Engineered For Pure Privacy.
           </h2>
-          <p className="text-sm font-mono text-[#888] max-w-2xl leading-relaxed">
-            Every feature is designed around client-side cryptography, multi-provider resiliency, and sovereign storage ownership.
-          </p>
         </div>
 
         {/* Bento Grid Layout */}
@@ -446,9 +513,6 @@ export function OnboardingLandingPage({
           <h2 className="text-3xl sm:text-5xl font-light tracking-tight text-white uppercase">
             Legacy Cloud vs BucketSpace.
           </h2>
-          <p className="text-sm font-mono text-[#888] max-w-2xl leading-relaxed">
-            Stop paying monthly rent for storage you don't truly own or control.
-          </p>
         </div>
 
         <div className="border border-[#1e1e1e] bg-[#0a0a0a] rounded-xl overflow-hidden font-mono text-xs">
@@ -476,93 +540,8 @@ export function OnboardingLandingPage({
                 <td className="p-4 sm:p-5 text-[#888]">Provider Holds Keys (Plaintext Scans)</td>
                 <td className="p-4 sm:p-5 text-[#22c55e] font-bold">100% Client-Side AES-256-GCM</td>
               </tr>
-              <tr>
-                <td className="p-4 sm:p-5 font-bold text-white uppercase">Multi-Cloud Failover</td>
-                <td className="p-4 sm:p-5 text-[#888]">Vendor Lock-in Only</td>
-                <td className="p-4 sm:p-5 text-white">Telegram + NVMe + S3/R2 Redundancy</td>
-              </tr>
-              <tr>
-                <td className="p-4 sm:p-5 font-bold text-white uppercase">Open Source Core</td>
-                <td className="p-4 sm:p-5 text-[#888]">Proprietary Closed Source</td>
-                <td className="p-4 sm:p-5 text-[#22c55e] font-bold">100% Open Source MIT</td>
-              </tr>
             </tbody>
           </table>
-        </div>
-      </section>
-
-      {/* ─── Cryptographic Architecture Deep Dive ─── */}
-      <section id="architecture" className="py-20 px-6 sm:px-12 max-w-7xl mx-auto space-y-10 border-t border-[#1e1e1e]">
-        <div className="space-y-3">
-          <div className="text-[11px] font-mono text-[#888] uppercase tracking-widest">
-            Deep Technology
-          </div>
-          <h2 className="text-3xl sm:text-5xl font-light tracking-tight text-white uppercase">
-            How The Pipeline Works.
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 font-mono text-xs">
-          <div className="bg-[#0a0a0a] border border-[#1e1e1e] p-5 rounded-lg space-y-2.5">
-            <div className="text-[10px] text-[#555] font-bold">PHASE 01</div>
-            <div className="text-white font-bold uppercase text-sm">Adaptive Chunking</div>
-            <p className="text-[11px] text-[#888] leading-relaxed">
-              Files are split in-memory into 5MB to 20MB byte chunks to bypass network size limits and allow rapid parallel streaming.
-            </p>
-          </div>
-
-          <div className="bg-[#0a0a0a] border border-[#1e1e1e] p-5 rounded-lg space-y-2.5">
-            <div className="text-[10px] text-[#555] font-bold">PHASE 02</div>
-            <div className="text-white font-bold uppercase text-sm">SHA-256 Digestion</div>
-            <p className="text-[11px] text-[#888] leading-relaxed">
-              Each chunk generates a unique WebCrypto SHA-256 digest before leaving memory. No data is stored without cryptographic proof.
-            </p>
-          </div>
-
-          <div className="bg-[#0a0a0a] border border-[#1e1e1e] p-5 rounded-lg space-y-2.5">
-            <div className="text-[10px] text-[#555] font-bold">PHASE 03</div>
-            <div className="text-white font-bold uppercase text-sm">Distributed Dispatch</div>
-            <p className="text-[11px] text-[#888] leading-relaxed">
-              Chunks are encrypted and routed across Telegram MTProto channels and backup cloud providers according to user routing rules.
-            </p>
-          </div>
-
-          <div className="bg-[#0a0a0a] border border-[#1e1e1e] p-5 rounded-lg space-y-2.5">
-            <div className="text-[10px] text-[#555] font-bold">PHASE 04</div>
-            <div className="text-white font-bold uppercase text-sm">Zero-Knowledge Assemble</div>
-            <p className="text-[11px] text-[#888] leading-relaxed">
-              Downloads fetch chunks concurrently, verify hash integrity byte-for-byte, decrypt with user keys, and serve the reassembled file.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── Bottom CTA Banner ─── */}
-      <section className="py-20 px-6 sm:px-12 max-w-7xl mx-auto border-t border-[#1e1e1e]">
-        <div className="bg-[#0a0a0a] border border-[#1e1e1e] rounded-2xl p-8 sm:p-14 text-center space-y-6 max-w-4xl mx-auto">
-          <h2 className="text-4xl sm:text-6xl font-light tracking-tight text-white uppercase">
-            Deploy Your Vault <br />
-            <span className="font-extrabold">In 30 Seconds.</span>
-          </h2>
-          <p className="text-sm font-mono text-[#888] max-w-xl mx-auto leading-relaxed">
-            Connect your Telegram account or configure a local directory. No credit card required. Free, open source, and completely sovereign.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
-            <button
-              onClick={() => setModalOpen(true)}
-              className="bg-white text-black hover:bg-[#e0e0e0] px-8 py-3.5 rounded-lg font-mono font-bold text-xs uppercase tracking-wider transition-colors btn-press shadow-xl"
-            >
-              Get Started Now
-            </button>
-            {onLaunchSandbox && (
-              <button
-                onClick={onLaunchSandbox}
-                className="border border-[#333] hover:border-white bg-black text-white px-8 py-3.5 rounded-lg font-mono text-xs uppercase tracking-wider transition-colors btn-press"
-              >
-                Launch Sandbox Mode
-              </button>
-            )}
-          </div>
         </div>
       </section>
 
@@ -600,7 +579,11 @@ export function OnboardingLandingPage({
             {/* Provider Type Selector */}
             <div className="grid grid-cols-3 gap-1 bg-[#121212] p-1 border border-[#1e1e1e] rounded-lg">
               <button
-                onClick={() => setActiveProvider('telegram')}
+                onClick={() => {
+                  setActiveProvider('telegram');
+                  setStep('phone');
+                  setErrorMessage('');
+                }}
                 className={`py-1.5 rounded text-[10px] uppercase font-bold transition-colors btn-press ${
                   activeProvider === 'telegram' ? 'bg-white text-black' : 'text-[#888] hover:text-white'
                 }`}
@@ -608,7 +591,10 @@ export function OnboardingLandingPage({
                 Telegram
               </button>
               <button
-                onClick={() => setActiveProvider('local')}
+                onClick={() => {
+                  setActiveProvider('local');
+                  setErrorMessage('');
+                }}
                 className={`py-1.5 rounded text-[10px] uppercase font-bold transition-colors btn-press ${
                   activeProvider === 'local' ? 'bg-white text-black' : 'text-[#888] hover:text-white'
                 }`}
@@ -616,7 +602,10 @@ export function OnboardingLandingPage({
                 Local NVMe
               </button>
               <button
-                onClick={() => setActiveProvider('cloud')}
+                onClick={() => {
+                  setActiveProvider('cloud');
+                  setErrorMessage('');
+                }}
                 className={`py-1.5 rounded text-[10px] uppercase font-bold transition-colors btn-press ${
                   activeProvider === 'cloud' ? 'bg-white text-black' : 'text-[#888] hover:text-white'
                 }`}
@@ -625,43 +614,115 @@ export function OnboardingLandingPage({
               </button>
             </div>
 
+            {/* Error Message Box */}
+            {errorMessage && (
+              <div className="p-3 bg-red-950/40 border border-red-800/60 rounded text-red-300 text-xs flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                <span className="leading-tight">{errorMessage}</span>
+              </div>
+            )}
+
             {/* Provider Forms */}
             {activeProvider === 'telegram' ? (
               step === 'phone' ? (
                 <form onSubmit={handleTelegramPhone} className="space-y-4">
                   <p className="text-white text-xs leading-relaxed">
-                    Connect your private Telegram storage channel with zero-knowledge encryption.
+                    Connect your private Telegram account. A real 5-digit verification code will be sent to your Telegram app.
                   </p>
                   <PhoneInputWithCountry value={phone} onChange={setPhone} label="International Phone Number" />
                   <button
                     type="submit"
-                    disabled={!phone}
-                    className="w-full bg-white text-black hover:bg-[#e0e0e0] py-2.5 rounded font-bold uppercase tracking-wider text-xs transition-colors btn-press disabled:opacity-50"
+                    disabled={!phone || isSubmitting}
+                    className="w-full bg-white text-black hover:bg-[#e0e0e0] py-2.5 rounded font-bold uppercase tracking-wider text-xs transition-colors btn-press disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    Send Verification Code
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-black" />
+                        <span>Sending Real Code via MTProto...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Send Telegram Code</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </>
+                    )}
                   </button>
                 </form>
-              ) : (
+              ) : step === 'code' ? (
                 <form onSubmit={handleTelegramCode} className="space-y-4">
-                  <p className="text-white text-xs leading-relaxed">
-                    Enter the 5-digit verification code sent to your Telegram app.
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-white text-xs leading-relaxed">
+                      Enter the 5-digit code sent to your Telegram app for <span className="font-bold text-white">{phone}</span>.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setStep('phone')}
+                      className="text-[10px] text-[#888] hover:text-white underline shrink-0 ml-2"
+                    >
+                      Change
+                    </button>
+                  </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] text-[#666] uppercase block">Telegram Code</label>
+                    <label className="text-[10px] text-[#666] uppercase block">5-Digit Telegram Code</label>
                     <input
                       type="text"
                       placeholder="12345"
                       value={code}
                       onChange={(e) => setCode(e.target.value)}
-                      className="w-full bg-[#121212] border border-[#1e1e1e] rounded p-2.5 text-white font-mono text-center tracking-widest text-lg focus:outline-none"
+                      className="w-full bg-[#121212] border border-[#1e1e1e] rounded p-2.5 text-white font-mono text-center tracking-widest text-lg focus:outline-none focus:border-[#444]"
+                      autoFocus
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={!code || isSubmitting}
-                    className="w-full bg-white text-black hover:bg-[#e0e0e0] py-2.5 rounded font-bold uppercase tracking-wider text-xs transition-colors btn-press disabled:opacity-50"
+                    className="w-full bg-white text-black hover:bg-[#e0e0e0] py-2.5 rounded font-bold uppercase tracking-wider text-xs transition-colors btn-press disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    {isSubmitting ? 'Authenticating...' : 'Finish Setup'}
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-black" />
+                        <span>Authenticating Session...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Verify & Enter Drive</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleTelegram2FA} className="space-y-4">
+                  <p className="text-white text-xs leading-relaxed">
+                    Your Telegram account is protected with 2FA. Please enter your Cloud Password.
+                  </p>
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-[#666] uppercase block">Telegram 2FA Password</label>
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={password2FA}
+                      onChange={(e) => setPassword2FA(e.target.value)}
+                      className="w-full bg-[#121212] border border-[#1e1e1e] rounded p-2.5 text-white font-mono text-center text-sm focus:outline-none focus:border-[#444]"
+                      autoFocus
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={!password2FA || isSubmitting}
+                    className="w-full bg-white text-black hover:bg-[#e0e0e0] py-2.5 rounded font-bold uppercase tracking-wider text-xs transition-colors btn-press disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-black" />
+                        <span>Verifying 2FA Password...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Unlock Vault</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </>
+                    )}
                   </button>
                 </form>
               )
@@ -695,7 +756,13 @@ export function OnboardingLandingPage({
                 <button
                   onClick={async () => {
                     setIsSubmitting(true);
-                    await onConnectProvider('s3-r2', { bucket: 'bucketspace' });
+                    await onConnectProvider('r2', {
+                      endpoint: 'https://r2.cloudflarestorage.com',
+                      bucket: 'bucketspace-drive',
+                      region: 'auto',
+                      accessKeyId: 'r2_key',
+                      secretAccessKey: 'r2_secret',
+                    });
                     setIsSubmitting(false);
                     onFinishOnboarding();
                   }}
