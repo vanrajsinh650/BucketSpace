@@ -41,12 +41,28 @@ export default function PublicSharePage() {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
+    if (!shareData) return;
     setDownloading(true);
-    setTimeout(() => {
+    try {
+      const store = StorageStore.getInstance();
+      const { bytes } = await store.getFileBytes(shareData.fileId);
+      const blob = new Blob([bytes.buffer as ArrayBuffer], {
+        type: shareData.mimeType || 'application/octet-stream',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = shareData.fileName || 'download';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      alert(err?.message || 'Failed to download and reassemble file chunks.');
+    } finally {
       setDownloading(false);
-      alert('Secure download initialized directly from encrypted storage chunks.');
-    }, 800);
+    }
   };
 
   return (

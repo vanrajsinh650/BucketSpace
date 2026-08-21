@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Copy, Check, Share2, Shield } from 'lucide-react';
 import { FileMetadata } from '@bucketspace/shared';
+import { StorageStore } from '../lib/storage-store';
 
 interface ShareModalProps {
   file: FileMetadata | null;
@@ -12,15 +13,20 @@ interface ShareModalProps {
 export function ShareModal({ file, onClose }: ShareModalProps) {
   const [copied, setCopied] = useState(false);
   const [expiresIn, setExpiresIn] = useState('24h');
+  const [shareUrl, setShareUrl] = useState('');
+
+  useEffect(() => {
+    if (!file) return;
+    const store = StorageStore.getInstance();
+    const hours = expiresIn === '1h' ? 1 : expiresIn === '24h' ? 24 : 24 * 7;
+    const share = store.createShareLink(file.id, { expiresInHours: hours });
+    setShareUrl(share.url);
+  }, [file, expiresIn]);
 
   if (!file) return null;
 
-  const mockToken = `bs_${file.id.slice(0, 8)}_${Math.random().toString(36).substring(2, 8)}`;
-  const shareUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/s/${mockToken}`
-    : `https://bucketspace.app/s/${mockToken}`;
-
   const copyToClipboard = () => {
+    if (!shareUrl) return;
     navigator.clipboard.writeText(shareUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);

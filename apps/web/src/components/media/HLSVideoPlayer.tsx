@@ -14,14 +14,25 @@ export const HLSVideoPlayer: React.FC<HLSVideoPlayerProps> = ({ fileId, filename
   const [isMuted, setIsMuted] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  const apiBase =
+    typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
+      ? process.env.NEXT_PUBLIC_API_URL
+      : '';
+
   const togglePlay = () => {
     if (!videoRef.current) return;
     if (isPlaying) {
       videoRef.current.pause();
+      setIsPlaying(false);
     } else {
-      videoRef.current.play();
+      videoRef.current
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch((err) => {
+          console.warn('Playback error or blocked by browser policy:', err);
+          setIsPlaying(false);
+        });
     }
-    setIsPlaying(!isPlaying);
   };
 
   return (
@@ -40,7 +51,9 @@ export const HLSVideoPlayer: React.FC<HLSVideoPlayerProps> = ({ fileId, filename
           <video
             ref={videoRef}
             className="w-full h-full object-contain"
-            src={`/api/v1/telegram/stream/${fileId}`}
+            src={`${apiBase}/api/v1/telegram/stream/${encodeURIComponent(fileId)}`}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
           />
           <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
             <button

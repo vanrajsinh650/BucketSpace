@@ -56,8 +56,12 @@ export function useWebSocketSync({
    * Builds the WebSocket URL for the given workspace.
    */
   const buildWsUrl = useCallback(() => {
+    if (typeof window === 'undefined') return '';
+    const envWsUrl = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_WS_URL : undefined;
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    return `${protocol}//${window.location.hostname}:4000/api/v1/ws/workspace/${workspaceId}?userId=${encodeURIComponent(userId)}&userName=${encodeURIComponent(userName)}`;
+    const defaultBase = `${protocol}//${window.location.hostname}:4000`;
+    const base = envWsUrl || defaultBase;
+    return `${base}/api/v1/ws/workspace/${encodeURIComponent(workspaceId)}?userId=${encodeURIComponent(userId)}&userName=${encodeURIComponent(userName)}`;
   }, [workspaceId, userId, userName]);
 
   /**

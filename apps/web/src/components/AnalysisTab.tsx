@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Layers,
   ShieldCheck,
@@ -32,6 +32,15 @@ export function AnalysisTab({ files, activeProviderName }: AnalysisTabProps) {
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulatedChunkIndex, setSimulatedChunkIndex] = useState<number>(-1);
   const [simulationComplete, setSimulationComplete] = useState(false);
+  const simIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (simIntervalRef.current) {
+        clearInterval(simIntervalRef.current);
+      }
+    };
+  }, []);
 
   const selectedFile = files.find((f) => f.id === selectedFileId) || files[0] || null;
 
@@ -44,11 +53,17 @@ export function AnalysisTab({ files, activeProviderName }: AnalysisTabProps) {
     const totalChunks = selectedFile.chunks?.length || 3;
     let current = 0;
 
-    const interval = setInterval(() => {
+    if (simIntervalRef.current) {
+      clearInterval(simIntervalRef.current);
+    }
+
+    simIntervalRef.current = setInterval(() => {
       current++;
       setSimulatedChunkIndex(current);
       if (current >= totalChunks) {
-        clearInterval(interval);
+        if (simIntervalRef.current) {
+          clearInterval(simIntervalRef.current);
+        }
         setIsSimulating(false);
         setSimulationComplete(true);
       }

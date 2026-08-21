@@ -24,13 +24,25 @@ const COUNTRY_CODES = [
 export function PhoneInputWithCountry({ value, onChange, label }: PhoneInputProps) {
   const [selectedCode, setSelectedCode] = useState('+1');
 
+  const handleCodeChange = (newCode: string) => {
+    const rawNumber = value.startsWith(selectedCode)
+      ? value.slice(selectedCode.length).trim()
+      : value.replace(/^\+\d+\s*/, '').trim();
+    setSelectedCode(newCode);
+    onChange(`${newCode} ${rawNumber}`.trim());
+  };
+
+  const currentLocalNumber = value.startsWith(selectedCode)
+    ? value.slice(selectedCode.length).trim()
+    : value.replace(/^\+\d+\s*/, '').trim();
+
   return (
     <div className="space-y-1.5 font-mono text-xs">
       {label && <label className="text-[10px] text-[#666] uppercase block">{label}</label>}
       <div className="flex items-center border border-[#1e1e1e] bg-[#0a0a0a] rounded focus-within:border-[#444] transition-colors">
         <select
           value={selectedCode}
-          onChange={(e) => setSelectedCode(e.target.value)}
+          onChange={(e) => handleCodeChange(e.target.value)}
           className="bg-transparent text-white px-2 py-2 text-xs font-mono focus:outline-none cursor-pointer border-r border-[#1e1e1e]"
         >
           {COUNTRY_CODES.map((c) => (
@@ -42,8 +54,11 @@ export function PhoneInputWithCountry({ value, onChange, label }: PhoneInputProp
         <input
           type="tel"
           placeholder="555 0199"
-          value={value.replace(selectedCode, '').trim()}
-          onChange={(e) => onChange(`${selectedCode}${e.target.value}`)}
+          value={currentLocalNumber}
+          onChange={(e) => {
+            const sanitized = e.target.value.replace(/[^\d\s-]/g, '');
+            onChange(`${selectedCode} ${sanitized}`.trim());
+          }}
           className="bg-transparent text-white px-3 py-2 text-xs font-mono flex-1 focus:outline-none placeholder-[#444]"
         />
       </div>

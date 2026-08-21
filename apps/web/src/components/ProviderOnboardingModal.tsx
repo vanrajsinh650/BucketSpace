@@ -32,6 +32,11 @@ export function ProviderOnboardingModal({
 
   /* ─── REAL Telegram MTProto Auth Handlers ─── */
 
+  const API_BASE =
+    typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
+      ? process.env.NEXT_PUBLIC_API_URL
+      : 'http://localhost:4000';
+
   const handleTelegramPhone = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone) return;
@@ -39,7 +44,7 @@ export function ProviderOnboardingModal({
     setErrorMessage('');
 
     try {
-      const res = await fetch('http://localhost:4000/api/v1/telegram/auth/send-code', {
+      const res = await fetch(`${API_BASE}/api/v1/telegram/auth/send-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone }),
@@ -53,7 +58,7 @@ export function ProviderOnboardingModal({
       setSessionToken(data.sessionToken);
       setTelegramStep('code');
     } catch (err: any) {
-      setErrorMessage(err.message || 'Network error connecting to API gateway on port 4000.');
+      setErrorMessage(err.message || 'Network error connecting to API gateway.');
     } finally {
       setIsSubmitting(false);
     }
@@ -66,7 +71,7 @@ export function ProviderOnboardingModal({
     setErrorMessage('');
 
     try {
-      const res = await fetch('http://localhost:4000/api/v1/telegram/auth/verify-code', {
+      const res = await fetch(`${API_BASE}/api/v1/telegram/auth/verify-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionToken, code }),
@@ -98,7 +103,7 @@ export function ProviderOnboardingModal({
     setErrorMessage('');
 
     try {
-      const res = await fetch('http://localhost:4000/api/v1/telegram/auth/verify-2fa', {
+      const res = await fetch(`${API_BASE}/api/v1/telegram/auth/verify-2fa`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionToken, password: password2FA }),

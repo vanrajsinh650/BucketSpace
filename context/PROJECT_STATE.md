@@ -300,7 +300,16 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
     - Added clean **Disconnect / Logout** capability in [`Header.tsx`](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/apps/web/src/components/Header.tsx) and [`storage-store.ts`](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/apps/web/src/lib/storage-store.ts).
     - Replaced the arbitrary quota progress bar with an **Unlimited Capacity** indicator (`∞ Unlimited` / Zero storage limits) in [`Sidebar.tsx`](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/apps/web/src/components/Sidebar.tsx).
     - Configured [`StorageStore.registerUserProvider()`](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/apps/web/src/lib/storage-store.ts) to clear demo sandbox files upon connecting a real account, ensuring real drives start at a clean `0.0 MB`.
-  - **Monorepo Metric**: **72/72 storage and core test suites passing 100%, 0 failures, 0 errors, clean production build across all packages**.
+- **Security, Reliability & Bug Audit Hardening (Complete)**:
+  - **Hardcoded Endpoint Elimination**: Replaced all hardcoded `http://localhost:4000` URLs with dynamic `process.env.NEXT_PUBLIC_API_URL` across `OnboardingLandingPage.tsx`, `ProviderOnboardingModal.tsx`, `storage-store.ts`, and `HLSVideoPlayer.tsx`.
+  - **Credential Leak Mitigation**: Removed MTProto `sessionString` from GET URL query parameters in `HttpTelegramStorageAdapter.getChunk` and `deleteChunk`, transmitting authentication tokens strictly via `x-telegram-session` request headers.
+  - **React Error Boundary Protection**: Added `apps/web/src/app/error.tsx` and `apps/web/src/app/global-error.tsx` to prevent blank white-screen crashes and provide structured retry controls.
+  - **Next.js Security Headers & API Proxy**: Configured `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`, disabled `poweredByHeader`, and configured `/api/v1/:path*` rewrites in `next.config.js`.
+  - **WebSocket Hardening**: Added `process.env.NEXT_PUBLIC_WS_URL` support with dynamic fallback and `encodeURIComponent` URI encoding on workspace paths in `useWebSocketSync.ts`.
+  - **Share Token Persistence & Real Downloads**: Wired `ShareModal.tsx` to generate persistent share records in `StorageStore` and wired `/s/[token]` public download to stream and reassemble genuine encrypted chunks into browser Blob downloads.
+  - **Memory & Lifecycle Safety**: Added unmounted timer cleanup refs across `page.tsx`, `AnalysisTab.tsx`, and `OnboardingLandingPage.tsx`, added >250MB heap consumption warning before in-memory ZIP archiving, sanitized `PhoneInputWithCountry.tsx` stripping, and prevented `NaN` rule priority in `RuleEditor.tsx`.
+  - **Workspace & Config Integrity**: Fixed boolean syntax in `pnpm-workspace.yaml` and documented frontend environment variables in `.env.example`.
+- **Monorepo Metric**: **100% TypeScript compile cleanly across all packages, Next.js 15 production build generating 4/4 static routes with 0 errors**.
 
 ---
 

@@ -52,7 +52,7 @@ export function RuleEditor({ rule, availableProviders, onSave, onClose }: RuleEd
       id: rule?.id ?? `rule_${Date.now()}`,
       name: name.trim(),
       enabled: rule?.enabled ?? true,
-      priority: Number(priority),
+      priority: parseInt(String(priority), 10) || 0,
       conditions,
       action: {
         type: 'STORE',

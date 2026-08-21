@@ -7,7 +7,7 @@ import { FileMetadata } from '@bucketspace/shared';
 interface MoveFileModalProps {
   file: FileMetadata | null;
   availableProviders: { providerId: string; current: boolean }[];
-  onMove: (fileId: string, targetProviderId: string) => void;
+  onMove: (fileId: string, targetProviderId: string) => Promise<void> | void;
   onClose: () => void;
 }
 
@@ -23,6 +23,7 @@ export function MoveFileModal({
     targetOptions[0]?.providerId || ''
   );
   const [isMoving, setIsMoving] = useState(false);
+  const [error, setError] = useState('');
 
   if (!file) return null;
 
@@ -34,14 +35,18 @@ export function MoveFileModal({
     return Cpu;
   };
 
-  const handleExecuteMove = () => {
+  const handleExecuteMove = async () => {
     if (!selectedTarget) return;
     setIsMoving(true);
-    setTimeout(() => {
-      onMove(file.id, selectedTarget);
+    setError('');
+    try {
+      await onMove(file.id, selectedTarget);
       setIsMoving(false);
       onClose();
-    }, 600);
+    } catch (err: any) {
+      setError(err?.message || 'Migration failed.');
+      setIsMoving(false);
+    }
   };
 
   return (

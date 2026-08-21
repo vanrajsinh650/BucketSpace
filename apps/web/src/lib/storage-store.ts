@@ -69,7 +69,12 @@ export class HttpTelegramStorageAdapter implements IStorageProvider {
   private sessionString: string;
   private apiBaseUrl: string;
 
-  constructor(sessionString: string, apiBaseUrl = 'http://localhost:4000') {
+  constructor(
+    sessionString: string,
+    apiBaseUrl = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
+      ? process.env.NEXT_PUBLIC_API_URL
+      : 'http://localhost:4000'
+  ) {
     this.sessionString = sessionString;
     this.apiBaseUrl = apiBaseUrl;
   }
@@ -114,6 +119,9 @@ export class HttpTelegramStorageAdapter implements IStorageProvider {
       try {
         const res = await fetch(`${this.apiBaseUrl}/api/v1/telegram/mtproto/chunk`, {
           method: 'POST',
+          headers: {
+            'x-telegram-session': this.sessionString,
+          },
           body: formData,
         });
 
@@ -144,9 +152,14 @@ export class HttpTelegramStorageAdapter implements IStorageProvider {
     const targetChatId = (refObj.chatId as string) || 'me';
 
     const res = await fetch(
-      `${this.apiBaseUrl}/api/v1/telegram/mtproto/chunk?sessionString=${encodeURIComponent(
-        this.sessionString
-      )}&messageId=${messageId}&targetChatId=${encodeURIComponent(targetChatId)}`
+      `${this.apiBaseUrl}/api/v1/telegram/mtproto/chunk?messageId=${encodeURIComponent(
+        String(messageId)
+      )}&targetChatId=${encodeURIComponent(targetChatId)}`,
+      {
+        headers: {
+          'x-telegram-session': this.sessionString,
+        },
+      }
     );
 
     if (!res.ok) {
@@ -176,7 +189,10 @@ export class HttpTelegramStorageAdapter implements IStorageProvider {
 
     const res = await fetch(`${this.apiBaseUrl}/api/v1/telegram/mtproto/chunk`, {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-telegram-session': this.sessionString,
+      },
       body: JSON.stringify({
         sessionString: this.sessionString,
         messageId,
@@ -334,7 +350,11 @@ export class StorageStore {
       this.router.setDefaultProvider('local');
     } else if (providerId === 'telegram') {
       const sessionString = (config?.sessionString as string) || '';
-      const telegramProvider = new HttpTelegramStorageAdapter(sessionString);
+      const apiBase =
+        typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
+          ? process.env.NEXT_PUBLIC_API_URL
+          : 'http://localhost:4000';
+      const telegramProvider = new HttpTelegramStorageAdapter(sessionString, apiBase);
       ProviderRegistry.register(telegramProvider);
       this.activeProvider = telegramProvider;
       this.activeProviderId = 'telegram';

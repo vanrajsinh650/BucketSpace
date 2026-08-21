@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { DuplicateCheckResult, FileMetadata, StorageRule } from '@bucketspace/shared';
 import { AnalysisTab } from '../components/AnalysisTab';
 import { BulkActionBar } from '../components/BulkActionBar';
@@ -58,6 +58,16 @@ export default function BucketSpaceApp() {
   const [rulesList, setRulesList] = useState<StorageRule[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  const uploadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (uploadTimerRef.current) {
+        clearTimeout(uploadTimerRef.current);
+      }
+    };
+  }, []);
+
   /* ─── Provider Connection Handler (defined early for onboarding gate) ─── */
   const handleConnectProvider = async (
     providerId: string,
@@ -95,11 +105,15 @@ export default function BucketSpaceApp() {
         return;
       }
 
+      if (uploadTimerRef.current) clearTimeout(uploadTimerRef.current);
+      setUploadModalOpen(true);
+      setUploadState(null);
+
       await store.uploadFile(file, (progress) => {
         setUploadState({ ...progress });
       });
       setRefreshTrigger((prev) => prev + 1);
-      setTimeout(() => {
+      uploadTimerRef.current = setTimeout(() => {
         setUploadModalOpen(false);
         setUploadState(null);
       }, 800);
@@ -115,6 +129,7 @@ export default function BucketSpaceApp() {
     if (!duplicateConflict) return;
     const { file } = duplicateConflict;
     setDuplicateConflict(null);
+    if (uploadTimerRef.current) clearTimeout(uploadTimerRef.current);
     setUploadModalOpen(true);
 
     try {
@@ -122,7 +137,7 @@ export default function BucketSpaceApp() {
         setUploadState({ ...progress });
       });
       setRefreshTrigger((prev) => prev + 1);
-      setTimeout(() => {
+      uploadTimerRef.current = setTimeout(() => {
         setUploadModalOpen(false);
         setUploadState(null);
       }, 800);
@@ -136,6 +151,7 @@ export default function BucketSpaceApp() {
     if (!duplicateConflict) return;
     const { file } = duplicateConflict;
     setDuplicateConflict(null);
+    if (uploadTimerRef.current) clearTimeout(uploadTimerRef.current);
     setUploadModalOpen(true);
 
     try {
@@ -143,7 +159,7 @@ export default function BucketSpaceApp() {
         setUploadState({ ...progress });
       });
       setRefreshTrigger((prev) => prev + 1);
-      setTimeout(() => {
+      uploadTimerRef.current = setTimeout(() => {
         setUploadModalOpen(false);
         setUploadState(null);
       }, 800);
@@ -161,6 +177,7 @@ export default function BucketSpaceApp() {
     if (!duplicateConflict) return;
     const { file } = duplicateConflict;
     setDuplicateConflict(null);
+    if (uploadTimerRef.current) clearTimeout(uploadTimerRef.current);
     setUploadModalOpen(true);
 
     try {
@@ -168,7 +185,7 @@ export default function BucketSpaceApp() {
         setUploadState({ ...progress });
       });
       setRefreshTrigger((prev) => prev + 1);
-      setTimeout(() => {
+      uploadTimerRef.current = setTimeout(() => {
         setUploadModalOpen(false);
         setUploadState(null);
       }, 800);
@@ -201,8 +218,13 @@ export default function BucketSpaceApp() {
 
   const handlePurge = async (fileId: string) => {
     if (confirm('Are you sure you want to permanently purge this file and delete all chunk storage?')) {
-      await store.purgeFile(fileId);
-      setRefreshTrigger((prev) => prev + 1);
+      try {
+        await store.purgeFile(fileId);
+        setRefreshTrigger((prev) => prev + 1);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Purge failed';
+        alert(`Purge Error: ${msg}`);
+      }
     }
   };
 
@@ -215,14 +237,24 @@ export default function BucketSpaceApp() {
   };
 
   const handleTestConnection = async (providerId: string) => {
-    const result = await store.testProviderHealth(providerId);
-    setProviderList((prev) =>
-      prev.map((p) =>
-        p.providerId === providerId
-          ? { ...p, status: result.status, latencyMs: result.latencyMs }
-          : p
-      )
-    );
+    try {
+      const result = await store.testProviderHealth(providerId);
+      setProviderList((prev) =>
+        prev.map((p) =>
+          p.providerId === providerId
+            ? { ...p, status: result.status, latencyMs: result.latencyMs }
+            : p
+        )
+      );
+    } catch (err: unknown) {
+      setProviderList((prev) =>
+        prev.map((p) =>
+          p.providerId === providerId
+            ? { ...p, status: 'unreachable' }
+            : p
+        )
+      );
+    }
   };
 
   const handleRemoveProvider = (providerId: string) => {
@@ -299,9 +331,20 @@ export default function BucketSpaceApp() {
 
   const handleBulkDownloadZip = async () => {
     if (selectedFileIds.size === 0) return;
+    const filesToDownload = files.filter((f) => selectedFileIds.has(f.id));
+    const totalBytes = filesToDownload.reduce((acc, f) => acc + (f.size || 0), 0);
+    const MAX_BULK_ZIP_BYTES = 250 * 1024 * 1024; // 250 MB browser RAM threshold
+
+    if (totalBytes > MAX_BULK_ZIP_BYTES) {
+      const mb = Math.round(totalBytes / (1024 * 1024));
+      const proceed = confirm(
+        `Selected files total ${mb} MB. Generating a large in-browser ZIP archive may consume significant device memory. Proceed anyway?`
+      );
+      if (!proceed) return;
+    }
+
     setIsDownloadingZip(true);
     try {
-      const filesToDownload = files.filter((f) => selectedFileIds.has(f.id));
       const zipEntries = [];
 
       for (const file of filesToDownload) {

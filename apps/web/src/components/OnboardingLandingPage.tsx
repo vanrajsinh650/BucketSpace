@@ -49,6 +49,15 @@ export function OnboardingLandingPage({
   const [selectedDemoFile, setSelectedDemoFile] = useState(0);
   const [isSimulatingChunking, setIsSimulatingChunking] = useState(false);
   const [simulatedProgress, setSimulatedProgress] = useState(100);
+  const simIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (simIntervalRef.current) {
+        clearInterval(simIntervalRef.current);
+      }
+    };
+  }, []);
 
   const demoFiles = [
     {
@@ -82,18 +91,29 @@ export function OnboardingLandingPage({
     setIsSimulatingChunking(true);
     setSimulatedProgress(0);
 
+    if (simIntervalRef.current) {
+      clearInterval(simIntervalRef.current);
+    }
+
     let p = 0;
-    const interval = setInterval(() => {
+    simIntervalRef.current = setInterval(() => {
       p += 20;
       setSimulatedProgress(p);
       if (p >= 100) {
-        clearInterval(interval);
+        if (simIntervalRef.current) {
+          clearInterval(simIntervalRef.current);
+        }
         setIsSimulatingChunking(false);
       }
     }, 150);
   };
 
   /* ─── REAL Telegram MTProto Auth Handlers ─── */
+
+  const API_BASE =
+    typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
+      ? process.env.NEXT_PUBLIC_API_URL
+      : 'http://localhost:4000';
 
   const handleTelegramPhone = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,7 +122,7 @@ export function OnboardingLandingPage({
     setErrorMessage('');
 
     try {
-      const res = await fetch('http://localhost:4000/api/v1/telegram/auth/send-code', {
+      const res = await fetch(`${API_BASE}/api/v1/telegram/auth/send-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone }),
@@ -116,7 +136,7 @@ export function OnboardingLandingPage({
       setSessionToken(data.sessionToken);
       setStep('code');
     } catch (err: any) {
-      setErrorMessage(err.message || 'Network error connecting to API gateway on port 4000.');
+      setErrorMessage(err.message || 'Network error connecting to API gateway.');
     } finally {
       setIsSubmitting(false);
     }
@@ -129,7 +149,7 @@ export function OnboardingLandingPage({
     setErrorMessage('');
 
     try {
-      const res = await fetch('http://localhost:4000/api/v1/telegram/auth/verify-code', {
+      const res = await fetch(`${API_BASE}/api/v1/telegram/auth/verify-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionToken, code }),
@@ -161,7 +181,7 @@ export function OnboardingLandingPage({
     setErrorMessage('');
 
     try {
-      const res = await fetch('http://localhost:4000/api/v1/telegram/auth/verify-2fa', {
+      const res = await fetch(`${API_BASE}/api/v1/telegram/auth/verify-2fa`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionToken, password: password2FA }),
