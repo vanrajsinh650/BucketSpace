@@ -156,6 +156,11 @@ export class TelegramAuthService {
 
   /**
    * Verify the 5-digit OTP code received on Telegram.
+   *
+   * IMPORTANT: We must use the raw `Auth.SignIn` RPC call directly with the
+   * stored `phoneCodeHash`. Using the high-level `client.signInUser()` helper
+   * would internally re-invoke `sendCode`, generating a NEW phoneCodeHash and
+   * immediately invalidating the OTP the user just received.
    */
   public static async verifyCode(params: {
     sessionToken: string;
@@ -167,18 +172,14 @@ export class TelegramAuthService {
     }
 
     try {
-      await session.client.signInUser(
-        {
-          apiId: session.apiId,
-          apiHash: session.apiHash,
-        },
-        {
-          phoneNumber: async () => session.phone,
-          phoneCode: async () => params.code,
-          onError: (err) => {
-            throw err;
-          },
-        }
+      // Use the raw MTProto RPC — preserves the original phoneCodeHash
+      const { Api } = await import('telegram');
+      await session.client.invoke(
+        new Api.auth.SignIn({
+          phoneNumber: session.phone,
+          phoneCodeHash: session.phoneCodeHash,
+          phoneCode: params.code,
+        })
       );
 
       const sessionString = session.client.session.save() as unknown as string;
@@ -186,11 +187,14 @@ export class TelegramAuthService {
       return { success: true, sessionString };
     } catch (err: any) {
       const msg = (err?.errorMessage || err?.message || '').toLowerCase();
+
+      // Telegram signals 2FA requirement via SESSION_PASSWORD_NEEDED
       if (
         msg.includes('session_password_needed') ||
         msg.includes('2fa') ||
         msg.includes('password')
       ) {
+        // Keep session alive so 2FA step can reuse it
         return { success: false, requires2FA: true };
       }
       throw err;
