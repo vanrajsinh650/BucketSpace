@@ -7,13 +7,6 @@ module.exports = {
   ],
   theme: {
     extend: {
-      colors: {
-        obsidian: {
-          950: '#07090e',
-          900: '#0f172a',
-          800: '#1e293b',
-        },
-      },
       fontFamily: {
         sans: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
         mono: ['var(--font-geist-mono)', 'ui-monospace', 'monospace'],
@@ -21,6 +14,10 @@ module.exports = {
       transitionTimingFunction: {
         'out-strong': 'cubic-bezier(0.23, 1, 0.32, 1)',
         'in-out-strong': 'cubic-bezier(0.77, 0, 0.175, 1)',
+        'drawer': 'cubic-bezier(0.32, 0.72, 0, 1)',
+      },
+      transitionDuration: {
+        '160': '160ms',
       },
     },
   },

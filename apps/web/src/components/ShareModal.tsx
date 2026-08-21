@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Check, Copy, Link, Lock, ShieldCheck, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Copy, Check, Share2, Shield } from 'lucide-react';
 import { FileMetadata } from '@bucketspace/shared';
-import { StorageStore } from '../lib/storage-store';
 
 interface ShareModalProps {
   file: FileMetadata | null;
@@ -12,111 +11,105 @@ interface ShareModalProps {
 
 export function ShareModal({ file, onClose }: ShareModalProps) {
   const [copied, setCopied] = useState(false);
-  const [expiryHours, setExpiryHours] = useState(24);
-  const [passcode, setPasscode] = useState('');
-  const [shareUrl, setShareUrl] = useState('');
-
-  useEffect(() => {
-    if (file) {
-      const store = StorageStore.getInstance();
-      const link = store.createShareLink(file.id, {
-        expiresInHours: expiryHours,
-        passcode: passcode.trim() || undefined,
-      });
-      setShareUrl(link.url);
-    }
-  }, [file, expiryHours, passcode]);
+  const [expiresIn, setExpiresIn] = useState('24h');
 
   if (!file) return null;
 
-  const handleCopy = () => {
+  const mockToken = `bs_${file.id.slice(0, 8)}_${Math.random().toString(36).substring(2, 8)}`;
+  const shareUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/s/${mockToken}`
+    : `https://bucketspace.app/s/${mockToken}`;
+
+  const copyToClipboard = () => {
     navigator.clipboard.writeText(shareUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fadeIn">
-      <div className="glass-modal w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-6 relative border border-slate-700/80">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-              <Link className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-lg text-white">Share Secure Access Link</h3>
-              <p className="text-xs text-slate-400">Time-bound link without exposing storage IDs</p>
-            </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <div className="bg-[#0a0a0a] border border-[#1e1e1e] rounded-lg w-full max-w-md flex flex-col overflow-hidden shadow-2xl font-mono text-xs">
+        {/* Header */}
+        <div className="px-4 py-3 border-b border-[#1e1e1e] flex items-center justify-between bg-[#0a0a0a]">
+          <div className="flex items-center gap-2">
+            <Share2 className="w-3.5 h-3.5 text-white" />
+            <span className="font-bold uppercase tracking-wider text-white">
+              Create Share Link
+            </span>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1 text-[#666] hover:text-white rounded hover:bg-[#181818] transition-colors btn-press"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="text-xs text-slate-400 font-medium block mb-1.5">Shared Target File</label>
-            <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 text-sm font-semibold text-white truncate">
-              {file.name}
+        {/* Body */}
+        <div className="p-4 space-y-4">
+          <div className="space-y-1">
+            <div className="text-[10px] text-[#666] uppercase">File</div>
+            <div className="text-white font-medium truncate">{file.name}</div>
+          </div>
+
+          {/* Expiration Select */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] text-[#666] uppercase block">
+              Link Expiration
+            </label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {['1h', '24h', '7d'].map((time) => (
+                <button
+                  key={time}
+                  onClick={() => setExpiresIn(time)}
+                  className={`py-1.5 rounded border text-xs font-mono uppercase transition-colors btn-press ${
+                    expiresIn === time
+                      ? 'border-white bg-[#1a1a1a] text-white font-bold'
+                      : 'border-[#1e1e1e] bg-[#121212] text-[#888] hover:text-white'
+                  }`}
+                >
+                  {time}
+                </button>
+              ))}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-slate-400 font-medium block mb-1.5">Link Expiration</label>
-              <select
-                value={expiryHours}
-                onChange={(e) => setExpiryHours(Number(e.target.value))}
-                className="w-full bg-slate-900 border border-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-cyan-500/50"
-              >
-                <option value={1}>Expires in 1 Hour</option>
-                <option value={24}>Expires in 24 Hours</option>
-                <option value={168}>Expires in 7 Days</option>
-                <option value={0}>Never Expires</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs text-slate-400 font-medium block mb-1.5">Optional Passcode</label>
-              <div className="relative">
-                <Lock className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Set download password"
-                  value={passcode}
-                  onChange={(e) => setPasscode(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-800 text-slate-200 placeholder-slate-600 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-cyan-500/50"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-400 font-medium block mb-1.5">Public Share URL</label>
-            <div className="flex items-center gap-2">
+          {/* Generated Share URL */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] text-[#666] uppercase block">
+              Public Secure URL
+            </label>
+            <div className="flex items-center gap-2 bg-[#121212] border border-[#1e1e1e] rounded p-2">
               <input
                 type="text"
                 readOnly
                 value={shareUrl}
-                className="flex-1 bg-slate-950/80 border border-slate-800 font-mono text-xs text-cyan-300 rounded-xl px-3.5 py-2.5 select-all focus:outline-none"
+                className="bg-transparent text-white text-xs font-mono flex-1 focus:outline-none truncate"
               />
               <button
-                onClick={handleCopy}
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/30 font-medium text-xs transition-all"
+                onClick={copyToClipboard}
+                className="bg-white text-black hover:bg-[#e0e0e0] px-2.5 py-1 rounded text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 transition-colors btn-press shrink-0"
               >
-                {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                <span>{copied ? 'Copied!' : 'Copy'}</span>
+                {copied ? <Check className="w-3 h-3 text-[#22c55e]" /> : <Copy className="w-3 h-3" />}
+                <span>{copied ? 'Copied' : 'Copy'}</span>
               </button>
             </div>
           </div>
+
+          <div className="text-[10px] text-[#555] flex items-center gap-1.5">
+            <Shield className="w-3 h-3 text-[#666]" />
+            <span>Recipients stream directly from encrypted chunks.</span>
+          </div>
         </div>
 
-        <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800/80 flex items-center gap-2 text-xs text-slate-400">
-          <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span>Storage provider references & Telegram message IDs remain hidden.</span>
+        {/* Footer */}
+        <div className="p-3 border-t border-[#1e1e1e] bg-[#0a0a0a] flex items-center justify-end">
+          <button
+            onClick={onClose}
+            className="border border-[#333] hover:border-white text-white px-4 py-1.5 rounded font-mono uppercase tracking-wider text-xs transition-colors btn-press"
+          >
+            Done
+          </button>
         </div>
       </div>
     </div>

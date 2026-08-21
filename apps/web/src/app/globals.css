@@ -2,16 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════════
+   BucketSpace Design System Tokens
+   Pure Technical Monochrome. No Artificial Slop.
+   ═══════════════════════════════════════════════ */
+
 :root {
-  --background: 0 0 0;
-  --foreground: 255 255 255;
-  --selection: 255 255 255;
-  --selection-text: 0 0 0;
+  --bg: #000000;
+  --surface: #0a0a0a;
+  --surface-hover: #121212;
+  --surface-active: #181818;
+
+  --border: #1e1e1e;
+  --border-hover: #333333;
+  --border-active: #666666;
+
+  --text-primary: #ffffff;
+  --text-secondary: #888888;
+  --text-tertiary: #555555;
+
+  --destructive: #ff3333;
+  --success: #22c55e;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 body {
-  background-color: rgb(var(--background));
-  color: rgb(var(--foreground));
+  background-color: var(--bg);
+  color: var(--text-primary);
   font-family: var(--font-geist-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
@@ -20,11 +40,15 @@ body {
 }
 
 ::selection {
-  background-color: rgb(var(--selection));
-  color: rgb(var(--selection-text));
+  background-color: #ffffff;
+  color: #000000;
 }
 
-/* Minimalist Scrollbar */
+:focus-visible {
+  outline: 1px solid var(--border-active);
+  outline-offset: 1px;
+}
+
 ::-webkit-scrollbar {
   width: 4px;
   height: 4px;
@@ -35,39 +59,32 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 9999px;
+  background: var(--border);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #666;
+  background: var(--border-hover);
 }
 
-/* Base Monochrome Interactive Surfaces */
-.surface-pure {
-  background: #000;
-  border: 1px solid #222;
-  transition: border-color 0.15s ease, background 0.15s ease;
+.btn-press {
+  transition: transform 160ms var(--ease-out), background-color 160ms var(--ease-out), border-color 160ms var(--ease-out);
+}
+.btn-press:active {
+  transform: scale(0.97);
 }
 
-.surface-pure:hover {
-  border-color: #444;
-  background: #050505;
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
-.text-subtle {
-  color: #888;
-}
-
-/* Keystroke Micro-UI badges */
 kbd {
   display: inline-block;
-  background-color: #111;
-  border: 1px solid #333;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 4px;
   padding: 1px 5px;
   font-family: var(--font-geist-mono, ui-monospace, monospace);
   font-size: 0.75em;
   line-height: 1.4;
-  color: #888;
+  color: var(--text-secondary);
 }

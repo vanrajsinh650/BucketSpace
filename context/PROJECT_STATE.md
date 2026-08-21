@@ -316,3 +316,25 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
   3. *Provider Loss & Self-Healing*: Delete message on Telegram $\rightarrow$ `hasChunk()` returns `false` $\rightarrow$ triggers `RepairEngine` from replica $\rightarrow$ verify byte equality.
   4. *Memory Boundedness*: Continuous heap profiling asserting max RAM stays bounded to $O(1)$ (512 KB part window) throughout multi-gigabyte transfers.
   5. *Byte-Range Reads*: Seek to arbitrary offsets in video/audio media chunks $\rightarrow$ verify exact slice boundaries without full-object download.
+
+---
+
+## 10. Frontend Architecture & Design System (V2.5 Overhaul)
+
+In accordance with user directives and deep extraction of design principles from `taste-skill`, `emil-design-eng` (animations.dev), and `impeccable` (Neo Kinpaku), the BucketSpace web dashboard has been overhauled from generic default layouts into a high-density, technical monochrome interface.
+
+### A. Design Tokens & Visual Hierarchy
+- **Palette**: Strict pitch-black monochrome foundation (`#000000` canvas, `#0a0a0a` raised panels, `#121212` / `#181818` interactive surfaces, `#1e1e1e` / `#222222` structural hairlines, `#ffffff` primary text, `#888888` secondary, `#555555` tertiary).
+- **Semantics**: Color is restricted to functional state feedback only (subtle emerald `#22c55e` for cryptographic verification, red `#ff3333` for destructive actions).
+- **Anti-Slop Ban**: Zero cyan/blue/purple gradients, zero `rounded-3xl` containers, zero phantom `glass-modal`/`glass-panel` classes, zero `animate-bounce` / `animate-pulse` decorative effects, zero generic 3-column equal card rows, zero em-dashes (`—`).
+
+### B. Typography & Surfaces
+- **Font Stack**: Geist Sans for structural UI and headers; Geist Mono for technical metrics, cryptographic digests, byte counts, and DC addresses.
+- **Weight Inversion**: Large display typography uses light weights (`font-light` / `font-medium`), while micro-labels use bold uppercase tracking (`text-[10px] font-mono font-bold uppercase tracking-widest`).
+- **Browser Surfaces**: Styled `::selection` (`#ffffff` bg, `#000000` text), 4px minimalist scrollbars with invisible tracks, themed `<kbd>` badges, tabular numbers (`font-variant-numeric: tabular-nums`).
+
+### C. Motion Physics & Micro-Interactions
+- **Easing**: Custom cubic-bezier tokens (`var(--ease-out): cubic-bezier(0.23, 1, 0.32, 1)`, `var(--ease-in-out): cubic-bezier(0.77, 0, 0.175, 1)`).
+- **Button Feedback**: All interactive elements implement `.btn-press` (`:active` scale(0.97) over 160ms).
+- **Entry Animations**: Never animate from `scale(0)`; modals and dropdowns scale from `scale(0.96)` + `opacity: 0` over 200ms.
+- **Layout Transitions**: Framer Motion spring physics (`type: 'spring', bounce: 0.2`) on view mode toggles, drag dropzones, and floating dock action bars.

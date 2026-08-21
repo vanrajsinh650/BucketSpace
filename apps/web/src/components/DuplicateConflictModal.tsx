@@ -1,19 +1,10 @@
 'use client';
 
 import React from 'react';
-import {
-  AlertTriangle,
-  ArrowRight,
-  Copy,
-  FileCheck2,
-  RefreshCw,
-  SkipForward,
-  Upload,
-  X,
-} from 'lucide-react';
+import { X, AlertTriangle } from 'lucide-react';
 import { DuplicateCheckResult } from '@bucketspace/shared';
 
-interface DuplicateConflictModalProps {
+export interface DuplicateConflictModalProps {
   isOpen: boolean;
   incomingFile: File | null;
   checkResult: DuplicateCheckResult | null;
@@ -36,144 +27,79 @@ export function DuplicateConflictModal({
 }: DuplicateConflictModalProps) {
   if (!isOpen || !incomingFile || !checkResult) return null;
 
-  const formatSize = (bytes: number): string => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-  };
+  const isIdentical =
+    checkResult.scenario === 'SAME_NAME_IDENTICAL_CONTENT' ||
+    checkResult.scenario === 'DIFFERENT_NAME_IDENTICAL_CONTENT';
 
-  const isIdentical = checkResult.scenario === 'SAME_NAME_IDENTICAL_CONTENT';
-  const existing = checkResult.existingFile;
+  const suggestedName = checkResult.suggestedName || `${incomingFile.name.replace(/(\.[^.]+)$/, '')} (1)${incomingFile.name.match(/(\.[^.]+)$/)?.[0] || ''}`;
+  const existingId = checkResult.existingFile?.id || '';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-      <div className="glass-modal w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-6 relative border border-slate-700/80 bg-[#0d1117]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm font-mono text-xs">
+      <div className="bg-[#0a0a0a] border border-[#1e1e1e] rounded-lg w-full max-w-md flex flex-col overflow-hidden shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center border ${
-                isIdentical
-                  ? 'bg-amber-500/20 border-amber-500/30 text-amber-400'
-                  : 'bg-cyan-500/20 border-cyan-500/30 text-cyan-400'
-              }`}
-            >
-              {isIdentical ? <FileCheck2 className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
-            </div>
-            <div>
-              <h3 className="font-semibold text-lg text-white">
-                {isIdentical ? 'This file is already in BucketSpace.' : 'Another file with this name already exists.'}
-              </h3>
-              <p className="text-xs text-slate-400">
-                {isIdentical
-                  ? 'We found an exact match for the file you are trying to upload.'
-                  : 'Do you want to replace it or keep both?'}
-              </p>
-            </div>
+        <div className="px-4 py-3 border-b border-[#1e1e1e] flex items-center justify-between bg-[#0a0a0a]">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-3.5 h-3.5 text-white" />
+            <span className="font-bold uppercase tracking-wider text-white">
+              Duplicate Conflict Detected
+            </span>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1 text-[#666] hover:text-white rounded hover:bg-[#181818] transition-colors btn-press"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* File Comparison Card */}
-        <div className="grid grid-cols-2 gap-3 p-4 rounded-2xl bg-slate-900/90 border border-slate-800 text-xs">
-          {/* Existing File */}
-          <div className="space-y-1.5 p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-            <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
-              Existing Stored File
-            </span>
-            <p className="font-semibold text-slate-200 truncate">{existing?.name ?? incomingFile.name}</p>
-            <div className="space-y-0.5 text-slate-400 font-mono text-[11px]">
-              <div>Size: {existing ? formatSize(existing.size) : 'Unknown'}</div>
-              <div>
-                Uploaded:{' '}
-                {existing ? new Date(existing.createdAt).toLocaleDateString() : 'Previously'}
-              </div>
-            </div>
-          </div>
+        {/* Body */}
+        <div className="p-4 space-y-3">
+          <p className="text-white text-xs leading-relaxed font-sans">
+            {isIdentical
+              ? `An identical file named "${incomingFile.name}" already exists in storage with matching SHA-256 checksum.`
+              : `A file named "${incomingFile.name}" exists but with different contents.`}
+          </p>
 
-          {/* Incoming File */}
-          <div className="space-y-1.5 p-3 rounded-xl bg-cyan-950/30 border border-cyan-800/40">
-            <span className="text-[11px] font-medium text-cyan-400 uppercase tracking-wider">
-              New File To Upload
-            </span>
-            <p className="font-semibold text-white truncate">{incomingFile.name}</p>
-            <div className="space-y-0.5 text-cyan-300 font-mono text-[11px]">
-              <div>Size: {formatSize(incomingFile.size)}</div>
-              <div>Date: Just Now</div>
-            </div>
+          <div className="bg-[#121212] p-3 border border-[#1e1e1e] rounded space-y-1 text-[11px]">
+            <div className="text-[#666] uppercase text-[10px]">Incoming File</div>
+            <div className="text-white font-medium truncate">{incomingFile.name}</div>
+            <div className="text-[#888] tabular-nums">Size: {incomingFile.size} bytes</div>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="space-y-2.5">
+        {/* Actions */}
+        <div className="p-3 border-t border-[#1e1e1e] bg-[#0a0a0a] flex flex-col gap-2">
           {isIdentical ? (
-            /* True Duplicate Options */
-            <>
+            <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={onSkip}
-                className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-sm transition-all shadow-lg flex items-center justify-center gap-2"
+                className="bg-white text-black hover:bg-[#e0e0e0] py-2 rounded font-mono font-bold uppercase tracking-wider text-xs transition-colors btn-press"
               >
-                Skip
+                Skip Upload
               </button>
-
               <button
                 onClick={onUploadAnyway}
-                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-sm font-medium transition-all border border-slate-700 flex items-center justify-center"
+                className="border border-[#333] hover:border-white text-white py-2 rounded font-mono uppercase tracking-wider text-xs transition-colors btn-press"
               >
-                Upload anyway
+                Upload Copy
               </button>
-
-              {existing && (
-                <details className="mt-2 text-xs group cursor-pointer">
-                  <summary className="text-slate-500 hover:text-slate-400 inline-block select-none transition-colors mb-2 text-center w-full">
-                    Technical details
-                  </summary>
-                  <div className="p-3 rounded-xl bg-slate-900/50 border border-slate-800/80 space-y-2 text-left">
-                    <p className="text-slate-400">
-                      The file content matches exactly.
-                    </p>
-                    <button
-                      onClick={() => onReplaceExisting(existing.id)}
-                      className="w-full py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium transition-all border border-slate-700 flex items-center justify-center gap-2"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
-                      Update Timestamp & Re-verify
-                    </button>
-                  </div>
-                </details>
-              )}
-            </>
+            </div>
           ) : (
-            /* Name Conflict Different Content Options */
-            <>
+            <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => onKeepBoth(checkResult.suggestedName)}
-                className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-sm transition-all shadow-lg flex items-center justify-center gap-2"
+                onClick={() => onKeepBoth(suggestedName)}
+                className="bg-white text-black hover:bg-[#e0e0e0] py-2 rounded font-mono font-bold uppercase tracking-wider text-xs transition-colors btn-press"
               >
-                Keep both
+                Keep Both
               </button>
-
-              {existing && (
-                <button
-                  onClick={() => onReplaceExisting(existing.id)}
-                  className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-sm font-medium transition-all border border-slate-700 flex items-center justify-center gap-2"
-                >
-                  Replace existing
-                </button>
-              )}
-
               <button
-                onClick={onClose}
-                className="w-full py-2 text-center text-sm text-slate-400 hover:text-white transition-colors"
+                onClick={() => onReplaceExisting(existingId)}
+                className="border border-[#333] hover:border-white text-white py-2 rounded font-mono uppercase tracking-wider text-xs transition-colors btn-press"
               >
-                Cancel
+                Replace File
               </button>
-            </>
+            </div>
           )}
         </div>
       </div>

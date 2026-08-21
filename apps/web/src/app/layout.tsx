@@ -5,8 +5,8 @@ import { GeistMono } from 'geist/font/mono';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'BucketSpace — Personal Cloud Storage',
-  description: 'Clean, high-performance decentralized personal cloud storage powered by Telegram MTProto and multi-provider backends.',
+  title: 'BucketSpace - Personal Cloud Storage',
+  description: 'High-performance personal cloud storage powered by Telegram MTProto and multi-provider backends.',
 };
 
 export const viewport: Viewport = {
@@ -24,7 +24,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className={`${GeistSans.variable} ${GeistMono.variable} min-h-[100dvh] bg-black text-zinc-100 font-sans antialiased selection:bg-zinc-800 selection:text-white`}>
+      <body className={`${GeistSans.variable} ${GeistMono.variable} min-h-[100dvh] bg-black text-white font-sans antialiased selection:bg-white selection:text-black`}>
         {children}
       </body>
     </html>

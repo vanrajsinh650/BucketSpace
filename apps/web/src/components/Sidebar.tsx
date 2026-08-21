@@ -12,6 +12,7 @@ import {
   Trash2,
   Activity,
   X,
+  HardDrive,
 } from 'lucide-react';
 import { CategoryFilter } from '../lib/storage-store';
 
@@ -44,182 +45,186 @@ export function Sidebar({
   isMobileOpen = false,
   onCloseMobile,
 }: SidebarProps) {
+  // Format bytes to human readable format
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
+  };
+
   const categories: { id: CategoryFilter; label: string; icon: React.ElementType }[] = [
     { id: 'ALL', label: 'All Files', icon: Layers },
     { id: 'PHOTOS', label: 'Photos', icon: ImageIcon },
     { id: 'VIDEOS', label: 'Videos', icon: Film },
     { id: 'DOCUMENTS', label: 'Documents', icon: FileText },
-    { id: 'OTHER', label: 'Other', icon: FolderArchive },
+    { id: 'OTHER', label: 'Archives & Other', icon: FolderArchive },
     { id: 'TRASH', label: 'Trash', icon: Trash2 },
   ];
-
-  const formattedUsed =
-    storageUsedBytes >= 1024 * 1024 * 1024
-      ? `${(storageUsedBytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
-      : `${(storageUsedBytes / (1024 * 1024)).toFixed(1)} MB`;
 
   return (
     <>
       {/* Mobile Backdrop */}
       {isMobileOpen && (
         <div
+          className="fixed inset-0 bg-black/80 z-40 lg:hidden backdrop-blur-sm transition-opacity"
           onClick={onCloseMobile}
-          className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm lg:hidden transition-opacity"
         />
       )}
 
+      {/* Main Sidebar Shell */}
       <aside
-        className={`fixed lg:sticky top-0 left-0 z-50 lg:z-auto w-72 lg:w-64 h-screen bg-black border-r border-zinc-800/90 flex flex-col justify-between p-4 select-none shrink-0 transition-transform duration-200 ease-in-out ${
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
+        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-[#0a0a0a] border-r border-[#1e1e1e] flex flex-col justify-between transition-transform duration-200 ease-out lg:translate-x-0 ${
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+        } lg:sticky lg:h-screen`}
       >
-        <div className="space-y-6">
-          {/* Brand Header */}
-          <div className="flex items-center justify-between px-2 pt-2">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-700 flex items-center justify-center text-white">
-                <Layers className="w-4 h-4" />
+        {/* Top Header & Navigation */}
+        <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
+          {/* Brand & Workspace */}
+          <div className="p-4 border-b border-[#1e1e1e] flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-6 h-6 bg-white text-black flex items-center justify-center font-mono font-bold text-xs rounded">
+                B
               </div>
               <div>
-                <h1 className="font-semibold text-white tracking-tight text-sm">BucketSpace</h1>
-                <p className="text-[11px] text-zinc-500 font-mono">Personal Cloud</p>
+                <div className="font-semibold text-xs tracking-tight text-white uppercase font-mono">
+                  BucketSpace
+                </div>
+                <div className="text-[10px] text-[#888] font-mono truncate max-w-[130px]">
+                  {providerName || 'Local Vault'}
+                </div>
               </div>
             </div>
-
-            {/* Mobile Close Button */}
             {onCloseMobile && (
               <button
                 onClick={onCloseMobile}
-                className="lg:hidden p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900"
+                className="lg:hidden p-1 text-[#888] hover:text-white rounded"
+                aria-label="Close Sidebar"
               >
                 <X className="w-4 h-4" />
               </button>
             )}
           </div>
 
-          {/* Main Mode Switcher */}
-          <div className="p-1 rounded-xl bg-zinc-900/80 border border-zinc-800 grid grid-cols-2 gap-1 text-xs">
-            <button
-              onClick={() => {
-                onSelectTab('files');
-                onCloseMobile?.();
-              }}
-              className={`py-1.5 px-2 rounded-lg font-medium transition-all flex items-center justify-center gap-1.5 ${
-                activeTab === 'files'
-                  ? 'bg-white text-black font-semibold shadow-sm'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Files</span>
-            </button>
-
-            <button
-              onClick={() => {
-                onSelectTab('analysis');
-                onCloseMobile?.();
-              }}
-              className={`py-1.5 px-2 rounded-lg font-medium transition-all flex items-center justify-center gap-1.5 ${
-                activeTab === 'analysis'
-                  ? 'bg-white text-black font-semibold shadow-sm'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              <Activity className="w-3.5 h-3.5" />
-              <span>Analysis</span>
-            </button>
+          {/* Mode Switcher: Files vs Architecture */}
+          <div className="p-3 border-b border-[#1e1e1e]">
+            <div className="grid grid-cols-2 gap-1 bg-[#121212] p-0.5 border border-[#1e1e1e] rounded">
+              <button
+                onClick={() => onSelectTab('files')}
+                className={`py-1.5 px-2 text-[11px] font-mono uppercase tracking-wider rounded transition-colors flex items-center justify-center gap-1.5 ${
+                  activeTab === 'files'
+                    ? 'bg-white text-black font-semibold'
+                    : 'text-[#888] hover:text-white'
+                }`}
+              >
+                <Layers className="w-3 h-3" />
+                Files
+              </button>
+              <button
+                onClick={() => onSelectTab('analysis')}
+                className={`py-1.5 px-2 text-[11px] font-mono uppercase tracking-wider rounded transition-colors flex items-center justify-center gap-1.5 ${
+                  activeTab === 'analysis'
+                    ? 'bg-white text-black font-semibold'
+                    : 'text-[#888] hover:text-white'
+                }`}
+              >
+                <Activity className="w-3 h-3" />
+                Inspect
+              </button>
+            </div>
           </div>
 
-          {/* Category Navigation (Shown in Files mode) */}
-          {activeTab === 'files' && (
-            <div className="space-y-1">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 px-3 mb-1.5">
+          {/* Category Navigation (Shown when activeTab === 'files') */}
+          {activeTab === 'files' ? (
+            <div className="p-3 space-y-0.5 flex-1">
+              <div className="px-2 py-1.5 text-[10px] font-mono uppercase tracking-widest text-[#555]">
                 Categories
               </div>
-              <nav className="space-y-0.5">
-                {categories.map((cat) => {
-                  const Icon = cat.icon;
-                  const isActive = activeCategory === cat.id;
-                  const count = categoryCounts[cat.id] ?? 0;
-
-                  return (
-                    <button
-                      key={cat.id}
-                      onClick={() => {
-                        onSelectCategory(cat.id);
-                        onCloseMobile?.();
-                      }}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                        isActive
-                          ? 'bg-zinc-900 text-white border border-zinc-700/80'
-                          : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50'
+              {categories.map((cat) => {
+                const Icon = cat.icon;
+                const isActive = activeCategory === cat.id;
+                const count = categoryCounts[cat.id] || 0;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => {
+                      onSelectCategory(cat.id);
+                      if (onCloseMobile) onCloseMobile();
+                    }}
+                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded text-xs font-mono transition-colors btn-press ${
+                      isActive
+                        ? 'bg-[#1a1a1a] text-white border border-[#333]'
+                        : 'text-[#888] hover:text-white hover:bg-[#121212]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-[#666]'}`} />
+                      <span>{cat.label}</span>
+                    </div>
+                    <span
+                      className={`text-[10px] tabular-nums ${
+                        isActive ? 'text-white font-bold' : 'text-[#555]'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-zinc-500'}`} />
-                        <span>{cat.label}</span>
-                      </div>
-                      <span
-                        className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
-                          isActive
-                            ? 'bg-white text-black font-semibold'
-                            : 'bg-zinc-900 text-zinc-500'
-                        }`}
-                      >
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </nav>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="p-4 text-xs font-mono text-[#888] space-y-2 flex-1">
+              <div className="text-[10px] uppercase tracking-widest text-[#555]">
+                System Architecture
+              </div>
+              <p className="text-[11px] leading-relaxed text-[#777]">
+                Live telemetry, chunk verification graphs, and multi-provider data routing workbench.
+              </p>
             </div>
           )}
         </div>
 
-        {/* Bottom Storage Status & Settings */}
-        <div className="space-y-3 pt-4 border-t border-zinc-800/80">
-          <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800/90 space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                <span className="text-zinc-300 font-medium truncate text-[11px]">
-                  {providerName || 'Telegram Cloud'}
-                </span>
-              </div>
-              <span className="text-white font-mono text-[11px] font-semibold shrink-0">
-                {formattedUsed}
+        {/* Footer: Storage Quota & Settings */}
+        <div className="p-3 border-t border-[#1e1e1e] space-y-3 bg-[#0a0a0a]">
+          {/* Storage Quota Bar */}
+          <div className="p-2.5 bg-[#121212] border border-[#1e1e1e] rounded space-y-1.5">
+            <div className="flex items-center justify-between text-[10px] font-mono uppercase text-[#888]">
+              <span className="flex items-center gap-1">
+                <HardDrive className="w-3 h-3 text-[#666]" />
+                Usage
               </span>
+              <span className="text-white tabular-nums">{formatBytes(storageUsedBytes)}</span>
             </div>
-            <div className="flex items-center justify-between text-[11px] text-zinc-500 font-mono">
-              <span>Capacity</span>
-              <span className="text-zinc-200 font-semibold flex items-center gap-1">
-                <span className="text-xs">∞</span> Unlimited
-              </span>
+            <div className="h-1 bg-[#222] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-white transition-all duration-300"
+                style={{ width: `${Math.min(100, Math.max(2, (storageUsedBytes / (5 * 1024 * 1024 * 1024)) * 100))}%` }}
+              />
+            </div>
+            <div className="text-[9px] font-mono text-[#555] flex justify-between">
+              <span>Unlimited Cluster</span>
+              <span>Encrypted</span>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="space-y-1">
+          {/* Action Triggers */}
+          <div className="grid grid-cols-2 gap-1">
             <button
-              onClick={() => {
-                onOpenRules();
-                onCloseMobile?.();
-              }}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-zinc-300 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:text-white transition-all"
+              onClick={onOpenRules}
+              className="py-1.5 px-2 bg-[#121212] hover:bg-[#181818] border border-[#1e1e1e] hover:border-[#333] rounded text-[11px] font-mono text-[#888] hover:text-white flex items-center justify-center gap-1.5 transition-colors btn-press"
+              title="Storage Routing Rules"
             >
-              <Sliders className="w-3.5 h-3.5 text-zinc-400" />
-              <span>Routing Rules</span>
+              <Sliders className="w-3 h-3" />
+              <span>Rules</span>
             </button>
-
             <button
-              onClick={() => {
-                onOpenSettings();
-                onCloseMobile?.();
-              }}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60 transition-all border border-transparent hover:border-zinc-800"
+              onClick={onOpenSettings}
+              className="py-1.5 px-2 bg-[#121212] hover:bg-[#181818] border border-[#1e1e1e] hover:border-[#333] rounded text-[11px] font-mono text-[#888] hover:text-white flex items-center justify-center gap-1.5 transition-colors btn-press"
+              title="Storage Provider Settings"
             >
-              <Settings className="w-3.5 h-3.5 text-zinc-500" />
-              <span>Storage Providers</span>
+              <Settings className="w-3 h-3" />
+              <span>Config</span>
             </button>
           </div>
         </div>

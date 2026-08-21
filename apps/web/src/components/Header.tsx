@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Search, Upload, ShieldCheck, LogOut, Menu } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Search, Upload, LogOut, Menu } from 'lucide-react';
 
 interface HeaderProps {
   searchQuery: string;
@@ -22,66 +21,60 @@ export function Header({
   onOpenMobileMenu,
 }: HeaderProps) {
   return (
-    <header className="h-16 lg:h-18 border-b border-[#222] bg-black sticky top-0 z-30 px-4 sm:px-8 flex items-center justify-between gap-3">
-      {/* Left: Mobile Menu Trigger + Search */}
-      <div className="flex items-center gap-3 flex-1 max-w-md">
+    <header className="h-14 border-b border-[#1e1e1e] bg-black/90 sticky top-0 z-30 px-4 sm:px-6 flex items-center justify-between gap-3 backdrop-blur-md">
+      {/* Search Input */}
+      <div className="flex items-center gap-2.5 flex-1 max-w-md">
         {onOpenMobileMenu && (
           <button
             onClick={onOpenMobileMenu}
-            className="lg:hidden p-2 rounded-xl bg-[#111] border border-[#222] text-[#ccc] hover:text-white"
+            className="lg:hidden p-1.5 rounded bg-[#121212] border border-[#1e1e1e] text-[#888] hover:text-white btn-press"
             aria-label="Open Navigation"
           >
             <Menu className="w-4 h-4" />
           </button>
         )}
 
-        <div className="relative flex-1 group">
-          <Search className="w-3.5 h-3.5 text-[#666] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none group-focus-within:text-white transition-colors" />
+        <div className="relative flex-1">
+          <Search className="w-3.5 h-3.5 text-[#555] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
-            placeholder="Search files..."
+            placeholder="Search filenames or hashes..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full bg-[#111] border border-[#222] text-white placeholder-zinc-500 rounded-xl pl-9 pr-14 py-2 text-xs sm:text-sm focus:outline-none focus:border-zinc-500 focus:bg-[#222] transition-all"
+            className="w-full bg-[#0a0a0a] border border-[#1e1e1e] text-white placeholder-[#555] rounded-lg pl-8 pr-12 py-1.5 text-xs font-mono focus:outline-none focus:border-[#444] transition-colors"
           />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none hidden sm:block">
-            <kbd>⌘K</kbd>
-          </div>
+          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-[#555] pointer-events-none hidden sm:inline">
+            ⌘K
+          </span>
         </div>
       </div>
 
-      {/* Action Controls */}
-      <div className="flex items-center gap-2 sm:gap-3">
-        {/* Storage Provider Status Badge */}
-        <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#111] border border-[#222] text-xs text-[#ccc]">
-          <ShieldCheck className="w-3.5 h-3.5 text-[#ccc]" />
-          <span className="font-mono text-white text-[11px]">{providerName}</span>
-        </div>
-
+      {/* Right Actions: Upload & Active Provider */}
+      <div className="flex items-center gap-3">
         {/* Upload Button */}
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.96 }}
+        <button
           onClick={onOpenUpload}
-          className="flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-white text-black font-semibold text-xs sm:text-sm transition-colors shadow-sm"
+          className="bg-white text-black hover:bg-[#e0e0e0] px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors btn-press shadow-sm"
         >
           <Upload className="w-3.5 h-3.5" />
           <span>Upload</span>
-        </motion.button>
+        </button>
 
-        {/* Disconnect/Logout Button */}
-        {onDisconnect && (
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onDisconnect}
-            title="Disconnect or switch storage account"
-            className="flex items-center gap-1.5 px-2.5 py-2 sm:px-3 sm:py-2 rounded-xl text-xs font-medium text-[#999] hover:text-white hover:bg-[#111] border border-[#222] transition-colors"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Logout</span>
-          </motion.button>
-        )}
+        {/* Provider Tag & Disconnect */}
+        <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-[#1e1e1e]">
+          <span className="text-[11px] font-mono text-[#888] uppercase">
+            {providerName}
+          </span>
+          {onDisconnect && (
+            <button
+              onClick={onDisconnect}
+              className="p-1.5 text-[#555] hover:text-white rounded hover:bg-[#121212] transition-colors btn-press"
+              title="Disconnect Storage Provider"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
     </header>
   );

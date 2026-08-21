@@ -29,93 +29,64 @@ export function BulkActionBar({
     <AnimatePresence>
       {selectedCount > 0 && (
         <motion.div
-          initial={{ y: 100, opacity: 0, x: '-50%', scale: 0.95 }}
-          animate={{ y: 0, opacity: 1, x: '-50%', scale: 1 }}
-          exit={{ y: 100, opacity: 0, x: '-50%', scale: 0.95 }}
-          transition={{ type: 'spring', bounce: 0.25, duration: 0.5 }}
-          className="fixed bottom-4 sm:bottom-6 left-1/2 z-40 max-w-[95vw]"
+          initial={{ y: 20, opacity: 0, x: '-50%' }}
+          animate={{ y: 0, opacity: 1, x: '-50%' }}
+          exit={{ y: 20, opacity: 0, x: '-50%' }}
+          transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+          className="fixed bottom-6 left-1/2 z-40 max-w-[95vw]"
         >
-          <div className="bg-zinc-950/80 border border-zinc-800 shadow-2xl shadow-black/80 backdrop-blur-2xl px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs overflow-hidden">
-            {/* Glossy top edge highlight */}
-            <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-            
-            {/* Selected Counter */}
-            <div className="flex items-center gap-1.5 pr-2 sm:pr-3 border-r border-zinc-800">
-              <motion.span
-                key={selectedCount}
-                initial={{ scale: 1.5, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="w-5 h-5 rounded-full bg-white text-black font-bold text-[11px] flex items-center justify-center font-mono"
-              >
-                {selectedCount}
-              </motion.span>
-              <span className="text-zinc-200 font-medium text-xs hidden sm:inline">
-                {selectedCount === 1 ? 'selected' : 'selected'}
-              </span>
+          <div className="bg-[#0a0a0a] border border-[#222] px-4 py-2 rounded-lg flex items-center gap-3 text-xs font-mono shadow-2xl shadow-black/90">
+            {/* Selected Count */}
+            <div className="flex items-center gap-2 pr-3 border-r border-[#1e1e1e]">
+              <span className="text-white font-bold tabular-nums">{selectedCount}</span>
+              <span className="text-[#888]">selected</span>
             </div>
 
-            {/* Toggle Select All */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            {/* Select All / Clear */}
+            <button
               onClick={onToggleSelectAll}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white font-medium transition-colors"
+              className="text-[#888] hover:text-white flex items-center gap-1.5 transition-colors btn-press"
             >
               {isAllSelected ? (
                 <>
                   <CheckSquare className="w-3.5 h-3.5 text-white" />
-                  <span className="hidden sm:inline">Deselect All</span>
+                  <span>Deselect All</span>
                 </>
               ) : (
                 <>
-                  <Square className="w-3.5 h-3.5 text-zinc-500" />
-                  <span>All ({totalCount})</span>
+                  <Square className="w-3.5 h-3.5" />
+                  <span>Select All ({totalCount})</span>
                 </>
               )}
-            </motion.button>
+            </button>
 
-            {/* Bulk Download ZIP */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            {/* Download Zip */}
+            <button
               onClick={onBulkDownloadZip}
               disabled={isDownloadingZip}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white hover:bg-zinc-200 text-black font-semibold transition-colors disabled:opacity-50"
+              className="bg-white text-black hover:bg-[#e0e0e0] px-3 py-1 rounded font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors btn-press disabled:opacity-50"
             >
-              {isDownloadingZip ? (
-                <>
-                  <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                  <span>Archiving...</span>
-                </>
-              ) : (
-                <>
-                  <Archive className="w-3.5 h-3.5" />
-                  <span>Download ZIP</span>
-                </>
-              )}
-            </motion.button>
+              <Archive className="w-3.5 h-3.5" />
+              <span>{isDownloadingZip ? 'Archiving...' : 'Download ZIP'}</span>
+            </button>
 
-            {/* Bulk Delete */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            {/* Delete Selected */}
+            <button
               onClick={onBulkDelete}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white font-medium transition-colors"
+              className="text-[#ff3333] hover:bg-[#ff3333]/10 border border-[#ff3333]/30 px-3 py-1 rounded flex items-center gap-1.5 transition-colors btn-press"
             >
-              <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-              <span className="hidden sm:inline text-rose-400">Delete</span>
-            </motion.button>
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete</span>
+            </button>
 
-            {/* Clear Selection (X) */}
-            <motion.button
-              whileHover={{ scale: 1.1, rotate: 90 }}
-              whileTap={{ scale: 0.9 }}
+            {/* Clear selection icon */}
+            <button
               onClick={onClearSelection}
-              className="p-1 rounded-full bg-zinc-900 text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors ml-1"
+              className="p-1 text-[#555] hover:text-white rounded transition-colors btn-press ml-1"
               title="Clear selection"
             >
-              <X className="w-3.5 h-3.5" />
-            </motion.button>
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </motion.div>
       )}
