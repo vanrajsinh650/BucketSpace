@@ -188,13 +188,15 @@ export class TelegramAuthService {
     } catch (err: any) {
       const msg = (err?.errorMessage || err?.message || '').toLowerCase();
 
-      // Telegram signals 2FA requirement via SESSION_PASSWORD_NEEDED
-      if (
+      // Telegram signals 2FA requirement via SESSION_PASSWORD_NEEDED RPC error
+      const requires2FA =
+        err?.errorMessage === 'SESSION_PASSWORD_NEEDED' ||
         msg.includes('session_password_needed') ||
         msg.includes('2fa') ||
-        msg.includes('password')
-      ) {
-        // Keep session alive so 2FA step can reuse it
+        msg.includes('password');
+
+      if (requires2FA) {
+        // Keep session alive so the verify2FA step can reuse the same client
         return { success: false, requires2FA: true };
       }
       throw err;
