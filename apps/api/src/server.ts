@@ -55,13 +55,24 @@ const server = Fastify({
 /* ------------------------------------------------------------------ */
 
 async function main(): Promise<void> {
-  // --- CORS (restrict in production, permissive in dev) ---
-  const allowedOrigins = process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
-    : ['http://localhost:3000'];
+  // In dev, allow any localhost port (Next.js may shift from 3000 to 3001/3002).
+  // In production, restrict strictly via CORS_ORIGINS env var.
+  const isDev = (process.env.NODE_ENV || 'development') === 'development';
+  const corsOrigin = isDev
+    ? (origin: string | undefined, cb: (err: Error | null, allow: boolean) => void) => {
+        // Allow all localhost origins in dev — never blocks shifted dev ports
+        if (!origin || /^http:\/\/localhost(:\d+)?$/.test(origin)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Not allowed by CORS'), false);
+        }
+      }
+    : (process.env.CORS_ORIGINS
+        ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
+        : ['http://localhost:3000']);
 
   await server.register(cors, {
-    origin: allowedOrigins,
+    origin: corsOrigin,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
 
