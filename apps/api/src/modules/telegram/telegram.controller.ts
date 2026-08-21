@@ -293,6 +293,19 @@ export function registerTelegramRoutes(fastify: FastifyInstance): void {
         });
       } catch (err: any) {
         request.log.error(err, 'Failed to send Telegram MTProto verification code');
+
+        // FloodWait: Telegram rate-limited this number — tell user exactly how long to wait
+        const seconds = err?.seconds;
+        if (seconds) {
+          const mins = Math.ceil(seconds / 60);
+          return reply.status(429).send({
+            statusCode: 429,
+            errorCode: 'FLOOD_WAIT',
+            message: `Telegram rate limit hit. Please wait ${seconds} seconds (about ${mins} minute${mins > 1 ? 's' : ''}) before requesting a new code.`,
+            waitSeconds: seconds,
+          });
+        }
+
         return reply.status(400).send({
           statusCode: 400,
           errorCode: 'TELEGRAM_AUTH_ERROR',
