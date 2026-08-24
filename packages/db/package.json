@@ -8,7 +8,7 @@
     "build": "tsc --build",
     "prisma:generate": "prisma generate",
     "type-check": "tsc --noEmit",
-    "test": "tsc --project tsconfig.test.json && node --test dist/test/sqlite-metadata-repository.test.js"
+    "test": "tsc --project tsconfig.test.json && node --test dist/test/*.test.js"
   },
   "dependencies": {
     "@bucketspace/shared": "workspace:*",

@@ -13,6 +13,7 @@ import {
   Activity,
   X,
   HardDrive,
+  FolderSync,
 } from 'lucide-react';
 import { CategoryFilter } from '../lib/storage-store';
 
@@ -25,6 +26,7 @@ interface SidebarProps {
   onSelectCategory: (cat: CategoryFilter) => void;
   onOpenSettings: () => void;
   onOpenRules: () => void;
+  onOpenSync?: () => void;
   categoryCounts: Record<CategoryFilter, number>;
   storageUsedBytes: number;
   providerName?: string;
@@ -39,6 +41,7 @@ export function Sidebar({
   onSelectCategory,
   onOpenSettings,
   onOpenRules,
+  onOpenSync,
   categoryCounts,
   storageUsedBytes,
   providerName,
@@ -209,18 +212,28 @@ export function Sidebar({
           </div>
 
           {/* Action Triggers */}
-          <div className="grid grid-cols-2 gap-1">
+          <div className="grid grid-cols-3 gap-1">
             <button
               onClick={onOpenRules}
-              className="py-1.5 px-2 bg-[#121212] hover:bg-[#181818] border border-[#1e1e1e] hover:border-[#333] rounded text-[11px] font-mono text-[#888] hover:text-white flex items-center justify-center gap-1.5 transition-colors btn-press"
+              className="py-1.5 px-1.5 bg-[#121212] hover:bg-[#181818] border border-[#1e1e1e] hover:border-[#333] rounded text-[10px] font-mono text-[#888] hover:text-white flex items-center justify-center gap-1 transition-colors btn-press"
               title="Storage Routing Rules"
             >
               <Sliders className="w-3 h-3" />
               <span>Rules</span>
             </button>
+            {onOpenSync && (
+              <button
+                onClick={onOpenSync}
+                className="py-1.5 px-1.5 bg-[#121212] hover:bg-[#181818] border border-[#1e1e1e] hover:border-[#333] rounded text-[10px] font-mono text-[#888] hover:text-white flex items-center justify-center gap-1 transition-colors btn-press"
+                title="Folder Auto-Sync Daemon"
+              >
+                <FolderSync className="w-3 h-3 text-emerald-400" />
+                <span>Sync</span>
+              </button>
+            )}
             <button
               onClick={onOpenSettings}
-              className="py-1.5 px-2 bg-[#121212] hover:bg-[#181818] border border-[#1e1e1e] hover:border-[#333] rounded text-[11px] font-mono text-[#888] hover:text-white flex items-center justify-center gap-1.5 transition-colors btn-press"
+              className="py-1.5 px-1.5 bg-[#121212] hover:bg-[#181818] border border-[#1e1e1e] hover:border-[#333] rounded text-[10px] font-mono text-[#888] hover:text-white flex items-center justify-center gap-1 transition-colors btn-press"
               title="Storage Provider Settings"
             >
               <Settings className="w-3 h-3" />

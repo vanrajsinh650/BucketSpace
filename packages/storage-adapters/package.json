@@ -13,6 +13,7 @@
     "@bucketspace/db": "workspace:*",
     "@bucketspace/security": "workspace:*",
     "@bucketspace/shared": "workspace:*",
+    "chokidar": "^5.0.0",
     "telegram": "^2.26.22"
   },
   "devDependencies": {

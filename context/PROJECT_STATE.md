@@ -300,15 +300,32 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
     - Added clean **Disconnect / Logout** capability in [`Header.tsx`](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/apps/web/src/components/Header.tsx) and [`storage-store.ts`](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/apps/web/src/lib/storage-store.ts).
     - Replaced the arbitrary quota progress bar with an **Unlimited Capacity** indicator (`∞ Unlimited` / Zero storage limits) in [`Sidebar.tsx`](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/apps/web/src/components/Sidebar.tsx).
     - Configured [`StorageStore.registerUserProvider()`](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/apps/web/src/lib/storage-store.ts) to clear demo sandbox files upon connecting a real account, ensuring real drives start at a clean `0.0 MB`.
-- **Security, Reliability & Bug Audit Hardening (Complete)**:
-  - **Hardcoded Endpoint Elimination**: Replaced all hardcoded `http://localhost:4000` URLs with dynamic `process.env.NEXT_PUBLIC_API_URL` across `OnboardingLandingPage.tsx`, `ProviderOnboardingModal.tsx`, `storage-store.ts`, and `HLSVideoPlayer.tsx`.
-  - **Credential Leak Mitigation**: Removed MTProto `sessionString` from GET URL query parameters in `HttpTelegramStorageAdapter.getChunk` and `deleteChunk`, transmitting authentication tokens strictly via `x-telegram-session` request headers.
-  - **React Error Boundary Protection**: Added `apps/web/src/app/error.tsx` and `apps/web/src/app/global-error.tsx` to prevent blank white-screen crashes and provide structured retry controls.
-  - **Next.js Security Headers & API Proxy**: Configured `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`, disabled `poweredByHeader`, and configured `/api/v1/:path*` rewrites in `next.config.js`.
-  - **WebSocket Hardening**: Added `process.env.NEXT_PUBLIC_WS_URL` support with dynamic fallback and `encodeURIComponent` URI encoding on workspace paths in `useWebSocketSync.ts`.
-  - **Share Token Persistence & Real Downloads**: Wired `ShareModal.tsx` to generate persistent share records in `StorageStore` and wired `/s/[token]` public download to stream and reassemble genuine encrypted chunks into browser Blob downloads.
-  - **Memory & Lifecycle Safety**: Added unmounted timer cleanup refs across `page.tsx`, `AnalysisTab.tsx`, and `OnboardingLandingPage.tsx`, added >250MB heap consumption warning before in-memory ZIP archiving, sanitized `PhoneInputWithCountry.tsx` stripping, and prevented `NaN` rule priority in `RuleEditor.tsx`.
-  - **Workspace & Config Integrity**: Fixed boolean syntax in `pnpm-workspace.yaml` and documented frontend environment variables in `.env.example`.
+- **Completed Standalone Desktop Application & Background Folder Auto-Sync Daemon** ✅:
+  - **Standalone Desktop App (`apps/desktop`)**:
+    - Packaged Electron 34 desktop application running with native dark obsidian window frameless styling.
+    - Implemented `ServerManager` Fastify backend supervisor managing API lifecycle automatically (starts API on `http://127.0.0.1:4000` with `/healthz` readiness polling and terminates child processes on app quit).
+    - Added System Tray with background synchronization toggle and minimize-to-tray lifecycle.
+    - Added secure Electron preload IPC bridge (`dialog:openDirectory`, `app:notification`, window controls).
+    - Added `"dev:desktop"` and `"build:desktop"` root scripts.
+  - **Folder Auto-Sync Engine (`@bucketspace/storage-adapters/src/sync`)**:
+    - Implemented `FolderWatcher` leveraging `chokidar` write-stability polling (1500ms threshold) and non-blocking lock probing to prevent syncing partially written files.
+    - Implemented `ReconciliationEngine` resolving 3-way delta state machine across Local filesystem, SQLite Sync Ledger, and Remote storage:
+      - *Case A (Local updated, Remote unchanged)*: Fast-forward chunked upload with whole-file SHA-256 calculation.
+      - *Case B (Remote updated, Local unchanged)*: Fast-forward download to `.part` file with SHA-256 byte verification and atomic rename.
+      - *Case C (Concurrent modification)*: Non-destructive fork preserving local version as `filename (Conflict YYYY-MM-DD-HHmmss).ext` and downloading canonical cloud version without data loss.
+      - *Case D (Identical content)*: Invariant NOOP state matching.
+    - Implemented `SyncDaemon` master coordinator managing background sync jobs, scan and reconcile passes, pause/resume, and real-time typed events (`FOLDER_SCAN_STARTED`, `SYNC_STARTED`, `SYNC_COMPLETED`, `SYNC_CONFLICT`, `SYNC_ERROR`).
+    - Implemented Echo Suppression Protocol preventing infinite event loops between watcher and daemon downloads.
+  - **SQLite Sync Ledger (`@bucketspace/db`)**:
+    - Created `sync_ledger` schema and `SqliteSyncLedgerRepository` (`ISyncLedgerRepository`) tracking `local_path`, `file_size`, `mtime_ms`, `sha256_hash`, `remote_file_id`, `sync_status`, `direction`, `error_message`, and `last_synced_at`.
+  - **CLI Sync Integration (`apps/cli`)**:
+    - Added `bucketspace sync [--folder <path>] [--once]` and `bucketspace sync status` commands with real-time terminal progress.
+  - **API & WebSocket Integration (`apps/api`)**:
+    - Added `GET /api/v1/sync/daemon/stats` and `POST /api/v1/sync/daemon/broadcast` for real-time WebSocket progress distribution.
+  - **Web & Desktop UI Dashboard (`apps/web`)**:
+    - Built `FolderSyncModal.tsx` and `SyncStatusBadge.tsx` with live sync status, watched directory path input, live stats, and real-time activity feed.
+    - Integrated into `Header.tsx`, `Sidebar.tsx`, and `page.tsx`.
+  - **Monorepo Metrics**: **100% test pass rate across 76/76 unit and integration test suites, 0 type-check errors, 100% Next.js 15 production build**.
 - **Monorepo Metric**: **100% TypeScript compile cleanly across all packages, Next.js 15 production build generating 4/4 static routes with 0 errors**.
 
 ---

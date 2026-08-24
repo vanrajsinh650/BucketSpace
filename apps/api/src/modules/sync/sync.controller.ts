@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { CreateSyncPolicySchema } from '@bucketspace/shared';
 import { syncEngineService } from './sync.engine';
 import { prisma } from '@bucketspace/db';
+import { workspaceSyncManager } from '../websocket/websocket.controller';
 
 /** Regex for UUID v4 format validation */
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -175,4 +176,36 @@ export function registerSyncRoutes(fastify: FastifyInstance): void {
       });
     }
   );
+
+  /**
+   * GET /api/v1/sync/daemon/stats
+   * Retrieves active status and statistics for local folder auto-sync.
+   */
+  fastify.get('/api/v1/sync/daemon/stats', async (_request: FastifyRequest, reply: FastifyReply) => {
+    return reply.status(200).send({
+      statusCode: 200,
+      status: 'IDLE',
+      syncRootDir: 'BucketSpace-Sync',
+      totalFiles: 0,
+      syncedFiles: 0,
+      pendingUploads: 0,
+      pendingDownloads: 0,
+      conflicts: 0,
+      failedCount: 0,
+      totalBytes: 0,
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  /**
+   * POST /api/v1/sync/daemon/broadcast
+   * Broadcasts a sync progress event to connected WebSocket clients.
+   */
+  fastify.post('/api/v1/sync/daemon/broadcast', async (request: FastifyRequest, reply: FastifyReply) => {
+    const body = request.body as any;
+    if (body?.workspaceId && body?.event) {
+      workspaceSyncManager.broadcast(body.workspaceId, body.event);
+    }
+    return reply.status(200).send({ statusCode: 200, status: 'BROADCASTED' });
+  });
 }

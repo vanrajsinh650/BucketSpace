@@ -6,6 +6,7 @@ allowBuilds:
   '@prisma/client': true
   '@prisma/engines': true
   bufferutil: true
+  electron: true
   es5-ext: false
   esbuild: true
   prisma: true
@@ -15,5 +16,6 @@ allowBuilds:
 onlyBuiltDependencies:
   - '@prisma/client'
   - '@prisma/engines'
+  - 'electron'
   - 'prisma'
   - 'sharp'

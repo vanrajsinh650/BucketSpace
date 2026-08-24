@@ -1,12 +1,12 @@
-'use client';
-
 import React from 'react';
 import { Search, Upload, LogOut, Menu } from 'lucide-react';
+import { SyncStatusBadge } from './SyncStatusBadge';
 
 interface HeaderProps {
   searchQuery: string;
   onSearchChange: (q: string) => void;
   onOpenUpload: () => void;
+  onOpenSync?: () => void;
   providerName: string;
   onDisconnect?: () => void;
   onOpenMobileMenu?: () => void;
@@ -16,6 +16,7 @@ export function Header({
   searchQuery,
   onSearchChange,
   onOpenUpload,
+  onOpenSync,
   providerName,
   onDisconnect,
   onOpenMobileMenu,
@@ -49,8 +50,12 @@ export function Header({
         </div>
       </div>
 
-      {/* Right Actions: Upload & Active Provider */}
-      <div className="flex items-center gap-3">
+      {/* Right Actions: Sync, Upload & Active Provider */}
+      <div className="flex items-center gap-2.5">
+        {onOpenSync && (
+          <SyncStatusBadge onClick={onOpenSync} />
+        )}
+
         {/* Upload Button */}
         <button
           onClick={onOpenUpload}

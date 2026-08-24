@@ -1,0 +1,23 @@
+{
+  "name": "@bucketspace/desktop",
+  "version": "1.0.0",
+  "description": "BucketSpace Standalone Desktop Application with Fastify Supervisor and System Tray",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "build:tsc": "tsc",
+    "build": "tsc",
+    "dev": "electron .",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bucketspace/api": "workspace:*",
+    "@bucketspace/db": "workspace:*",
+    "@bucketspace/shared": "workspace:*",
+    "@bucketspace/storage-adapters": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "electron": "^34.0.0",
+    "typescript": "^5.5.4"
+  }
+}

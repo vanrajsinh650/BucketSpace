@@ -8,6 +8,7 @@ import { DuplicateConflictModal } from '../components/DuplicateConflictModal';
 import { FileGrid } from '../components/FileGrid';
 import { FileInfoModal } from '../components/FileInfoModal';
 import { FilePreviewModal } from '../components/FilePreviewModal';
+import { FolderSyncModal } from '../components/FolderSyncModal';
 import { Header } from '../components/Header';
 import { MoveFileModal } from '../components/MoveFileModal';
 import { OnboardingLandingPage } from '../components/OnboardingLandingPage';
@@ -53,6 +54,7 @@ export default function BucketSpaceApp() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
+  const [syncModalOpen, setSyncModalOpen] = useState(false);
   const [selectedFileForRedundancy, setSelectedFileForRedundancy] = useState<FileMetadata | null>(null);
   const [providerList, setProviderList] = useState<ProviderDisplayInfo[]>([]);
   const [rulesList, setRulesList] = useState<StorageRule[]>([]);
@@ -427,6 +429,7 @@ export default function BucketSpaceApp() {
         onSelectCategory={setActiveCategory}
         onOpenSettings={handleOpenSettings}
         onOpenRules={handleOpenRules}
+        onOpenSync={() => setSyncModalOpen(true)}
         categoryCounts={categoryCounts}
         storageUsedBytes={storageUsedBytes}
         providerName={providerName}
@@ -440,6 +443,7 @@ export default function BucketSpaceApp() {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onOpenUpload={() => setUploadModalOpen(true)}
+          onOpenSync={() => setSyncModalOpen(true)}
           providerName={providerName}
           onDisconnect={handleDisconnect}
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
@@ -612,6 +616,12 @@ export default function BucketSpaceApp() {
           onClose={() => setRulesOpen(false)}
         />
       )}
+
+      {/* Folder Auto-Sync Daemon Modal */}
+      <FolderSyncModal
+        isOpen={syncModalOpen}
+        onClose={() => setSyncModalOpen(false)}
+      />
     </div>
   );
 }

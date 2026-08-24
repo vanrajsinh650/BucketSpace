@@ -5,7 +5,9 @@
   "description": "AI-First Telegram Cloud Drive & Multi-Cloud Workspace",
   "scripts": {
     "dev": "pnpm --parallel --filter \"./apps/*\" dev",
+    "dev:desktop": "pnpm --filter @bucketspace/desktop dev",
     "build": "pnpm --filter \"./packages/*\" build && pnpm --filter \"./apps/*\" build",
+    "build:desktop": "pnpm --filter @bucketspace/desktop build",
     "lint": "pnpm --recursive lint",
     "type-check": "pnpm --recursive type-check",
     "test": "pnpm --recursive test"

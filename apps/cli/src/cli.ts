@@ -1,18 +1,21 @@
 #!/usr/bin/env node
 import { existsSync, statSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
-import { SqliteMetadataRepository } from '@bucketspace/db';
+import { SqliteMetadataRepository, SqliteSyncLedgerRepository } from '@bucketspace/db';
 import { createFileId, IStorageProvider } from '@bucketspace/shared';
 import {
   InMemoryStorageProvider,
+  ProviderRegistry,
   RecoveryEngine,
+  StorageApplicationService,
+  SyncDaemon,
   TelegramStorageAdapter,
   TransferOrchestrator,
 } from '@bucketspace/storage-adapters';
 
 function printUsage(): void {
   console.log(`
-📦 BucketSpace V0 CLI Laboratory
+📦 BucketSpace CLI Laboratory
 
 Usage:
   bucketspace add <filepath>                 Upload a file to BucketSpace
@@ -24,6 +27,8 @@ Usage:
   bucketspace purge <file-id>                Permanently purge file from SQLite & Provider
   bucketspace verify <file-id>               Verify chunk presence & provider health
   bucketspace resume <file-id> <filepath>    Resume/repair missing or unverified chunks
+  bucketspace sync [--folder <path>] [--once] Watch & auto-sync local directory with cloud drive
+  bucketspace sync status                    Show current folder sync ledger stats
 `);
 }
 
@@ -251,6 +256,76 @@ async function main(): Promise<void> {
         });
 
         console.log(`✅ Resume complete! Storage status verified for '${file.name}'.`);
+        break;
+      }
+
+      case 'sync': {
+        const subCmd = args[1];
+        ProviderRegistry.register(provider);
+        const appService = new StorageApplicationService({
+          repository: repo,
+          defaultProviderId: provider.providerId,
+        });
+        const ledgerRepo = new SqliteSyncLedgerRepository((repo as any).db);
+
+        if (subCmd === 'status') {
+          const stats = await ledgerRepo.getStats();
+          console.log(`\n📊 BucketSpace Folder Sync Ledger Status:`);
+          console.log(`   Total Tracked Files: ${stats.totalFiles}`);
+          console.log(`   Synced Files:        ${stats.syncedFiles}`);
+          console.log(`   Pending Uploads:     ${stats.pendingUploads}`);
+          console.log(`   Pending Downloads:   ${stats.pendingDownloads}`);
+          console.log(`   Conflicts:           ${stats.conflicts}`);
+          console.log(`   Failed Files:        ${stats.failedCount}`);
+          console.log(`   Total Size:          ${(stats.totalBytes / (1024 * 1024)).toFixed(2)} MB\n`);
+          break;
+        }
+
+        let folderPath = resolve(process.cwd(), 'BucketSpace-Sync');
+        const folderIdx = args.indexOf('--folder');
+        if (folderIdx !== -1 && args[folderIdx + 1]) {
+          folderPath = resolve(args[folderIdx + 1]);
+        }
+
+        const isOnce = args.includes('--once');
+
+        console.log(`\n🔄 BucketSpace Folder Auto-Sync Daemon`);
+        console.log(`   Sync Folder: ${folderPath}`);
+        console.log(`   Mode:        ${isOnce ? 'Single Scan & Reconcile' : 'Continuous Background Watcher'}\n`);
+
+        const syncDaemon = new SyncDaemon(
+          {
+            syncRootDir: folderPath,
+            debounceMs: 1500,
+            concurrency: 3,
+          },
+          ledgerRepo,
+          appService
+        );
+
+        syncDaemon.onEvent((event) => {
+          const { payload, type } = event;
+          const time = new Date().toLocaleTimeString();
+          if (type === 'SYNC_COMPLETED') {
+            console.log(`   [${time}] ✅ SYNCED: ${payload.fileName} (${(payload.fileSize / 1024).toFixed(1)} KB)`);
+          } else if (type === 'SYNC_STARTED') {
+            console.log(`   [${time}] ⏳ ${payload.direction === 'UPLOAD' ? 'Uploading' : 'Downloading'}: ${payload.fileName}...`);
+          } else if (type === 'SYNC_CONFLICT') {
+            console.log(`   [${time}] ⚠️  CONFLICT: ${payload.fileName} -> Fork saved as '${payload.conflictPath}'`);
+          } else if (type === 'SYNC_ERROR') {
+            console.error(`   [${time}] ❌ ERROR: ${payload.fileName}: ${payload.error}`);
+          }
+        });
+
+        await syncDaemon.start();
+
+        if (isOnce) {
+          await syncDaemon.stop();
+          console.log(`\n✨ One-time sync complete!\n`);
+        } else {
+          console.log(`👀 Watching for local changes & remote updates... (Press Ctrl+C to stop)`);
+          await new Promise(() => {}); // Keep alive until SIGINT
+        }
         break;
       }
 
