@@ -1,6 +1,6 @@
-import { promises as fs, realpathSync, Stats } from 'node:fs';
-import path from 'node:path';
-import chokidar, { FSWatcher } from 'chokidar';
+import { promises as fs, realpathSync, Stats } from 'fs';
+import path from 'path';
+import type { FSWatcher } from 'chokidar';
 
 export type FileWatcherEventType = 'add' | 'change' | 'unlink';
 
@@ -66,7 +66,11 @@ export class FolderWatcher {
       // Fallback to resolved path
     }
 
-    this.watcher = chokidar.watch(this.rootDir, {
+    // Dynamically load chokidar on Node.js runtime
+    const chokidarModule = await import('chokidar');
+    const chokidarWatcher = chokidarModule.default?.watch ?? chokidarModule.watch;
+
+    this.watcher = chokidarWatcher(this.rootDir, {
       ignored: this.ignorePatterns,
       persistent: true,
       ignoreInitial: false,

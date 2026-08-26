@@ -1,5 +1,5 @@
-import { createHash } from 'node:crypto';
-import { createReadStream, statSync } from 'node:fs';
+import { createHash } from 'crypto';
+import { createReadStream, statSync } from 'fs';
 
 export interface FileChunkItem {
   index: number;

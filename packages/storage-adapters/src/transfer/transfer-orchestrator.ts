@@ -1,5 +1,5 @@
-import { createHash, randomUUID } from 'node:crypto';
-import { createWriteStream } from 'node:fs';
+import { createHash, randomUUID } from 'crypto';
+import { createWriteStream } from 'fs';
 import {
   ChunkMetadata,
   createChunkId,

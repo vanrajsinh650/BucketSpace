@@ -1,6 +1,6 @@
-import { createHash, randomUUID } from 'node:crypto';
-import { createReadStream, promises as fs, realpathSync, Stats } from 'node:fs';
-import path from 'node:path';
+import { createHash, randomUUID } from 'crypto';
+import { createReadStream, promises as fs, realpathSync, Stats } from 'fs';
+import path from 'path';
 import {
   SyncDaemonConfig,
   SyncDaemonStats,

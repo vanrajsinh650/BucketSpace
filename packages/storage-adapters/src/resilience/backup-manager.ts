@@ -1,4 +1,7 @@
-import { DatabaseSync } from 'node:sqlite';
+export interface DatabaseSyncLike {
+  exec(sql: string): void;
+  prepare(sql: string): { all(...args: any[]): any[]; run(...args: any[]): any };
+}
 import { SqliteMetadataRepository } from '@bucketspace/db';
 import { ProviderRegistry } from '../registry/provider-registry';
 import { TransferOrchestrator } from '../transfer/transfer-orchestrator';
@@ -28,7 +31,7 @@ export interface BackupSnapshot {
  * It deliberately does NOT contain raw file payload bytes, which reside securely on external/local providers.
  */
 export class BackupManager {
-  constructor(private readonly db: DatabaseSync) {}
+  constructor(private readonly db: DatabaseSyncLike) {}
 
   /**
    * Export all filesystem metadata into a portable backup snapshot.
@@ -62,7 +65,7 @@ export class BackupManager {
   /**
    * Restore a backup snapshot into a fresh SQLite database instance.
    */
-  public static restoreSnapshot(snapshot: BackupSnapshot, targetDb: DatabaseSync): void {
+  public static restoreSnapshot(snapshot: BackupSnapshot, targetDb: DatabaseSyncLike): void {
     targetDb.exec('PRAGMA foreign_keys = OFF;'); // Temporarily disable during bulk insert
 
     // 1. Files

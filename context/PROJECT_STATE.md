@@ -364,3 +364,11 @@ In accordance with user directives and deep extraction of design principles from
 - **Button Feedback**: All interactive elements implement `.btn-press` (`:active` scale(0.97) over 160ms).
 - **Entry Animations**: Never animate from `scale(0)`; modals and dropdowns scale from `scale(0.96)` + `opacity: 0` over 200ms.
 - **Layout Transitions**: Framer Motion spring physics (`type: 'spring', bounce: 0.2`) on view mode toggles, drag dropzones, and floating dock action bars.
+
+---
+
+## 11. Isomorphic Packaging & Bundler Architecture
+- **Browser/Node Universal Primitives**: `ProviderRegistry`, `StoragePolicyEngine`, `StorageRouter`, and `DuplicateResolver` are purely isomorphic with zero hard dependencies on Node-only builtins.
+- **Dynamic Node Imports**: Node-specific daemons (like `FolderWatcher` via `chokidar`) dynamically import runtime dependencies only during execution, avoiding eager evaluation in client-side Next.js/Webpack bundles.
+- **Crypto Abstraction**: Hashing and UUID generation leverage `globalThis.crypto` (Web Crypto / SubtleCrypto) universally across browser and Node.js environments.
+

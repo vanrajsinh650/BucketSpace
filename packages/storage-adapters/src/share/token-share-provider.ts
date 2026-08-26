@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'crypto';
 import { CreateShareOptions, IShareProvider, ShareLink } from './share-provider.interface';
 
 export interface StoredShareRecord {

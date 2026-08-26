@@ -1,8 +1,10 @@
-import { createHash } from 'node:crypto';
-import fs from 'node:fs';
-import path from 'node:path';
-import { pipeline } from 'node:stream/promises';
-import { Readable } from 'node:stream';
+import { createHash } from 'crypto';
+import fs from 'fs';
+import path from 'path';
+import { pipeline, Readable } from 'stream';
+import { promisify } from 'util';
+
+const pipelineAsync = promisify(pipeline);
 import {
   ChunkStat,
   IStorageProvider,
@@ -69,7 +71,7 @@ export class LocalStorageAdapter implements IStorageProvider {
         writtenBytes += data.byteLength;
       });
 
-      await pipeline(nodeReadable, writeStream);
+      await pipelineAsync(nodeReadable, writeStream);
 
       const computedHash = hasher.digest('hex');
 

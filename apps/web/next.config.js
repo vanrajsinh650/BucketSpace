@@ -26,6 +26,7 @@ const nextConfig = {
   webpack: (config, { isServer, webpack }) => {
     if (!isServer) {
       config.resolve.fallback = {
+        ...config.resolve.fallback,
         fs: false,
         crypto: false,
         path: false,
@@ -35,12 +36,27 @@ const nextConfig = {
         child_process: false,
         stream: false,
         'stream/promises': false,
+        util: false,
+        chokidar: false,
+        readdirp: false,
+        fsevents: false,
       };
-      config.plugins.push(
-        new webpack.NormalModuleReplacementPlugin(/^node:/, (resource) => {
-          resource.request = 'path';
-        })
-      );
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'stream/promises': false,
+        'node:stream/promises': false,
+        'node:stream': false,
+        'node:fs': false,
+        'node:crypto': false,
+        'node:path': false,
+        'node:os': false,
+        'node:net': false,
+        'node:tls': false,
+        'node:child_process': false,
+        'node:util': false,
+        chokidar: false,
+        readdirp: false,
+      };
     }
     return config;
   },

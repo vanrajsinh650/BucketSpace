@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash } from 'crypto';
 import { FileId, FileMetadata } from '@bucketspace/shared';
 import { IMetadataRepository } from '@bucketspace/db';
 import { ProviderRegistry } from '../registry/provider-registry';

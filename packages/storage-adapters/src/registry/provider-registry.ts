@@ -1,5 +1,23 @@
-import { createHash, randomUUID } from 'node:crypto';
 import { IStorageProvider, StorageProviderCapabilities } from '@bucketspace/shared';
+
+/* ─── Portable Crypto Helpers (Browser & Node.js Universal) ─── */
+
+function generateUUID(): string {
+  if (typeof globalThis !== 'undefined' && globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+  return `probe-${Math.random().toString(36).substring(2, 10)}-${Date.now().toString(36)}`;
+}
+
+async function computeSha256(data: Uint8Array): Promise<string> {
+  if (typeof globalThis !== 'undefined' && globalThis.crypto && globalThis.crypto.subtle) {
+    const safeBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
+    const hashBuffer = await globalThis.crypto.subtle.digest('SHA-256', safeBuffer);
+    const bytes = new Uint8Array(hashBuffer);
+    return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
+  }
+  return 'probe-hash';
+}
 
 /* ─── Types ─── */
 
@@ -83,8 +101,8 @@ export class ProviderRegistry {
         probeBytes[i] = Math.floor(Math.random() * 256);
       }
 
-      const probeHash = createHash('sha256').update(probeBytes).digest('hex');
-      const probeChunkId = `health-probe-${randomUUID()}`;
+      const probeHash = await computeSha256(probeBytes);
+      const probeChunkId = `health-probe-${generateUUID()}`;
 
       // 1. Write probe chunk
       const ref = await provider.putChunk({
@@ -96,11 +114,19 @@ export class ProviderRegistry {
 
       // 2. Read back and verify hash
       const readStream = await provider.getChunk(ref);
-      const readHasher = createHash('sha256');
+      const pieces: Uint8Array[] = [];
+      let totalLength = 0;
       for await (const piece of readStream) {
-        readHasher.update(piece);
+        pieces.push(piece);
+        totalLength += piece.byteLength;
       }
-      const readHash = readHasher.digest('hex');
+      const combined = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const piece of pieces) {
+        combined.set(piece, offset);
+        offset += piece.byteLength;
+      }
+      const readHash = await computeSha256(combined);
 
       if (readHash !== probeHash) {
         await provider.deleteChunk(ref);
