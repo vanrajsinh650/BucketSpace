@@ -73,18 +73,15 @@ export function ProviderOnboardingModal({
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        if (data.errorCode === 'MISSING_TELEGRAM_CREDENTIALS' || data.message?.includes('API ID')) {
-          setShowApiCreds(true);
-        }
         throw new Error(data.message || 'Failed to send verification code from Telegram.');
       }
 
       setSessionToken(data.sessionToken);
+      if (data.sessionToken?.startsWith('tgsess_dev_')) {
+        setCode('12345');
+      }
       setTelegramStep('code');
     } catch (err: any) {
-      if (err.message?.includes('API ID') || err.message?.includes('API Hash')) {
-        setShowApiCreds(true);
-      }
       setErrorMessage(err.message || 'Network error connecting to API gateway.');
     } finally {
       setIsSubmitting(false);
@@ -324,6 +321,17 @@ export function ProviderOnboardingModal({
                     Change
                   </button>
                 </div>
+                {sessionToken.startsWith('tgsess_dev_') && (
+                  <div className="p-2.5 bg-emerald-950/30 border border-emerald-800/40 rounded-lg text-emerald-300 text-[11px] flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>Ready! Quick verify code:</span>
+                    </div>
+                    <span className="bg-emerald-900/60 text-white font-mono font-bold px-2 py-0.5 rounded text-xs border border-emerald-700/50 tracking-widest">
+                      12345
+                    </span>
+                  </div>
+                )}
                 <div className="space-y-1">
                   <label className="text-[10px] text-[#666] uppercase block">Telegram Code</label>
                   <input
