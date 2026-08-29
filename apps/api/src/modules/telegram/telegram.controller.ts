@@ -268,7 +268,7 @@ export function registerTelegramRoutes(fastify: FastifyInstance): void {
   fastify.post(
     '/api/v1/telegram/auth/send-code',
     async (request: FastifyRequest, reply: FastifyReply) => {
-      const body = request.body as { phone?: string; apiId?: number; apiHash?: string };
+      const body = request.body as { phone?: string; apiId?: number | string; apiHash?: string };
       if (!body?.phone) {
         return reply.status(400).send({
           statusCode: 400,
@@ -277,11 +277,20 @@ export function registerTelegramRoutes(fastify: FastifyInstance): void {
         });
       }
 
+      const parsedApiId =
+        body.apiId !== undefined && String(body.apiId).trim() !== ''
+          ? Number(body.apiId)
+          : undefined;
+      const parsedApiHash =
+        body.apiHash !== undefined && String(body.apiHash).trim() !== ''
+          ? String(body.apiHash).trim()
+          : undefined;
+
       try {
         const result = await TelegramAuthService.sendCode({
           phone: body.phone,
-          apiId: body.apiId,
-          apiHash: body.apiHash,
+          apiId: parsedApiId,
+          apiHash: parsedApiHash,
         });
 
         return reply.status(200).send({
@@ -306,9 +315,14 @@ export function registerTelegramRoutes(fastify: FastifyInstance): void {
           });
         }
 
+        const isMissingCredentials =
+          err?.message?.includes('API ID and API Hash') ||
+          (!parsedApiId && (!process.env.TELEGRAM_API_ID || isNaN(Number(process.env.TELEGRAM_API_ID)))) ||
+          (!parsedApiHash && !process.env.TELEGRAM_API_HASH);
+
         return reply.status(400).send({
           statusCode: 400,
-          errorCode: 'TELEGRAM_AUTH_ERROR',
+          errorCode: isMissingCredentials ? 'MISSING_TELEGRAM_CREDENTIALS' : 'TELEGRAM_AUTH_ERROR',
           message: err?.message || 'Failed to send verification code from Telegram',
         });
       }

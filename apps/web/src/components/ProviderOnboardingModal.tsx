@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, Send, HardDrive, Cloud, ArrowRight, ShieldCheck, Check, AlertCircle, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Send, HardDrive, Cloud, ArrowRight, ShieldCheck, Check, AlertCircle, Loader2, Key, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 import { PhoneInputWithCountry } from './PhoneInputWithCountry';
 
 export interface ProviderOnboardingModalProps {
@@ -21,12 +21,24 @@ export function ProviderOnboardingModal({
   const [providerType, setProviderType] = useState<'telegram' | 'local' | 'cloud'>('telegram');
   const [telegramStep, setTelegramStep] = useState<'phone' | 'code' | '2fa'>('phone');
   const [phone, setPhone] = useState('');
+  const [apiId, setApiId] = useState('');
+  const [apiHash, setApiHash] = useState('');
+  const [showApiCreds, setShowApiCreds] = useState(false);
   const [code, setCode] = useState('');
   const [password2FA, setPassword2FA] = useState('');
   const [sessionToken, setSessionToken] = useState('');
   const [localPath, setLocalPath] = useState('C:\\BucketSpace\\Storage');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedApiId = localStorage.getItem('bucketspace_telegram_api_id') || '';
+      const savedApiHash = localStorage.getItem('bucketspace_telegram_api_hash') || '';
+      if (savedApiId) setApiId(savedApiId);
+      if (savedApiHash) setApiHash(savedApiHash);
+    }
+  }, []);
 
   if (!isOpen) return null;
 
@@ -44,20 +56,35 @@ export function ProviderOnboardingModal({
     setErrorMessage('');
 
     try {
+      if (typeof window !== 'undefined') {
+        if (apiId) localStorage.setItem('bucketspace_telegram_api_id', apiId);
+        if (apiHash) localStorage.setItem('bucketspace_telegram_api_hash', apiHash);
+      }
+
       const res = await fetch(`${API_BASE}/api/v1/telegram/auth/send-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({
+          phone,
+          apiId: apiId ? Number(apiId) : undefined,
+          apiHash: apiHash || undefined,
+        }),
       });
 
       const data = await res.json();
       if (!res.ok || !data.success) {
+        if (data.errorCode === 'MISSING_TELEGRAM_CREDENTIALS' || data.message?.includes('API ID')) {
+          setShowApiCreds(true);
+        }
         throw new Error(data.message || 'Failed to send verification code from Telegram.');
       }
 
       setSessionToken(data.sessionToken);
       setTelegramStep('code');
     } catch (err: any) {
+      if (err.message?.includes('API ID') || err.message?.includes('API Hash')) {
+        setShowApiCreds(true);
+      }
       setErrorMessage(err.message || 'Network error connecting to API gateway.');
     } finally {
       setIsSubmitting(false);
@@ -193,9 +220,11 @@ export function ProviderOnboardingModal({
 
         {/* Error Message Box */}
         {errorMessage && (
-          <div className="m-4 p-3 bg-red-950/40 border border-red-800/60 rounded text-red-300 text-xs flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-            <span className="leading-tight">{errorMessage}</span>
+          <div className="m-4 p-3 bg-red-950/30 border border-red-800/50 rounded-lg text-xs space-y-2">
+            <div className="flex items-start gap-2 text-red-300">
+              <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+              <span className="leading-tight">{errorMessage}</span>
+            </div>
           </div>
         )}
 
@@ -203,11 +232,66 @@ export function ProviderOnboardingModal({
         <div className="p-4 space-y-4">
           {providerType === 'telegram' ? (
             telegramStep === 'phone' ? (
-              <form onSubmit={handleTelegramPhone} className="space-y-4">
-                <p className="text-white text-xs leading-relaxed">
+              <form onSubmit={handleTelegramPhone} className="space-y-3.5">
+                <p className="text-zinc-300 text-xs leading-relaxed">
                   Store unlimited zero-knowledge encrypted chunks inside your private Telegram account.
                 </p>
                 <PhoneInputWithCountry value={phone} onChange={setPhone} label="Phone Number" />
+
+                {/* Optional / Expandable MTProto API Credentials */}
+                <div className="border border-[#1e1e1e] bg-[#111] rounded-lg p-2.5 space-y-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowApiCreds((prev) => !prev)}
+                    className="w-full flex items-center justify-between text-[11px] text-zinc-400 hover:text-zinc-200 transition-colors"
+                  >
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <Key className="w-3.5 h-3.5 text-zinc-400" />
+                      <span>Telegram API Credentials {apiId ? '(Set)' : '(Custom / Optional)'}</span>
+                    </span>
+                    {showApiCreds ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  </button>
+
+                  {showApiCreds && (
+                    <div className="pt-2 border-t border-[#222] space-y-2 text-[11px]">
+                      <p className="text-zinc-400 text-[10px]">
+                        Obtain your credentials for free from{' '}
+                        <a
+                          href="https://my.telegram.org"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-white underline hover:text-blue-400 inline-flex items-center gap-0.5"
+                        >
+                          my.telegram.org <ExternalLink className="w-2.5 h-2.5" />
+                        </a>{' '}
+                        under API development tools.
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] text-[#666] uppercase block mb-1">API ID</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 29481920"
+                            value={apiId}
+                            onChange={(e) => setApiId(e.target.value)}
+                            className="w-full bg-[#181818] border border-[#2a2a2a] rounded px-2 py-1.5 text-white font-mono text-xs focus:outline-none focus:border-zinc-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-[#666] uppercase block mb-1">API Hash</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 9fa8b7c6..."
+                            value={apiHash}
+                            onChange={(e) => setApiHash(e.target.value)}
+                            className="w-full bg-[#181818] border border-[#2a2a2a] rounded px-2 py-1.5 text-white font-mono text-xs focus:outline-none focus:border-zinc-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <button
                   type="submit"
                   disabled={!phone || isSubmitting}

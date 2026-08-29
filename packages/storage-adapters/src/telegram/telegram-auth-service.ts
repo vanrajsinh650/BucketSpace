@@ -101,10 +101,12 @@ export class TelegramAuthService {
     apiId?: number;
     apiHash?: string;
   }): Promise<SendCodeResult> {
-    const apiId = params.apiId || Number(process.env.TELEGRAM_API_ID) || 0;
-    const apiHash = params.apiHash || process.env.TELEGRAM_API_HASH || '';
+    const rawApiId = params.apiId !== undefined && params.apiId !== 0 ? params.apiId : process.env.TELEGRAM_API_ID;
+    const apiId = Number(rawApiId);
+    const rawApiHash = params.apiHash || process.env.TELEGRAM_API_HASH || '';
+    const apiHash = rawApiHash.trim();
 
-    if (!apiId || !apiHash) {
+    if (!apiId || isNaN(apiId) || !apiHash || apiHash === 'your-telegram-api-hash' || apiHash === 'your-telegram-api-id') {
       throw new Error(
         'Telegram API ID and API Hash are required to send verification codes. You can get them from https://my.telegram.org under API development tools.'
       );
