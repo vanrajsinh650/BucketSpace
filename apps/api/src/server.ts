@@ -43,6 +43,7 @@ import { registerMediaRoutes } from './modules/media/media.controller';
 import { registerWebSocketRoutes } from './modules/websocket/websocket.controller';
 import { registerSyncRoutes } from './modules/sync/sync.controller';
 import { registerEnterpriseRoutes } from './modules/enterprise/enterprise.controller';
+import { registerShareRoutes } from './modules/share/share.controller';
 import { prisma } from '@bucketspace/db';
 
 /* ------------------------------------------------------------------ */
@@ -53,6 +54,7 @@ const server = Fastify({
   logger: {
     level: process.env.LOG_LEVEL || 'info',
   },
+  bodyLimit: 100 * 1024 * 1024, // 100 MB body limit for large chunk uploads
 });
 
 /* ------------------------------------------------------------------ */
@@ -106,6 +108,7 @@ async function main(): Promise<void> {
   registerWebSocketRoutes(server);
   registerSyncRoutes(server);
   registerEnterpriseRoutes(server);
+  registerShareRoutes(server);
 
   // --- Start listening ---
   const port = Number(process.env.PORT) || 4000;

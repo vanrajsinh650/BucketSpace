@@ -19,24 +19,43 @@ export default function PublicSharePage() {
   useEffect(() => {
     if (!token) return;
     const store = StorageStore.getInstance();
-    const rec = store.getShareRecord(token);
-    if (!rec) {
-      setNotFound(true);
-      return;
-    }
-    setShareData(rec);
-    if (!rec.hasPasscode) {
-      setIsAuthenticated(true);
-    }
+    store.fetchRemoteShareRecord(token).then((rec) => {
+      if (!rec) {
+        setNotFound(true);
+        return;
+      }
+      setShareData(rec);
+      if (!rec.hasPasscode) {
+        setIsAuthenticated(true);
+      }
+    });
   }, [token]);
 
-  const handleUnlock = (e: React.FormEvent) => {
+  const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!shareData) return;
-    if (shareData.passcode === passcode) {
+
+    if (shareData.passcode && shareData.passcode === passcode) {
       setIsAuthenticated(true);
       setAuthError('');
-    } else {
+      return;
+    }
+
+    try {
+      const res = await fetch(`http://localhost:4000/api/v1/shares/${token}/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passcode }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setAuthError(data.message || 'Incorrect passcode.');
+        return;
+      }
+      setShareData((prev: any) => ({ ...prev, ...data }));
+      setIsAuthenticated(true);
+      setAuthError('');
+    } catch {
       setAuthError('Incorrect passcode.');
     }
   };
@@ -46,7 +65,15 @@ export default function PublicSharePage() {
     setDownloading(true);
     try {
       const store = StorageStore.getInstance();
-      const { bytes } = await store.getFileBytes(shareData.fileId);
+      let bytes: Uint8Array;
+      try {
+        const result = await store.getFileBytes(shareData.fileId);
+        bytes = result.bytes;
+      } catch {
+        // Direct reassembly from public chunk metadata for cross-device recipients
+        bytes = await store.getChunksBytes(shareData.chunks);
+      }
+
       const blob = new Blob([bytes.buffer as ArrayBuffer], {
         type: shareData.mimeType || 'application/octet-stream',
       });

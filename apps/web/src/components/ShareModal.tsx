@@ -18,7 +18,14 @@ export function ShareModal({ file, onClose }: ShareModalProps) {
   useEffect(() => {
     if (!file) return;
     const store = StorageStore.getInstance();
-    const hours = expiresIn === '1h' ? 1 : expiresIn === '24h' ? 24 : 24 * 7;
+    const hours =
+      expiresIn === '1h'
+        ? 1
+        : expiresIn === '24h'
+        ? 24
+        : expiresIn === '7d'
+        ? 24 * 7
+        : undefined; // undefined = Never / Unlimited duration
     const share = store.createShareLink(file.id, { expiresInHours: hours });
     setShareUrl(share.url);
   }, [file, expiresIn]);
@@ -61,20 +68,25 @@ export function ShareModal({ file, onClose }: ShareModalProps) {
           {/* Expiration Select */}
           <div className="space-y-1.5">
             <label className="text-[10px] text-[#666] uppercase block">
-              Link Expiration
+              Link Expiration (Duration)
             </label>
-            <div className="grid grid-cols-3 gap-1.5">
-              {['1h', '24h', '7d'].map((time) => (
+            <div className="grid grid-cols-4 gap-1.5">
+              {[
+                { label: '1h', value: '1h' },
+                { label: '24h', value: '24h' },
+                { label: '7d', value: '7d' },
+                { label: '∞ Never', value: 'Never' },
+              ].map((opt) => (
                 <button
-                  key={time}
-                  onClick={() => setExpiresIn(time)}
+                  key={opt.value}
+                  onClick={() => setExpiresIn(opt.value)}
                   className={`py-1.5 rounded border text-xs font-mono uppercase transition-colors btn-press ${
-                    expiresIn === time
+                    expiresIn === opt.value
                       ? 'border-white bg-[#1a1a1a] text-white font-bold'
                       : 'border-[#1e1e1e] bg-[#121212] text-[#888] hover:text-white'
                   }`}
                 >
-                  {time}
+                  {opt.label}
                 </button>
               ))}
             </div>

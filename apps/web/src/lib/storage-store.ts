@@ -2,6 +2,7 @@ import {
   ChunkMetadata,
   createChunkId,
   createFileId,
+  DuplicateCheckResult,
   FileId,
   FileMetadata,
   FileStatus,
@@ -214,9 +215,15 @@ export class StorageStore {
   private activeProvider: IStorageProvider;
   private activeProviderId: string;
   private router: StorageRouter;
+  private apiBaseUrl: string;
 
   private constructor() {
     ProviderRegistry.clear();
+
+    this.apiBaseUrl =
+      typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
+        ? process.env.NEXT_PUBLIC_API_URL
+        : 'http://localhost:4000';
 
     // Initialize with safe default provider; credentials are vault-secured
     this.activeProvider = new InMemoryStorageProvider();
@@ -542,10 +549,7 @@ export class StorageStore {
       status: 'HASHING',
     });
 
-    const fileBuffer = new Uint8Array(await file.arrayBuffer());
-    const wholeFileHash = await calculateSha256(fileBuffer);
-
-    const sessionKey = `${file.name}_${file.size}_${wholeFileHash.substring(0, 16)}`;
+    const sessionKey = `${file.name}_${file.size}`;
     const savedSession = this.getResumableSession(sessionKey);
     const fileId = savedSession?.fileId
       ? createFileId(savedSession.fileId)
@@ -562,16 +566,24 @@ export class StorageStore {
       });
     }
 
+    const chunkHashes: string[] = [];
+
     for (let index = 0; index < totalChunks; index++) {
+      const start = index * CHUNK_SIZE;
+      const end = Math.min(start + CHUNK_SIZE, file.size);
+
+      // Stream only 5MB slice on-the-fly — never loads multi-GB file into browser RAM
+      const chunkBlob = file.slice(start, end);
+      const chunkBuffer = await chunkBlob.arrayBuffer();
+      const chunkBytes = new Uint8Array(chunkBuffer);
+      const chunkHash = await calculateSha256(chunkBytes);
+      chunkHashes.push(chunkHash);
+
       const existingChunk = uploadedChunks.find((c) => c.index === index);
       if (existingChunk && existingChunk.providerRef) {
         // Already uploaded on provider; skip chunk transmission
         continue;
       }
-
-      const start = index * CHUNK_SIZE;
-      const end = Math.min(start + CHUNK_SIZE, file.size);
-      const chunkBytes = fileBuffer.subarray(start, end);
 
       onProgress?.({
         fileName: file.name,
@@ -581,7 +593,6 @@ export class StorageStore {
         status: 'UPLOADING',
       });
 
-      const chunkHash = await calculateSha256(chunkBytes);
       const chunkId = createChunkId(`chunk-${fileId}-${index}`);
 
       // Resolve target provider via deterministic StoragePolicyEngine router
@@ -626,6 +637,8 @@ export class StorageStore {
       status: 'VERIFYING',
     });
 
+    const wholeFileHash = await calculateSha256(new TextEncoder().encode(chunkHashes.join(':')));
+
     const fileMetadata: FileMetadata = {
       id: fileId,
       name: file.name,
@@ -655,10 +668,27 @@ export class StorageStore {
   /**
    * Check for duplicate files or name collisions before starting an upload.
    */
-  public async checkDuplicate(file: File): Promise<import('@bucketspace/shared').DuplicateCheckResult> {
-    const fileBuffer = new Uint8Array(await file.arrayBuffer());
-    const wholeFileHash = await calculateSha256(fileBuffer);
-    return DuplicateResolver.checkDuplicate(file.name, wholeFileHash, this.files);
+  public async checkDuplicate(file: File): Promise<DuplicateCheckResult> {
+    const CHUNK_SIZE = 5 * 1024 * 1024;
+    const firstChunkBlob = file.slice(0, Math.min(CHUNK_SIZE, file.size));
+    const firstChunkBuffer = await firstChunkBlob.arrayBuffer();
+    const quickHash = await calculateSha256(new Uint8Array(firstChunkBuffer));
+    return DuplicateResolver.checkDuplicate(file.name, quickHash, this.files);
+  }
+
+  public checkNameCollision(name: string): boolean {
+    return this.files.some((f) => f.name.toLowerCase() === name.toLowerCase());
+  }
+
+  /**
+   * Replaces an existing file's underlying payload and metadata while preserving its persistent FileId.
+   */
+  public async replaceFile(
+    existingFileId: string,
+    file: File,
+    onProgress?: (progress: UploadProgressState) => void
+  ): Promise<FileMetadata> {
+    return this.uploadNewVersion(existingFileId, file, onProgress);
   }
 
   /**
@@ -669,14 +699,14 @@ export class StorageStore {
     customName: string,
     onProgress?: (progress: UploadProgressState) => void
   ): Promise<FileMetadata> {
-    const renamedFile = new File([file], customName, { type: file.type });
+    const renamedFile = new (window as any).File([file], customName, { type: file.type });
     return this.uploadFile(renamedFile, onProgress);
   }
 
   /**
-   * Replaces an existing file's underlying payload and metadata while preserving its persistent FileId.
+   * Replace an existing file with a new version, preserving the fileId and incrementing revision.
    */
-  public async replaceFile(
+  public async uploadNewVersion(
     existingFileId: string,
     file: File,
     onProgress?: (progress: UploadProgressState) => void
@@ -697,14 +727,19 @@ export class StorageStore {
       status: 'HASHING',
     });
 
-    const fileBuffer = new Uint8Array(await file.arrayBuffer());
-    const wholeFileHash = await calculateSha256(fileBuffer);
+    const chunkHashes: string[] = [];
     const uploadedChunks: ChunkMetadata[] = [];
 
     for (let index = 0; index < totalChunks; index++) {
       const start = index * CHUNK_SIZE;
       const end = Math.min(start + CHUNK_SIZE, file.size);
-      const chunkBytes = fileBuffer.subarray(start, end);
+
+      // Stream only 5MB slice on-the-fly
+      const chunkBlob = file.slice(start, end);
+      const chunkBuffer = await chunkBlob.arrayBuffer();
+      const chunkBytes = new Uint8Array(chunkBuffer);
+      const chunkHash = await calculateSha256(chunkBytes);
+      chunkHashes.push(chunkHash);
 
       onProgress?.({
         fileName: file.name,
@@ -714,7 +749,6 @@ export class StorageStore {
         status: 'UPLOADING',
       });
 
-      const chunkHash = await calculateSha256(chunkBytes);
       const chunkId = createChunkId(`chunk-${existing.id}-${index}-${Date.now()}`);
 
       const resolvedProviderId = this.router.resolveProviderId({
@@ -746,6 +780,7 @@ export class StorageStore {
       });
     }
 
+    const wholeFileHash = await calculateSha256(new TextEncoder().encode(chunkHashes.join(':')));
     existing.name = file.name;
     existing.size = file.size;
     existing.mimeType = file.type || 'application/octet-stream';
@@ -818,6 +853,51 @@ export class StorageStore {
     }
 
     return { bytes: fullCombined, file };
+  }
+
+  /**
+   * Reassemble byte array directly from an array of chunk metadata (for public shared links).
+   */
+  public async getChunksBytes(chunks: ChunkMetadata[]): Promise<Uint8Array> {
+    const downloadedPieces: Uint8Array[] = [];
+
+    for (const chunk of chunks) {
+      if (!chunk.providerRef) {
+        throw new Error(`Chunk ${chunk.index} missing provider reference`);
+      }
+
+      const provider = ProviderRegistry.has(chunk.providerRef.providerId)
+        ? ProviderRegistry.get(chunk.providerRef.providerId)
+        : this.activeProvider;
+
+      const stream = await provider.getChunk(chunk.providerRef);
+      const pieces: Uint8Array[] = [];
+      let totalLength = 0;
+
+      for await (const piece of stream) {
+        pieces.push(piece);
+        totalLength += piece.byteLength;
+      }
+
+      const chunkCombined = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const piece of pieces) {
+        chunkCombined.set(piece, offset);
+        offset += piece.byteLength;
+      }
+
+      downloadedPieces.push(chunkCombined);
+    }
+
+    const fullTotalSize = downloadedPieces.reduce((sum, p) => sum + p.byteLength, 0);
+    const fullCombined = new Uint8Array(fullTotalSize);
+    let fullOffset = 0;
+    for (const piece of downloadedPieces) {
+      fullCombined.set(piece, fullOffset);
+      fullOffset += piece.byteLength;
+    }
+
+    return fullCombined;
   }
 
   /**
@@ -1055,6 +1135,15 @@ export class StorageStore {
       } catch {
         // Ignore localStorage write failures
       }
+
+      // Also publish share to API gateway for cross-browser, cross-device universal sharing
+      fetch(`${this.apiBaseUrl}/api/v1/shares`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(shareRecord),
+      }).catch(() => {
+        // Background sync; local copy preserved
+      });
     }
 
     const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
@@ -1084,7 +1173,7 @@ export class StorageStore {
       const rec = shares[token];
       if (!rec) return null;
 
-      // Check expiration
+      // Check expiration: if expiresAt is set and expired, revoke
       if (rec.expiresAt && new Date(rec.expiresAt).getTime() <= Date.now()) {
         delete shares[token];
         localStorage.setItem('bucketspace_shares', JSON.stringify(shares));
@@ -1095,6 +1184,31 @@ export class StorageStore {
         ...rec,
         hasPasscode: Boolean(rec.passcode),
       };
+    } catch {
+      return null;
+    }
+  }
+
+  public async fetchRemoteShareRecord(token: string): Promise<{
+    token: string;
+    fileId: string;
+    fileName: string;
+    fileSize: number;
+    mimeType: string;
+    wholeFileHash: string;
+    chunks: ChunkMetadata[];
+    createdAt: string;
+    expiresAt?: string;
+    hasPasscode: boolean;
+  } | null> {
+    const local = this.getShareRecord(token);
+    if (local) return local;
+
+    try {
+      const res = await fetch(`${this.apiBaseUrl}/api/v1/shares/${token}`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data;
     } catch {
       return null;
     }
