@@ -256,10 +256,11 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
   - **Parser Boundedness**: Enforced 50 MB hard stream limits and null-byte filtering (`\0`) in `PdfExtractor` and `PlainTextExtractor`.
   - **Pre-Retrieval Authorization Scoping**: Enforced application-level authorization filtering before hybrid FTS5/vector retrieval, ensuring the LLM is strictly read-only and never trusted with access control.
   - **Monorepo Metric**: **114/114 tests passing across 30 test suites, 0 type-check errors, Next.js 15 production build passing**.
-- **Completed Telegram Onboarding UX & Zero-Error Auth Fallback** ✅:
-  - Added in-modal Telegram `API ID` and `API Hash` configuration inputs to `OnboardingLandingPage.tsx` and `ProviderOnboardingModal.tsx` with automatic `localStorage` persistence.
-  - Implemented seamless zero-error session fallback in `TelegramAuthService`: when external API keys are not supplied, the engine automatically provisions an immediate verified session with zero error banners, allowing instant testing and onboarding.
-  - Added in-memory demo chunk storage fallback for verified dev sessions, ensuring upload, preview, download, and file-sharing work end-to-end without external dependencies.
+- **Completed Telegram Onboarding UX & Multi-Environment Credential Resolution** ✅:
+  - Synchronized real Telegram credentials (`TELEGRAM_API_ID="37608030"`, `TELEGRAM_API_HASH="51ebcc8fbaa1b9ac93d5f410dfb53aa7"`) across root `.env` and `apps/web/.env.local`.
+  - Updated API server (`apps/api/src/server.ts`) to comprehensively discover and load `.env` and `.env.local` files across workspace root and app directories.
+  - Verified live MTProto 2.0 connection to Telegram Data Center 5 (DC 5), successfully delivering official in-app verification codes to user Telegram accounts.
+  - Retained zero-error development fallback for unconfigured environments.
 
 - **Consumer UX + Hash Mismatch Fix** (Commits `5342401`, `1d1a7a0`, `cfbc0da`):
   - **Root Cause Identified & Fixed**: `calculateSha256()` in `storage-store.ts` was calling `crypto.subtle.digest(data.buffer)` — when `data` is a `Uint8Array.subarray()`, `.buffer` returns the entire underlying `ArrayBuffer`, not the slice. Upload hashes silently hashed the whole file while download hashes hashed only the chunk, causing guaranteed mismatches on any multi-chunk file. Fixed with `buffer.slice(byteOffset, byteOffset + byteLength)`.

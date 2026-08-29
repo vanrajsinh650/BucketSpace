@@ -1,11 +1,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-// Load .env from root if present
+// Load .env and .env.local from root and workspace apps if present
 const envPaths = [
   path.resolve(process.cwd(), '.env'),
+  path.resolve(process.cwd(), '.env.local'),
+  path.resolve(process.cwd(), 'apps/web/.env.local'),
   path.resolve(__dirname, '../../.env'),
+  path.resolve(__dirname, '../../.env.local'),
+  path.resolve(__dirname, '../../apps/web/.env.local'),
   path.resolve(__dirname, '../../../.env'),
+  path.resolve(__dirname, '../../../.env.local'),
+  path.resolve(__dirname, '../../../apps/web/.env.local'),
 ];
 for (const p of envPaths) {
   if (fs.existsSync(p)) {
@@ -20,12 +26,11 @@ for (const p of envPaths) {
         if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
           val = val.slice(1, -1);
         }
-        if (!process.env[key]) {
+        if (!process.env[key] || process.env[key] === 'your-telegram-api-id' || process.env[key] === 'your-telegram-api-hash') {
           process.env[key] = val;
         }
       }
     }
-    break;
   }
 }
 
