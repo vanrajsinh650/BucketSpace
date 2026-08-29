@@ -260,6 +260,7 @@ For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V
   - Synchronized real Telegram credentials (`TELEGRAM_API_ID="37608030"`, `TELEGRAM_API_HASH="51ebcc8fbaa1b9ac93d5f410dfb53aa7"`) across root `.env` and `apps/web/.env.local`.
   - Updated API server (`apps/api/src/server.ts`) to comprehensively discover and load `.env` and `.env.local` files across workspace root and app directories.
   - Verified live MTProto 2.0 connection to Telegram Data Center 5 (DC 5), successfully delivering official in-app verification codes to user Telegram accounts.
+  - Fixed 2FA check ordering in `OnboardingLandingPage.tsx` and `ProviderOnboardingModal.tsx`: accounts with Telegram Two-Step Verification now smoothly advance to the Cloud Password prompt rather than misinterpreting `requires2FA: true` as a code validation failure.
   - Retained zero-error development fallback for unconfigured environments.
 
 - **Consumer UX + Hash Mismatch Fix** (Commits `5342401`, `1d1a7a0`, `cfbc0da`):

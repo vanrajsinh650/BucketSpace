@@ -185,13 +185,17 @@ export function OnboardingLandingPage({
       });
 
       const data = await res.json();
-      if (!res.ok || !data.success) {
+      if (!res.ok) {
         throw new Error(data.message || 'Invalid or expired verification code.');
       }
 
       if (data.requires2FA) {
         setStep('2fa');
         return;
+      }
+
+      if (!data.success) {
+        throw new Error(data.message || 'Invalid or expired verification code.');
       }
 
       await onConnectProvider('telegram', { sessionString: data.sessionString, phone });
