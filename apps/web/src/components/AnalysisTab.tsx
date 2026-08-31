@@ -83,8 +83,8 @@ export function AnalysisTab({ files, activeProviderName }: AnalysisTabProps) {
     },
     {
       num: 3,
-      title: 'Multi-Provider Routing',
-      desc: 'Chunks are dispatched across Telegram MTProto, Local Disks, or Cloudflare S3/R2 based on active routing policies.',
+      title: 'Telegram MTProto Dispatch',
+      desc: 'Chunks are streamed to Telegram cloud storage via MTProto 2.0 with bounded memory slices and checksum verification.',
     },
     {
       num: 4,

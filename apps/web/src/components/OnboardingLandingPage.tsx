@@ -40,7 +40,6 @@ export function OnboardingLandingPage({
 }: OnboardingLandingPageProps) {
   // Modal connection state
   const [modalOpen, setModalOpen] = useState(false);
-  const [activeProvider, setActiveProvider] = useState<'telegram' | 'local' | 'cloud'>('telegram');
   const [phone, setPhone] = useState('');
   const [apiId, setApiId] = useState('');
   const [apiHash, setApiHash] = useState('');
@@ -49,7 +48,6 @@ export function OnboardingLandingPage({
   const [password2FA, setPassword2FA] = useState('');
   const [step, setStep] = useState<'phone' | 'code' | '2fa'>('phone');
   const [sessionToken, setSessionToken] = useState('');
-  const [localPath, setLocalPath] = useState('C:\\BucketSpace\\Storage');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -319,7 +317,7 @@ export function OnboardingLandingPage({
 
           {/* Subtext */}
           <p className="text-base sm:text-lg font-mono text-[#888] max-w-2xl leading-relaxed">
-            Turn your Telegram cloud channel, local SSDs, and S3 buckets into a single, high-performance personal cloud storage engine with client-side AES-256-GCM encryption.
+            Turn your private Telegram cloud into a secure, high-performance personal cloud storage engine with client-side AES-256-GCM zero-knowledge encryption and instant streaming.
           </p>
 
           {/* Hero CTAs */}
@@ -518,40 +516,40 @@ export function OnboardingLandingPage({
             </div>
           </div>
 
-          {/* Card 3: Multi-Provider Redundancy */}
+          {/* Card 3: Telegram Active Verification */}
           <div className="bg-[#0a0a0a] border border-[#1e1e1e] p-6 sm:p-8 rounded-xl space-y-4 flex flex-col justify-between group hover:border-[#333] transition-colors">
             <div className="space-y-3">
               <div className="w-10 h-10 rounded bg-[#121212] border border-[#222] flex items-center justify-center text-white">
                 <Layers className="w-5 h-5" />
               </div>
               <h3 className="text-lg font-bold text-white uppercase tracking-tight">
-                Multi-Cloud Replicas
+                Cryptographic Integrity
               </h3>
               <p className="text-xs text-[#888] leading-relaxed">
-                Mirror chunks automatically between Telegram, local SSDs, AWS S3, and Cloudflare R2. Self-healing integrity engines repair corrupted replicas in the background.
+                Every chunk stored on Telegram is validated against SHA-256 digests. Active verification engines ensure 100% byte-identical file reconstruction without bitrot.
               </p>
             </div>
             <div className="pt-4 border-t border-[#1e1e1e] text-[11px] text-[#666]">
-              Self-Healing Checksums
+              Deterministic Checksums
             </div>
           </div>
 
-          {/* Card 4: Policy Routing Engine (2 cols span) */}
+          {/* Card 4: Streaming & Chunking Engine (2 cols span) */}
           <div className="md:col-span-2 bg-[#0a0a0a] border border-[#1e1e1e] p-6 sm:p-8 rounded-xl space-y-4 flex flex-col justify-between group hover:border-[#333] transition-colors">
             <div className="space-y-3">
               <div className="w-10 h-10 rounded bg-[#121212] border border-[#222] flex items-center justify-center text-white">
                 <Sliders className="w-5 h-5" />
               </div>
               <h3 className="text-lg font-bold text-white uppercase tracking-tight">
-                Storage Policy Engine
+                Adaptive MTProto Chunking
               </h3>
               <p className="text-xs text-[#888] leading-relaxed max-w-lg">
-                Create granular rules to automate storage tiering based on MIME types, file size, or directory paths (e.g. store raw 4K videos on Telegram, keep confidential PDFs on local disk, and backup code archives to R2).
+                Files are dynamically sliced into bounded chunks and streamed to Telegram Saved Messages via MTProto 2.0 with bounded RAM consumption, multi-part concurrency, and resumable transfers.
               </p>
             </div>
             <div className="pt-4 border-t border-[#1e1e1e] flex items-center justify-between text-[11px] text-[#666]">
-              <span>Dynamic Rule Matcher</span>
-              <span className="text-white">Deterministic Priority Order</span>
+              <span>MTProto 2.0 Streaming</span>
+              <span className="text-white">Bounded RAM Footprint</span>
             </div>
           </div>
         </div>
@@ -619,51 +617,13 @@ export function OnboardingLandingPage({
           <div className="bg-[#0a0a0a] border border-[#1e1e1e] rounded-xl w-full max-w-md p-6 space-y-5 shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#1e1e1e] pb-3">
               <span className="font-bold uppercase tracking-wider text-white text-sm">
-                Connect Storage Cluster
+                Connect Telegram Storage
               </span>
               <button
                 onClick={() => setModalOpen(false)}
                 className="p-1 text-[#666] hover:text-white rounded"
               >
                 <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Provider Type Selector */}
-            <div className="grid grid-cols-3 gap-1 bg-[#121212] p-1 border border-[#1e1e1e] rounded-lg">
-              <button
-                onClick={() => {
-                  setActiveProvider('telegram');
-                  setStep('phone');
-                  setErrorMessage('');
-                }}
-                className={`py-1.5 rounded text-[10px] uppercase font-bold transition-colors btn-press ${
-                  activeProvider === 'telegram' ? 'bg-white text-black' : 'text-[#888] hover:text-white'
-                }`}
-              >
-                Telegram
-              </button>
-              <button
-                onClick={() => {
-                  setActiveProvider('local');
-                  setErrorMessage('');
-                }}
-                className={`py-1.5 rounded text-[10px] uppercase font-bold transition-colors btn-press ${
-                  activeProvider === 'local' ? 'bg-white text-black' : 'text-[#888] hover:text-white'
-                }`}
-              >
-                Local NVMe
-              </button>
-              <button
-                onClick={() => {
-                  setActiveProvider('cloud');
-                  setErrorMessage('');
-                }}
-                className={`py-1.5 rounded text-[10px] uppercase font-bold transition-colors btn-press ${
-                  activeProvider === 'cloud' ? 'bg-white text-black' : 'text-[#888] hover:text-white'
-                }`}
-              >
-                S3 / R2
               </button>
             </div>
 
@@ -694,9 +654,8 @@ export function OnboardingLandingPage({
             )}
 
             {/* Provider Forms */}
-            {activeProvider === 'telegram' ? (
-              step === 'phone' ? (
-                <form onSubmit={handleTelegramPhone} className="space-y-3.5">
+            {step === 'phone' ? (
+              <form onSubmit={handleTelegramPhone} className="space-y-3.5">
                   <p className="text-zinc-300 text-xs leading-relaxed">
                     Connect your private Telegram account. A real 5-digit verification code will be sent to your Telegram app.
                   </p>
@@ -878,53 +837,7 @@ export function OnboardingLandingPage({
                     )}
                   </button>
                 </form>
-              )
-            ) : activeProvider === 'local' ? (
-              <form onSubmit={handleLocalSubmit} className="space-y-4">
-                <p className="text-white text-xs leading-relaxed">
-                  Store encrypted chunks on your local drive with zero network dependency.
-                </p>
-                <div className="space-y-1">
-                  <label className="text-[10px] text-[#666] uppercase block">Local Vault Folder</label>
-                  <input
-                    type="text"
-                    value={localPath}
-                    onChange={(e) => setLocalPath(e.target.value)}
-                    className="w-full bg-[#121212] border border-[#1e1e1e] rounded p-2 text-white text-xs"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={!localPath || isSubmitting}
-                  className="w-full bg-white text-black hover:bg-[#e0e0e0] py-2.5 rounded font-bold uppercase tracking-wider text-xs transition-colors btn-press disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Connecting...' : 'Connect Local Vault'}
-                </button>
-              </form>
-            ) : (
-              <div className="space-y-4">
-                <p className="text-white text-xs leading-relaxed">
-                  Connect Cloudflare R2, AWS S3, or Supabase Storage with standard S3 API keys.
-                </p>
-                <button
-                  onClick={async () => {
-                    setIsSubmitting(true);
-                    await onConnectProvider('r2', {
-                      endpoint: 'https://r2.cloudflarestorage.com',
-                      bucket: 'bucketspace-drive',
-                      region: 'auto',
-                      accessKeyId: 'r2_key',
-                      secretAccessKey: 'r2_secret',
-                    });
-                    setIsSubmitting(false);
-                    onFinishOnboarding();
-                  }}
-                  className="w-full bg-white text-black hover:bg-[#e0e0e0] py-2.5 rounded font-bold uppercase tracking-wider text-xs transition-colors btn-press"
-                >
-                  Connect S3 / R2 Bucket
-                </button>
-              </div>
-            )}
+              )}
           </div>
         </div>
       )}

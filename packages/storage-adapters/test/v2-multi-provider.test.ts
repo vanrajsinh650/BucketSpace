@@ -7,7 +7,7 @@ import test from 'node:test';
 import { SqliteMetadataRepository } from '@bucketspace/db';
 import { StorageApplicationService } from '../src/application/storage-application.service';
 import { InMemoryStorageProvider } from '../src/in-memory/in-memory-storage-provider';
-import { LocalStorageAdapter } from '../src/local/local-storage-provider';
+import { TelegramStorageAdapter } from '../src/telegram/telegram-storage-provider';
 import { MigrationEngine } from '../src/migration/migration-engine';
 import { ProviderRegistry } from '../src/registry/provider-registry';
 import { StorageRouter } from '../src/router/storage-router';
@@ -55,14 +55,14 @@ test('V2 — StorageRouter wired into upload path', async () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bucketspace-v2-router-'));
   const dbPath = path.join(tempDir, 'metadata.db');
 
-  // Register two providers: in-memory and local-disk
+  // Register two providers: in-memory and telegram
   const memProvider = new InMemoryStorageProvider();
-  const localProvider = new LocalStorageAdapter({ rootDir: path.join(tempDir, 'local-chunks') });
+  const tgProvider = new TelegramStorageAdapter({ mode: 'mtproto', apiId: 12345, apiHash: 'test-hash' });
   ProviderRegistry.register(memProvider);
-  ProviderRegistry.register(localProvider);
+  ProviderRegistry.register(tgProvider);
 
-  // Router: images → in-memory, everything else → local-disk
-  const router = new StorageRouter('local-disk');
+  // Router: images → in-memory, everything else → telegram
+  const router = new StorageRouter('telegram');
   router.clearRules(); // Remove built-in default rules for this test
   router.addRule({
     id: 'test-images-memory',
@@ -79,7 +79,7 @@ test('V2 — StorageRouter wired into upload path', async () => {
   const appService = new StorageApplicationService({
     repository: repo,
     router,
-    defaultProviderId: 'local-disk',
+    defaultProviderId: 'telegram',
   });
 
   // Upload an image — should route to in-memory
@@ -94,7 +94,7 @@ test('V2 — StorageRouter wired into upload path', async () => {
 
   assert.strictEqual(imageFile.chunks[0].providerRef!.providerId, 'in-memory');
 
-  // Upload a document — should route to local-disk
+  // Upload a document — should route to telegram
   const docSrc = path.join(tempDir, 'report.pdf');
   fs.writeFileSync(docSrc, 'fake-pdf-bytes');
 
@@ -104,22 +104,22 @@ test('V2 — StorageRouter wired into upload path', async () => {
     mimeType: 'application/pdf',
   });
 
-  assert.strictEqual(docFile.chunks[0].providerRef!.providerId, 'local-disk');
+  assert.strictEqual(docFile.chunks[0].providerRef!.providerId, 'telegram');
 
   repo.close();
   fs.rmSync(tempDir, { recursive: true, force: true });
 });
 
-test('V2 — MigrationEngine: InMemory → LocalDisk with SHA-256 verification', async () => {
+test('V2 — MigrationEngine: InMemory → Telegram with SHA-256 verification', async () => {
   ProviderRegistry.clear();
 
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bucketspace-v2-migrate-'));
   const dbPath = path.join(tempDir, 'metadata.db');
 
   const memProvider = new InMemoryStorageProvider();
-  const localProvider = new LocalStorageAdapter({ rootDir: path.join(tempDir, 'local-chunks') });
+  const tgProvider = new TelegramStorageAdapter({ mode: 'mtproto', apiId: 12345, apiHash: 'test-hash' });
   ProviderRegistry.register(memProvider);
-  ProviderRegistry.register(localProvider);
+  ProviderRegistry.register(tgProvider);
 
   const repo = new SqliteMetadataRepository(dbPath);
   const appService = new StorageApplicationService({
@@ -144,25 +144,25 @@ test('V2 — MigrationEngine: InMemory → LocalDisk with SHA-256 verification',
     assert.strictEqual(chunk.providerRef!.providerId, 'in-memory');
   }
 
-  // Migrate to local-disk
+  // Migrate to telegram
   const result = await MigrationEngine.migrateFile(
     originalFile.id,
-    'local-disk',
+    'telegram',
     repo,
   );
 
-  assert.strictEqual(result.targetProviderId, 'local-disk');
+  assert.strictEqual(result.targetProviderId, 'telegram');
   assert.strictEqual(result.verified, true);
   assert.ok(result.chunksTransferred > 0);
 
-  // Verify metadata updated: all chunks now on local-disk
+  // Verify metadata updated: all chunks now on telegram
   const migratedFile = await repo.getFileById(originalFile.id);
   assert.ok(migratedFile);
   for (const chunk of migratedFile!.chunks) {
-    assert.strictEqual(chunk.providerRef!.providerId, 'local-disk');
+    assert.strictEqual(chunk.providerRef!.providerId, 'telegram');
   }
 
-  // Download from local-disk and verify whole-file hash
+  // Download from telegram and verify whole-file hash
   const downloadDest = path.join(tempDir, 'migrated-download.bin');
   const downloadResult = await appService.downloadFile({
     fileId: originalFile.id,
@@ -182,9 +182,9 @@ test('V2 — Multi-provider download (chunks on different providers)', async () 
   const dbPath = path.join(tempDir, 'metadata.db');
 
   const memProvider = new InMemoryStorageProvider();
-  const localProvider = new LocalStorageAdapter({ rootDir: path.join(tempDir, 'local-chunks') });
+  const tgProvider = new TelegramStorageAdapter({ mode: 'mtproto', apiId: 12345, apiHash: 'test-hash' });
   ProviderRegistry.register(memProvider);
-  ProviderRegistry.register(localProvider);
+  ProviderRegistry.register(tgProvider);
 
   const repo = new SqliteMetadataRepository(dbPath);
   const appService = new StorageApplicationService({
@@ -204,7 +204,7 @@ test('V2 — Multi-provider download (chunks on different providers)', async () 
     mimeType: 'application/octet-stream',
   });
 
-  // Manually migrate only chunks 0 and 2 to local-disk, leave chunk 1 on in-memory
+  // Manually migrate only chunks 0 and 2 to telegram, leave chunk 1 on in-memory
   // This simulates a file spanning two providers
   const chunksToMoveIndices = [0, 2];
   for (const idx of chunksToMoveIndices) {
@@ -213,7 +213,7 @@ test('V2 — Multi-provider download (chunks on different providers)', async () 
     const buffers: Uint8Array[] = [];
     for await (const piece of stream) buffers.push(piece);
 
-    const newRef = await localProvider.putChunk({
+    const newRef = await tgProvider.putChunk({
       chunkId: chunk.id,
       size: chunk.size,
       hash: chunk.hash,
@@ -223,7 +223,7 @@ test('V2 — Multi-provider download (chunks on different providers)', async () 
     await repo.saveChunk({ ...chunk, providerRef: newRef });
   }
 
-  // Now download — chunks 0,2 from local-disk, chunk 1 from in-memory
+  // Now download — chunks 0,2 from telegram, chunk 1 from in-memory
   const downloadDest = path.join(tempDir, 'split-download.bin');
   const result = await appService.downloadFile({
     fileId: uploaded.id,

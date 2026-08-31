@@ -1,7 +1,6 @@
 import {
   IStorageProvider,
   TelegramStorageAdapter,
-  S3StorageAdapter,
 } from '@bucketspace/storage-adapters';
 
 /* ------------------------------------------------------------------ */
@@ -14,33 +13,16 @@ const adapterCache = new Map<string, IStorageProvider>();
 
 export class StorageAdapterFactory {
   /**
-   * Returns a cached adapter instance for the given provider type.
-   * Creates one on first call for each provider.
+   * Returns a cached adapter instance for Telegram.
+   * Creates one on first call.
    */
-  static create(provider: string): IStorageProvider {
+  static create(provider: string = 'TELEGRAM_DRIVE'): IStorageProvider {
     const cached = adapterCache.get(provider);
     if (cached) return cached;
 
-    let adapter: IStorageProvider;
-
-    switch (provider) {
-      case 'AWS_S3':
-      case 'CLOUDFLARE_R2':
-      case 'MINIO':
-        adapter = new S3StorageAdapter({
-          bucket: process.env.S3_BUCKET ?? 'bucketspace-storage',
-          endpoint: process.env.MINIO_ENDPOINT ?? 'http://localhost:9000',
-        });
-        break;
-
-      case 'TELEGRAM_DRIVE':
-      default: {
-        const botToken = process.env.TELEGRAM_BOT_TOKEN ?? 'dummy_bot_token';
-        const defaultChatId = process.env.TELEGRAM_STORAGE_CHAT_ID ?? '@bucketspace_channel';
-        adapter = new TelegramStorageAdapter({ botToken, defaultChatId });
-        break;
-      }
-    }
+    const botToken = process.env.TELEGRAM_BOT_TOKEN ?? 'dummy_bot_token';
+    const defaultChatId = process.env.TELEGRAM_STORAGE_CHAT_ID ?? '@bucketspace_channel';
+    const adapter: IStorageProvider = new TelegramStorageAdapter({ botToken, defaultChatId });
 
     adapterCache.set(provider, adapter);
     return adapter;

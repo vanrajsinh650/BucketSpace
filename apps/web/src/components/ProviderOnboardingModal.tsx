@@ -18,7 +18,6 @@ export function ProviderOnboardingModal({
   onClose,
   onConnectProvider,
 }: ProviderOnboardingModalProps) {
-  const [providerType, setProviderType] = useState<'telegram' | 'local' | 'cloud'>('telegram');
   const [telegramStep, setTelegramStep] = useState<'phone' | 'code' | '2fa'>('phone');
   const [phone, setPhone] = useState('');
   const [apiId, setApiId] = useState('');
@@ -27,7 +26,6 @@ export function ProviderOnboardingModal({
   const [code, setCode] = useState('');
   const [password2FA, setPassword2FA] = useState('');
   const [sessionToken, setSessionToken] = useState('');
-  const [localPath, setLocalPath] = useState('C:\\BucketSpace\\Storage');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -151,71 +149,19 @@ export function ProviderOnboardingModal({
     }
   };
 
-  const handleLocalSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    await onConnectProvider('local', { rootDir: localPath });
-    setIsSubmitting(false);
-    onClose();
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm font-mono text-xs">
       <div className="bg-[#0a0a0a] border border-[#1e1e1e] rounded-lg w-full max-w-md flex flex-col overflow-hidden shadow-2xl">
         {/* Header */}
         <div className="px-4 py-3 border-b border-[#1e1e1e] flex items-center justify-between bg-[#0a0a0a]">
           <span className="font-bold uppercase tracking-wider text-white">
-            Connect Storage Provider
+            Connect Telegram Storage
           </span>
           <button
             onClick={onClose}
             className="p-1 text-[#666] hover:text-white rounded hover:bg-[#181818] transition-colors btn-press"
           >
             <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Provider Tabs */}
-        <div className="grid grid-cols-3 gap-1 p-2 border-b border-[#1e1e1e] bg-[#0a0a0a]">
-          <button
-            onClick={() => {
-              setProviderType('telegram');
-              setTelegramStep('phone');
-              setErrorMessage('');
-            }}
-            className={`py-1.5 rounded transition-colors uppercase font-bold text-[11px] btn-press ${
-              providerType === 'telegram'
-                ? 'bg-white text-black'
-                : 'text-[#888] hover:text-white'
-            }`}
-          >
-            Telegram
-          </button>
-          <button
-            onClick={() => {
-              setProviderType('local');
-              setErrorMessage('');
-            }}
-            className={`py-1.5 rounded transition-colors uppercase font-bold text-[11px] btn-press ${
-              providerType === 'local'
-                ? 'bg-white text-black'
-                : 'text-[#888] hover:text-white'
-            }`}
-          >
-            Local Disk
-          </button>
-          <button
-            onClick={() => {
-              setProviderType('cloud');
-              setErrorMessage('');
-            }}
-            className={`py-1.5 rounded transition-colors uppercase font-bold text-[11px] btn-press ${
-              providerType === 'cloud'
-                ? 'bg-white text-black'
-                : 'text-[#888] hover:text-white'
-            }`}
-          >
-            S3 / R2
           </button>
         </div>
 
@@ -231,9 +177,8 @@ export function ProviderOnboardingModal({
 
         {/* Form Body */}
         <div className="p-4 space-y-4">
-          {providerType === 'telegram' ? (
-            telegramStep === 'phone' ? (
-              <form onSubmit={handleTelegramPhone} className="space-y-3.5">
+          {telegramStep === 'phone' ? (
+            <form onSubmit={handleTelegramPhone} className="space-y-3.5">
                 <p className="text-zinc-300 text-xs leading-relaxed">
                   Store unlimited zero-knowledge encrypted chunks inside your private Telegram account.
                 </p>
@@ -399,53 +344,7 @@ export function ProviderOnboardingModal({
                   )}
                 </button>
               </form>
-            )
-          ) : providerType === 'local' ? (
-            <form onSubmit={handleLocalSubmit} className="space-y-4">
-              <p className="text-white text-xs leading-relaxed">
-                Persist encrypted chunks directly to your local file system.
-              </p>
-              <div className="space-y-1">
-                <label className="text-[10px] text-[#666] uppercase block">Storage Folder Path</label>
-                <input
-                  type="text"
-                  value={localPath}
-                  onChange={(e) => setLocalPath(e.target.value)}
-                  className="w-full bg-[#121212] border border-[#1e1e1e] rounded p-2 text-white text-xs font-mono"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={!localPath || isSubmitting}
-                className="w-full bg-white text-black hover:bg-[#e0e0e0] py-2 rounded font-mono font-bold uppercase tracking-wider text-xs transition-colors btn-press disabled:opacity-50"
-              >
-                {isSubmitting ? 'Connecting...' : 'Connect Local Storage'}
-              </button>
-            </form>
-          ) : (
-            <div className="space-y-4">
-              <p className="text-white text-xs leading-relaxed">
-                Connect Cloudflare R2, AWS S3, or Supabase Storage with standard S3 API keys.
-              </p>
-              <button
-                onClick={async () => {
-                  setIsSubmitting(true);
-                  await onConnectProvider('r2', {
-                    endpoint: 'https://r2.cloudflarestorage.com',
-                    bucket: 'bucketspace-drive',
-                    region: 'auto',
-                    accessKeyId: 'r2_key',
-                    secretAccessKey: 'r2_secret',
-                  });
-                  setIsSubmitting(false);
-                  onClose();
-                }}
-                className="w-full bg-white text-black hover:bg-[#e0e0e0] py-2 rounded font-mono font-bold uppercase tracking-wider text-xs transition-colors btn-press"
-              >
-                Connect S3 / R2 Bucket
-              </button>
-            </div>
-          )}
+            )}
         </div>
       </div>
     </div>

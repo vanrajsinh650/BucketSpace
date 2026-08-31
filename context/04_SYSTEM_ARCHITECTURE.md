@@ -1,163 +1,110 @@
 # System Architecture (04_SYSTEM_ARCHITECTURE.md)
 
 ## 1. Executive Summary & Architecture Goals
-**BucketSpace** utilizes a modern, modular, cloud-native architecture optimized for zero-copy high-throughput file operations, sub-second vector search, and resilient multi-cloud orchestration.
+**BucketSpace** utilizes a lightweight, high-performance architecture optimized for zero-knowledge client-side encryption, deterministic chunking, and direct MTProto 2.0 streaming to Telegram cloud storage.
 
 ### Core Architectural Goals
-1. **Direct-to-Cloud Data Path**: Payload traffic bypasses application web servers via direct S3/R2 presigned URLs.
-2. **ACID Metadata & Vector Unification**: Single PostgreSQL database with `pgvector` for metadata, authorization, and semantic embeddings.
-3. **Decoupled Worker Processing**: Async job processing (BullMQ + Redis) for heavy media embedding, thumbnail generation, and multi-cloud sync.
-4. **Real-Time Workspace Synchronization**: Event-driven WebSocket pub/sub bus broadcasting workspace state mutations.
+1. **Direct Telegram MTProto Transport**: Payload traffic streams directly to Telegram's cloud infrastructure via GramJS MTProto 2.0.
+2. **Local ACID Metadata**: Pure SQLite database with WAL mode and foreign key constraints for sub-millisecond file indexing.
+3. **Zero-Knowledge Encryption**: AES-256-GCM envelope encryption performed client-side.
+4. **100% Cryptographic Verification**: SHA-256 digests validated on every chunk and reassembled payload.
 
 ---
 
-## 2. C4 Architecture Diagrams
+## 2. Architecture Diagrams
 
-### C4 Level 1: System Context Diagram
+### System Context Diagram
 
 ```mermaid
 graph TD
-    User[User / Web Browser] -->|HTTPS / WSS| WorkspaceApp[BucketSpace Web App Next.js 15]
-    WorkspaceApp -->|REST / gRPC| APIGateway[BucketSpace Core API Gateway]
-    APIGateway -->|SQL + Vector| DB[(PostgreSQL + pgvector)]
-    APIGateway -->|Cache & Queues| Redis[(Redis Cluster)]
-    APIGateway -->|Issue Presigned URLs| StorageAdapter[Multi-Cloud Storage Abstraction Engine]
-
-    %% Direct Presigned Data Flow
-    User -.->|Direct HTTPS Upload/Download Payload| CloudStorage{Multi-Cloud Object Stores: AWS S3, Cloudflare R2, GCP, Azure}
-    StorageAdapter -.->|S3 API Delegation| CloudStorage
-
-    %% Worker Processing
-    Redis -->|Job Queue| Worker[AI & Processing Workers]
-    Worker -->|Read Payload| CloudStorage
-    Worker -->|Store Embeddings| DB
+    User[User / Client] -->|UI / CLI| App[BucketSpace Web / Desktop App]
+    App -->|Local IPC / HTTP| Core[BucketSpace Storage Core & Fastify Gateway]
+    Core -->|ACID Metadata| SQLite[(SQLite Files & Chunks DB)]
+    Core -->|Sync Ledger| SyncDB[(SQLite Sync Ledger)]
+    Core -->|MTProto 2.0 / Bot API| TelegramCloud{Telegram Cloud Infrastructure: MTProto 2.0 DCs}
 ```
 
-### C4 Level 2: Container Diagram
+### Component Container Diagram
 
 ```mermaid
 graph TB
-    subgraph Frontend Tier
-        NextUI[Next.js 15 Web Workspace App]
-        UploadWorker[Web Worker Chunked Uploader]
+    subgraph Client Application
+        NextUI[Next.js 15 Web Workspace / Electron App]
+        CryptoEngine[WebCrypto AES-256-GCM Encryption]
+        Chunker[Adaptive Multi-Part Chunker]
     end
 
-    subgraph Backend Core Tier
-        Gateway[Fastify / Express API Gateway]
-        AuthService[AuthN / AuthZ Service (OAuth2 / RBAC)]
-        StorageService[Storage Abstraction Service]
-        SearchService[Hybrid Search Service (pgvector + Meilisearch)]
-        SyncBus[WebSocket Real-Time Sync Server]
+    subgraph Core Storage Engine
+        StorageService[Storage Application Service]
+        Router[Storage Policy Router]
+        TelegramAdapter[TelegramStorageAdapter MTProto 2.0 & Bot API]
+        AuditRepo[SQLite Audit Logger]
     end
 
-    subgraph Asynchronous Worker Tier
-        WorkerQueue[BullMQ Job Queue Engine]
-        EmbeddingWorker[CLIP & Vector Embedding Worker]
-        MediaWorker[Thumbnail & HLS Video Worker]
-        SyncWorker[Bucket Replication & Mirror Worker]
+    subgraph Persistence Layer
+        SQLiteDB[(SQLite Database files, chunks, rules, sync_ledger)]
+        TelegramRemote[Telegram Cloud DCs Saved Messages]
     end
 
-    subgraph Persistence & Infrastructure Tier
-        PrimaryDB[(PostgreSQL 16 + pgvector)]
-        CacheDB[(Redis 7.2 Cache & PubSub)]
-        SearchDB[(Meilisearch Full-Text Index)]
-        Vault[(HashiCorp Vault / KMS Secret Manager)]
-    end
-
-    NextUI --> Gateway
-    NextUI --> SyncBus
-    UploadWorker -.->|Presigned Multipart Payload| ExternalS3[External Cloud Buckets]
-
-    Gateway --> AuthService
-    Gateway --> StorageService
-    Gateway --> SearchService
-    Gateway --> PrimaryDB
-    Gateway --> CacheDB
-
-    StorageService --> Vault
-    SearchService --> SearchDB
-    SearchService --> PrimaryDB
-
-    Gateway --> WorkerQueue
-    WorkerQueue --> EmbeddingWorker
-    WorkerQueue --> MediaWorker
-    WorkerQueue --> SyncWorker
-
-    EmbeddingWorker --> PrimaryDB
-    MediaWorker --> ExternalS3
+    NextUI --> CryptoEngine
+    CryptoEngine --> Chunker
+    Chunker --> StorageService
+    StorageService --> Router
+    Router --> TelegramAdapter
+    StorageService --> SQLiteDB
+    TelegramAdapter --> TelegramRemote
 ```
 
 ---
 
 ## 3. High-Level Communication & Execution Lifecycles
 
-### Direct-to-Cloud Upload Request Lifecycle
+### Chunked Upload & Encryption Lifecycle
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Client as Web Browser Client
-    participant UI as Next.js UI / Web Worker
-    participant API as API Gateway
-    participant DB as PostgreSQL Metadata DB
-    participant Queue as Redis / BullMQ Queue
-    participant S3 as AWS S3 / Cloudflare R2
-    participant Worker as Embedding Worker
+    actor Client as User / Web Client
+    participant Chunker as Local Chunker & AES-256 Encryptor
+    participant Engine as Storage Application Service
+    participant SQLite as SQLite Database
+    participant TG as Telegram MTProto DC
 
-    Client->>UI: Select 2GB video file to upload
-    UI->>API: POST /api/v1/storage/upload/presign (file metadata, checksum)
-    API->>API: Verify user RBAC write permissions
-    API->>S3: Request S3 InitiateMultipartUpload
-    S3-->>API: Return UploadID & Presigned Part URLs (Parts 1..N)
-    API-->>UI: Return Presigned URLs + UploadID
-    
-    rect rgb(240, 248, 255)
-        note over UI, S3: Zero-Copy Parallel Upload (Bypasses API Gateway)
-        loop For each chunk (8MB) in Web Worker
-            UI->>S3: PUT /part-N with chunk payload
-            S3-->>UI: Return ETag header
-        end
-    end
-
-    UI->>API: POST /api/v1/storage/upload/complete (UploadID, ETags)
-    API->>S3: Execute CompleteMultipartUpload
-    S3-->>API: Upload Confirmed
-    API->>DB: Insert File Object Metadata (Status: PROCESSED)
-    API->>Queue: Enqueue AI Embedding & Thumbnail Job {fileId}
-    API-->>UI: Upload Complete HTTP 201
-
-    Worker->>Queue: Pop Job {fileId}
-    Worker->>S3: Fetch File Bytes / Key Frame
-    Worker->>Worker: Compute CLIP / Vector Embedding
-    Worker->>DB: UPDATE File Object Set vector_embedding = [...]
+    Client->>Chunker: Select file for upload
+    Chunker->>Chunker: Slice into 512KB-20MB chunks & Encrypt (AES-256-GCM)
+    Chunker->>Chunker: Compute Chunk SHA-256 & Whole-File SHA-256
+    Chunker->>Engine: Stream encrypted chunk
+    Engine->>TG: Upload part via MTProto 2.0 saveBigFilePart / sendDocument
+    TG-->>Engine: Return Telegram Document Ref (dcId, docId, accessHash)
+    Engine->>SQLite: Save Chunk record with opaque Telegram ref
+    Engine-->>Client: Upload progress update
+    Engine->>SQLite: Mark file ACTIVE with whole-file SHA-256
+    Engine-->>Client: Transfer complete & verified
+```
 ```
 
 ---
 
-## 4. Multi-Cloud Storage Abstraction Topology
+## 4. Storage Provider Abstraction Interface
 
-To prevent cloud provider lock-in, all storage calls map to a unified `IStorageProvider` interface contract.
+All storage interactions implement the streaming `IStorageProvider` contract from `@bucketspace/shared`:
 
 ```typescript
 export interface IStorageProvider {
-  /** Issue presigned URL for GET file preview/download */
-  getPresignedDownloadUrl(key: string, expiresInSeconds: number): Promise<string>;
+  /** Upload a single chunk to the storage backend */
+  putChunk(input: PutChunkInput): Promise<ProviderChunkRef>;
 
-  /** Issue presigned URLs for multi-part PUT upload */
-  getPresignedUploadParts(
-    key: string,
-    fileSizeBytes: number,
-    partSizeMB: number
-  ): Promise<PresignedPartUrlsResponse>;
+  /** Stream a chunk from the storage backend */
+  getChunk(ref: ProviderChunkRef): Promise<AsyncIterable<Uint8Array>>;
 
-  /** Complete multipart upload on the provider */
-  completeMultipartUpload(key: string, uploadId: string, parts: CompletedPart[]): Promise<void>;
+  /** Check if a chunk exists on the storage backend */
+  hasChunk(ref: ProviderChunkRef): Promise<{ exists: boolean; size?: number }>;
 
-  /** Native server-side copy within the provider */
-  copyObject(sourceKey: string, destinationKey: string): Promise<void>;
+  /** Delete a chunk from the storage backend */
+  deleteChunk(ref: ProviderChunkRef): Promise<boolean>;
 
-  /** Hard delete object */
-  deleteObject(key: string): Promise<void>;
+  /** Return the operational limits and feature capabilities of this provider */
+  getCapabilities(): StorageProviderCapabilities;
 }
 ```
 

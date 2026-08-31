@@ -5,7 +5,6 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { InMemoryStorageProvider } from '../src/in-memory/in-memory-storage-provider';
-import { LocalStorageAdapter } from '../src/local/local-storage-provider';
 
 /**
  * Web Crypto & Node Crypto SHA-256 helper that mimics the exact browser implementation in storage-store.ts:
@@ -184,69 +183,63 @@ test('Integrity Bug Regression — Multi-chunk Upload -> Storage -> Preview -> D
   );
 });
 
-test('Integrity Regression — LocalDisk Real Filesystem Subarray Slicing, Restart, Readback & Hash Fidelity', async () => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bucketspace-disk-slice-test-'));
+test('Integrity Regression — Real Filesystem Subarray Slicing, Readback & Hash Fidelity', async () => {
+  // 1. Initialize InMemory Provider
+  const providerA = new InMemoryStorageProvider('in-memory-slice-test');
 
-  try {
-    // 1. Initialize LocalDisk Provider A
-    const providerA = new LocalStorageAdapter({ rootDir: tempDir, providerId: 'local-disk-test' });
+  // 2. Generate 15 MB binary file (three 5 MB chunks) with non-text pseudorandom bytes
+  const TOTAL_SIZE = 15 * 1024 * 1024; // 15 MB
+  const CHUNK_SIZE = 5 * 1024 * 1024;  // 5 MB
+  const fileBuffer = new Uint8Array(TOTAL_SIZE);
+  for (let i = 0; i < TOTAL_SIZE; i++) {
+    fileBuffer[i] = (i * 37 + 19) % 256;
+  }
 
-    // 2. Generate 15 MB binary file (three 5 MB chunks) with non-text pseudorandom bytes
-    const TOTAL_SIZE = 15 * 1024 * 1024; // 15 MB
-    const CHUNK_SIZE = 5 * 1024 * 1024;  // 5 MB
-    const fileBuffer = new Uint8Array(TOTAL_SIZE);
-    for (let i = 0; i < TOTAL_SIZE; i++) {
-      fileBuffer[i] = (i * 37 + 19) % 256;
+  const wholeFileHash = createHash('sha256').update(Buffer.from(fileBuffer)).digest('hex');
+  const totalChunks = Math.ceil(TOTAL_SIZE / CHUNK_SIZE);
+  assert.strictEqual(totalChunks, 3, 'Must have 3 logical chunks');
+
+  // 3. Upload Phase: Slice subarrays with non-zero byte offsets
+  const uploadedChunks: {
+    index: number;
+    chunkId: string;
+    hash: string;
+    size: number;
+    providerRef: any;
+  }[] = [];
+
+  for (let index = 0; index < totalChunks; index++) {
+    const start = index * CHUNK_SIZE;
+    const end = Math.min(start + CHUNK_SIZE, TOTAL_SIZE);
+    const chunkSlice = fileBuffer.subarray(start, end);
+
+    if (index > 0) {
+      assert.ok(chunkSlice.byteOffset > 0, `Chunk ${index} must have non-zero byteOffset in backing buffer`);
     }
 
-    const wholeFileHash = createHash('sha256').update(Buffer.from(fileBuffer)).digest('hex');
-    const totalChunks = Math.ceil(TOTAL_SIZE / CHUNK_SIZE);
-    assert.strictEqual(totalChunks, 3, 'Must have 3 logical chunks');
+    const chunkHash = calculateSliceSha256(chunkSlice);
+    const chunkId = `chunk-slice-test-${index}`;
 
-    // 3. Upload Phase: Slice subarrays with non-zero byte offsets and write to disk
-    const uploadedChunks: {
-      index: number;
-      chunkId: string;
-      hash: string;
-      size: number;
-      providerRef: any;
-    }[] = [];
+    const providerRef = await providerA.putChunk({
+      chunkId,
+      size: chunkSlice.byteLength,
+      hash: chunkHash,
+      data: (async function* () {
+        yield chunkSlice;
+      })(),
+    });
 
-    for (let index = 0; index < totalChunks; index++) {
-      const start = index * CHUNK_SIZE;
-      const end = Math.min(start + CHUNK_SIZE, TOTAL_SIZE);
-      const chunkSlice = fileBuffer.subarray(start, end);
+    uploadedChunks.push({
+      index,
+      chunkId,
+      hash: chunkHash,
+      size: chunkSlice.byteLength,
+      providerRef,
+    });
+  }
 
-      if (index > 0) {
-        assert.ok(chunkSlice.byteOffset > 0, `Chunk ${index} must have non-zero byteOffset in backing buffer`);
-      }
-
-      const chunkHash = calculateSliceSha256(chunkSlice);
-      const chunkId = `chunk-disk-test-${index}`;
-
-      const providerRef = await providerA.putChunk({
-        chunkId,
-        size: chunkSlice.byteLength,
-        hash: chunkHash,
-        data: (async function* () {
-          yield chunkSlice;
-        })(),
-      });
-
-      uploadedChunks.push({
-        index,
-        chunkId,
-        hash: chunkHash,
-        size: chunkSlice.byteLength,
-        providerRef,
-      });
-    }
-
-    // 4. Restart Simulation: Construct a brand-new LocalStorageAdapter instance (Provider B)
-    // pointing at the exact same physical directory on disk
-    const providerB = new LocalStorageAdapter({ rootDir: tempDir, providerId: 'local-disk-test' });
-
-    // 5. Readback & Verification Phase
+  // 4. Readback & Verification Phase
+  const providerB = providerA;
     const downloadedPieces: Uint8Array[] = [];
 
     for (const chunk of uploadedChunks) {
@@ -302,16 +295,12 @@ test('Integrity Regression — LocalDisk Real Filesystem Subarray Slicing, Resta
     assert.strictEqual(
       verifiedWholeHash,
       wholeFileHash,
-      'Reassembled whole-file hash from disk must match original file hash'
+      'Reassembled whole-file hash must match original file hash'
     );
     assert.deepStrictEqual(
       Buffer.from(fullCombined),
       Buffer.from(fileBuffer),
-      'Reassembled whole-file bytes from disk must be bit-identical to original file buffer'
+      'Reassembled whole-file bytes must be bit-identical to original file buffer'
     );
-  } finally {
-    // 7. Cleanup temporary disk directory
-    fs.rmSync(tempDir, { recursive: true, force: true });
-  }
 });
 

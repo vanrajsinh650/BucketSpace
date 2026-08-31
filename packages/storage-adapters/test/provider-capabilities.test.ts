@@ -15,10 +15,7 @@ import {
 } from '@bucketspace/shared';
 import {
   InMemoryStorageProvider,
-  LocalStorageAdapter,
   ProviderRegistry,
-  S3StorageAdapter,
-  SupabaseStorageAdapter,
   TelegramStorageAdapter,
   TransferOrchestrator,
 } from '../src';
@@ -27,13 +24,6 @@ import { SqliteMetadataRepository } from '@bucketspace/db';
 describe('Storage Provider Capabilities & MTProto Architecture', () => {
   it('Phase 3 & 4 — All providers declare explicit capabilities with size boundaries', () => {
     const memoryProvider = new InMemoryStorageProvider('test-memory');
-    const localProvider = new LocalStorageAdapter({ rootDir: path.join(os.tmpdir(), 'bs-test-local-caps') });
-    const s3Provider = new S3StorageAdapter({ bucket: 'test-bucket' });
-    const supabaseProvider = new SupabaseStorageAdapter({
-      supabaseUrl: 'https://test.supabase.co',
-      supabaseKey: 'test-key',
-      bucketName: 'test-bucket',
-    });
     const telegramMtproto = new TelegramStorageAdapter({
       mode: 'mtproto',
       apiId: 12345,
@@ -46,19 +36,12 @@ describe('Storage Provider Capabilities & MTProto Architecture', () => {
     });
 
     const memoryCaps = memoryProvider.getCapabilities();
-    const localCaps = localProvider.getCapabilities();
-    const s3Caps = s3Provider.getCapabilities();
-    const supabaseCaps = supabaseProvider.getCapabilities();
     const tgMtprotoCaps = telegramMtproto.getCapabilities();
     const tgBotCaps = telegramBotApi.getCapabilities();
 
-    // Verify Local Disk has no artificial single object limit
-    assert.strictEqual(localCaps.maxObjectSizeBytes, null);
-    assert.strictEqual(localCaps.optimalChunkSizeBytes, 5 * 1024 * 1024);
-
-    // Verify S3 has 5 TB capability
-    assert.strictEqual(s3Caps.maxObjectSizeBytes, 5 * 1024 * 1024 * 1024 * 1024);
-    assert.strictEqual(s3Caps.optimalChunkSizeBytes, 5 * 1024 * 1024);
+    // Verify Memory Provider
+    assert.strictEqual(memoryCaps.maxObjectSizeBytes, null);
+    assert.strictEqual(memoryCaps.supportsStreamingRead, true);
 
     // Verify Telegram MTProto has 2 GB capability and 512 KB optimal parts
     assert.strictEqual(tgMtprotoCaps.maxObjectSizeBytes, 2_000_000_000);

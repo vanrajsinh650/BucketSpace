@@ -20,7 +20,7 @@ export function RuleEditor({ rule, availableProviders, onSave, onClose }: RuleEd
   const [name, setName] = useState(rule?.name ?? '');
   const [priority, setPriority] = useState(rule?.priority ?? 10);
   const [targetProviderId, setTargetProviderId] = useState(
-    rule?.action.providerId ?? availableProviders[0] ?? 'local-disk'
+    rule?.action.providerId ?? availableProviders[0] ?? 'telegram'
   );
   const [conditions, setConditions] = useState<RuleCondition[]>(
     rule?.conditions ?? [{ field: 'mimeType', operator: 'startsWith', value: 'image/' }]

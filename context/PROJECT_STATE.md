@@ -8,20 +8,18 @@ When architecture, goals, or rules change, this document MUST be updated, removi
 
 ## 1. Core Product Thesis & Vision
 
-> **"BucketSpace is an open-source personal file system that unifies storage from multiple providers into one searchable, shareable drive. The storage provider is infrastructure. BucketSpace is the experience."**
+> **"BucketSpace is an open-source personal cloud storage engine powered exclusively by Telegram MTProto. It transforms your private Telegram cloud into a secure, high-performance, zero-subscription personal drive with client-side AES-256-GCM encryption, adaptive chunking, and verifiable cryptographic integrity."**
 
 ### Product Principles
-1. **Unified Personal Drive**: Users see a single Google Drive-style file hierarchy (`My Drive/Photos/...`). The storage backend (Telegram, S3, R2, Supabase, Local Disk) is metadata attached to each file.
-2. **Provider Independence**: Storage providers are interchangeable infrastructure adapters underneath the BucketSpace core layer.
-3. **Layered Intelligence**:
-   - **Normal Search** (Default, No API Key): Instant structured metadata search across filenames, mime-types, extensions, sizes, dates, extracted text, and tags.
-   - **Optional AI Search** (User Brings Key / Local Model): Open-source pluggable AI search layer supporting OpenAI, Gemini, Claude, OpenRouter, or local Ollama.
-4. **Provider-Agnostic File Sharing**: Share links resolve `/s/:token -> fileId -> provider -> providerRef -> stream file` regardless of where bytes are stored.
-5. **Storage Redundancy Policies**: Multi-provider routing & background replication (e.g. Primary: Telegram, Backup: R2).
+1. **Telegram as Dedicated Cloud Storage Backbone**: Users store files directly inside their Telegram Saved Messages / private cloud channel via native MTProto 2.0 streaming and Bot API transports.
+2. **Zero-Knowledge Privacy**: All files and chunks are encrypted client-side using AES-256-GCM before transmission. Encryption keys never leave the user's device.
+3. **Deterministic Chunking & Bounded Memory**: Multi-gigabyte media is segmented into bounded chunks with parallel multi-part ingestion.
+4. **100% Verifiable SHA-256 Integrity**: Every chunk and reassembled file is cryptographically hashed and verified against bitrot.
+5. **Zero Subscription & Infinite Capacity**: Completely free personal cloud storage with zero recurring cloud provider fees.
 
-### V0 Scope & Discipline
-For V0, we strictly resist adding AI, sharing, multi-provider routing, or OCR. V0 focuses exclusively on establishing a rock-solid foundation:
-> **add file → upload → metadata → close/reopen app → find file → download → verify bytes → recover from interruption → delete/restore**
+### Scope & Architectural Discipline
+AI components (embeddings, vector chunks, OCR, RAG, Ollama) and external paid cloud connectors (S3, R2, GCP, Azure, Supabase) have been entirely removed. The system is dedicated purely to:
+> **add file → encrypt client-side → chunk → upload to Telegram MTProto → track metadata in SQLite → stream download → verify SHA-256 → decrypt & reassemble**
 
 ---
 
@@ -382,4 +380,27 @@ In accordance with user directives and deep extraction of design principles from
 - **Browser/Node Universal Primitives**: `ProviderRegistry`, `StoragePolicyEngine`, `StorageRouter`, and `DuplicateResolver` are purely isomorphic with zero hard dependencies on Node-only builtins.
 - **Dynamic Node Imports**: Node-specific daemons (like `FolderWatcher` via `chokidar`) dynamically import runtime dependencies only during execution, avoiding eager evaluation in client-side Next.js/Webpack bundles.
 - **Crypto Abstraction**: Hashing and UUID generation leverage `globalThis.crypto` (Web Crypto / SubtleCrypto) universally across browser and Node.js environments.
+
+---
+
+## 12. Architectural Pivot: Pure Telegram Cloud Engine & Complete AI Deprecation
+
+### Key Decisions
+1. **Exclusive Telegram Storage Backend**:
+   - All multi-cloud storage connectors (AWS S3, Cloudflare R2, GCP Cloud Storage, Azure Blob, Supabase Storage, Local disk) have been deleted from `packages/storage-adapters`, database schemas, and client applications.
+   - `TelegramStorageAdapter` (`telegram-storage-provider.ts`) is the primary production storage backend, featuring MTProto 2.0 (GramJS) multi-part streaming and Bot API fallback.
+   - An ephemeral `InMemoryStorageProvider` is retained strictly for unit tests and zero-credential sandbox demonstration.
+
+2. **Complete Removal of AI Components**:
+   - Deprecated and purged all AI-related tables (`content_metadata`, `content_segments`, `content_fts`, `vector_chunks`, `embedding_models`, `ObjectEmbedding` pgvector).
+   - Removed OCR, audio/video transcription, text extraction, semantic embeddings, and LLM inference integrations.
+   - Retained fast, deterministic SQLite-based file search and metadata indexing.
+
+3. **Core Retained Capabilities**:
+   - Zero-Knowledge client-side AES-256-GCM encryption & scrypt key derivation.
+   - Deterministic 20MB / 512KB adaptive multi-part chunking.
+   - 100% SHA-256 digest validation on upload, download, and reassembly.
+   - Folder auto-sync state machine with SQLite sync ledger.
+   - Dark technical minimalist UI (Next.js 15) and Electron desktop app.
+
 

@@ -29,10 +29,7 @@ export function MoveFileModal({
 
   const getProviderIcon = (id: string) => {
     if (id.includes('telegram')) return Send;
-    if (id.includes('local') || id.includes('disk')) return HardDrive;
-    if (id.includes('s3') || id.includes('r2')) return Cloud;
-    if (id.includes('supabase')) return Database;
-    return Cpu;
+    return HardDrive;
   };
 
   const handleExecuteMove = async () => {

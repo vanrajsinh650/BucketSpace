@@ -11,7 +11,7 @@ export const CreateLifecycleRuleSchema = z.object({
   workspaceId: z.string().uuid(),
   name: z.string().min(1).max(255),
   sourceBucketId: z.string().uuid().optional(),
-  targetProvider: z.enum(['TELEGRAM_DRIVE', 'AWS_S3', 'CLOUDFLARE_R2', 'GCP_STORAGE', 'AZURE_BLOB', 'MINIO']),
+  targetProvider: z.enum(['TELEGRAM_DRIVE']),
   minAgeDays: z.number().int().nonnegative().default(30),
   minSizeBytes: z.number().int().nonnegative().default(0),
   action: LifecycleActionSchema.default('MIGRATE'),
@@ -37,7 +37,7 @@ export interface CostRecommendationItem {
   title: string;
   description: string;
   potentialMonthlySavingsUsd: number;
-  actionType: 'MIGRATE_TO_TELEGRAM' | 'ENABLE_R2' | 'LIFECYCLE_AUTO_DELETE' | 'TIER_COLD_STORAGE';
+  actionType: 'MIGRATE_TO_TELEGRAM' | 'LIFECYCLE_AUTO_DELETE' | 'TIER_COLD_STORAGE';
   affectedFilesCount: number;
   affectedSizeBytes: number;
 }

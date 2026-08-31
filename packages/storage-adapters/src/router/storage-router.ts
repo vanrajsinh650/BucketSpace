@@ -19,7 +19,7 @@ export class StorageRouter {
   private circuitBreaker?: ProviderCircuitBreaker;
 
   constructor(
-    defaultProviderId: string = 'local-disk',
+    defaultProviderId: string = 'telegram',
     policyEngine?: StoragePolicyEngine,
     circuitBreaker?: ProviderCircuitBreaker,
   ) {
@@ -122,32 +122,12 @@ export class StorageRouter {
     const now = new Date('2026-01-01T00:00:00.000Z');
     return [
       {
-        id: 'rule-photos-telegram',
-        name: 'Photos to Telegram',
-        priority: 10,
+        id: 'rule-all-telegram',
+        name: 'All Files to Telegram Drive',
+        priority: 1,
         enabled: true,
-        conditions: [{ field: 'mimeType', operator: 'startsWith', value: 'image/' }],
+        conditions: [],
         action: { type: 'STORE', providerId: 'telegram' },
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: 'rule-videos-s3',
-        name: 'Videos to S3 / Cloudflare R2',
-        priority: 10,
-        enabled: true,
-        conditions: [{ field: 'mimeType', operator: 'startsWith', value: 'video/' }],
-        action: { type: 'STORE', providerId: 's3-r2' },
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: 'rule-docs-pdf',
-        name: 'PDF Documents to Supabase',
-        priority: 10,
-        enabled: true,
-        conditions: [{ field: 'extension', operator: 'equals', value: 'pdf' }],
-        action: { type: 'STORE', providerId: 'supabase' },
         createdAt: now,
         updatedAt: now,
       },

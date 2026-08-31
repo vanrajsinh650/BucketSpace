@@ -78,67 +78,6 @@ export function createSqliteDatabase(filepath: string = ':memory:'): DatabaseSyn
     CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp);
     CREATE INDEX IF NOT EXISTS idx_audit_logs_event_type ON audit_logs(event_type);
 
-    CREATE TABLE IF NOT EXISTS content_metadata (
-      file_id TEXT PRIMARY KEY,
-      extractor_id TEXT NOT NULL,
-      mime_type TEXT NOT NULL,
-      full_text TEXT NOT NULL,
-      language TEXT,
-      metadata_json TEXT NOT NULL,
-      extracted_at TEXT NOT NULL,
-      FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS content_segments (
-      id TEXT PRIMARY KEY,
-      file_id TEXT NOT NULL,
-      segment_index INTEGER NOT NULL,
-      text TEXT NOT NULL,
-      page_number INTEGER,
-      char_offset INTEGER,
-      start_time_seconds REAL,
-      end_time_seconds REAL,
-      confidence REAL,
-      bounding_box_json TEXT,
-      FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_content_segments_file ON content_segments(file_id);
-
-    CREATE VIRTUAL TABLE IF NOT EXISTS content_fts USING fts5(
-      file_id UNINDEXED,
-      full_text,
-      tokenize='unicode61'
-    );
-
-    CREATE TABLE IF NOT EXISTS vector_chunks (
-      id TEXT PRIMARY KEY,
-      file_id TEXT NOT NULL,
-      chunk_index INTEGER NOT NULL,
-      text TEXT NOT NULL,
-      page_number INTEGER,
-      char_offset INTEGER,
-      start_time_seconds REAL,
-      end_time_seconds REAL,
-      confidence REAL,
-      embedding_json TEXT NOT NULL,
-      model_id TEXT NOT NULL,
-      dimensions INTEGER NOT NULL,
-      created_at TEXT NOT NULL,
-      FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_vector_chunks_file ON vector_chunks(file_id);
-    CREATE INDEX IF NOT EXISTS idx_vector_chunks_model ON vector_chunks(model_id);
-
-    CREATE TABLE IF NOT EXISTS embedding_models (
-      model_id TEXT PRIMARY KEY,
-      model_version TEXT NOT NULL,
-      dimensions INTEGER NOT NULL,
-      is_active INTEGER NOT NULL DEFAULT 1,
-      created_at TEXT NOT NULL
-    );
-
     CREATE TABLE IF NOT EXISTS sync_ledger (
       local_path TEXT PRIMARY KEY,
       absolute_path TEXT NOT NULL,

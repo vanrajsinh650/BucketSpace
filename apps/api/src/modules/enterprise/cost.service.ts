@@ -12,11 +12,6 @@ import {
 // Monthly storage rates per GB (USD)
 const PROVIDER_RATES: Record<string, number> = {
   TELEGRAM_DRIVE: 0.0, // 100% Free Telegram Channel Storage
-  AWS_S3: 0.023, // AWS S3 Standard
-  CLOUDFLARE_R2: 0.015, // Cloudflare R2 (0 Egress Fees)
-  GCP_STORAGE: 0.02, // GCP Standard Storage
-  AZURE_BLOB: 0.018, // Azure Hot Blob Storage
-  MINIO: 0.005, // Self-hosted MinIO infrastructure estimate
 };
 
 export class MultiCloudCostService {
@@ -85,57 +80,6 @@ export class MultiCloudCostService {
     // Generate automated cost optimization recommendations
     const recommendations: CostRecommendationItem[] = [];
     let potentialMonthlySavingsUsd = 0;
-
-    // Check for paid cloud files eligible for Telegram Drive migration
-    let paidCloudBytes = BigInt(0);
-    let paidCloudFiles = 0;
-    let paidCloudActualCost = 0;
-
-    for (const [provider, stats] of providerMap.entries()) {
-      if (provider !== 'TELEGRAM_DRIVE') {
-        paidCloudBytes += stats.totalSizeBytes;
-        paidCloudFiles += stats.totalFiles;
-        const rate = PROVIDER_RATES[provider] ?? 0.02;
-        const gb = Number(stats.totalSizeBytes) / (1024 * 1024 * 1024);
-        paidCloudActualCost += gb * rate;
-      }
-    }
-
-    if (paidCloudBytes > BigInt(0)) {
-      const paidGb = Number(paidCloudBytes) / (1024 * 1024 * 1024);
-      const savings = parseFloat(paidCloudActualCost.toFixed(2));
-      potentialMonthlySavingsUsd += savings;
-
-      recommendations.push({
-        id: 'rec-telegram-migration',
-        title: 'Migrate Cold Assets to Free Telegram Cloud Drive',
-        description: `Move ${paidCloudFiles} file(s) (${(paidGb).toFixed(
-          1
-        )} GB) from paid cloud providers to Telegram Channel Storage to eliminate storage fees.`,
-        potentialMonthlySavingsUsd: savings,
-        actionType: 'MIGRATE_TO_TELEGRAM',
-        affectedFilesCount: paidCloudFiles,
-        affectedSizeBytes: Number(paidCloudBytes),
-      });
-    }
-
-    // Check for Cloudflare R2 zero-egress opportunity
-    const s3Stats = providerMap.get('AWS_S3');
-    if (s3Stats && s3Stats.totalSizeBytes > BigInt(0)) {
-      const s3Gb = Number(s3Stats.totalSizeBytes) / (1024 * 1024 * 1024);
-      const r2Savings = parseFloat((s3Gb * (0.023 - 0.015)).toFixed(2));
-      if (r2Savings > 0) {
-        recommendations.push({
-          id: 'rec-r2-egress',
-          title: 'Switch AWS S3 to Cloudflare R2 for Zero Egress',
-          description: `Replicate ${s3Stats.totalFiles} AWS S3 objects to Cloudflare R2 to save on egress bandwidth charges.`,
-          potentialMonthlySavingsUsd: r2Savings,
-          actionType: 'ENABLE_R2',
-          affectedFilesCount: s3Stats.totalFiles,
-          affectedSizeBytes: Number(s3Stats.totalSizeBytes),
-        });
-      }
-    }
 
     return {
       statusCode: 200,

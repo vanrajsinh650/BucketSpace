@@ -1,7 +1,7 @@
-# Database & Vector Schema (09_DATABASE.md)
+# Database Schema Specification (09_DATABASE.md)
 
 ## 1. Executive Summary & ERD Overview
-**BucketSpace** uses a single PostgreSQL 16 database with the `pgvector` extension to unify relational workspace metadata, access control policies, file object metadata, audit trails, and 512/1536-dimensional AI vector embeddings.
+**BucketSpace** uses an embedded SQLite database engine (`node:sqlite` / `better-sqlite3`) configured with Write-Ahead Logging (`PRAGMA journal_mode = WAL;`) and Foreign Key enforcement (`PRAGMA foreign_keys = ON;`). It maintains relational indices for files, chunks, routing rules, audit logs, and the folder synchronization state ledger.
 
 ---
 
@@ -9,219 +9,144 @@
 
 ```mermaid
 erDiagram
-    WORKSPACES ||--|{ BUCKETS : owns
-    WORKSPACES ||--|{ WORKSPACE_MEMBERS : contains
-    USERS ||--|{ WORKSPACE_MEMBERS : belongs_to
-    BUCKETS ||--|{ FILE_OBJECTS : stores
-    FILE_OBJECTS ||--|{ FILE_VERSIONS : tracks
-    FILE_OBJECTS ||--o| OBJECT_EMBEDDINGS : vector_indexed
-    WORKSPACES ||--|{ AUDIT_LOGS : records
+    FILES ||--|{ CHUNKS : contains
+    CHUNKS ||--o| CHUNK_LOCATIONS : mapped_to
+    FILES ||--o| SYNC_LEDGER : tracks
 
-    WORKSPACES {
-        uuid id PK
+    FILES {
+        string id PK
         string name
-        string slug
-        timestamp created_at
-    }
-
-    BUCKETS {
-        uuid id PK
-        uuid workspace_id FK
-        string name
-        string provider_enum
-        string region
-        string encrypted_credentials
-        timestamp created_at
-    }
-
-    FILE_OBJECTS {
-        uuid id PK
-        uuid bucket_id FK
-        string s3_key
-        string filename
-        bigint size_bytes
+        bigint size
         string mime_type
-        string sha256_hash
-        string status_enum
+        string whole_file_hash
+        string status
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    CHUNKS {
+        string id PK
+        string file_id FK
+        int chunk_index
+        bigint size
+        string hash
+        string provider_id
+        json provider_reference
+    }
+
+    STORAGE_RULES {
+        string id PK
+        string name
+        int priority
+        boolean enabled
+        json conditions
+        json action
+    }
+
+    AUDIT_LOGS {
+        string id PK
+        string event_type
+        json details
+        string actor
         timestamp created_at
     }
 
-    OBJECT_EMBEDDINGS {
-        uuid id PK
-        uuid file_id FK
-        vector_512 embedding_clip
-        vector_1536 embedding_text
-        timestamp indexed_at
+    SYNC_LEDGER {
+        string id PK
+        string local_path UK
+        string absolute_path
+        bigint file_size
+        bigint mtime_ms
+        string sha256_hash
+        string remote_file_id
+        string sync_status
+        string direction
+        int version
+        timestamp last_synced_at
     }
 ```
 
 ---
 
-## 3. Complete Prisma Schema Specification
-
-```prisma
-// packages/db/prisma/schema.prisma
-
-datasource db {
-  provider   = "postgresql"
-  url        = env("DATABASE_URL")
-  extensions = [pgvector(map: "vector")]
-}
-
-generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
-}
-
-enum ProviderType {
-  AWS_S3
-  CLOUDFLARE_R2
-  GCP_STORAGE
-  AZURE_BLOB
-  MINIO
-}
-
-enum ObjectStatus {
-  PENDING_UPLOAD
-  PROCESSED
-  QUARANTINED
-  DELETED
-}
-
-enum Role {
-  OWNER
-  ADMIN
-  EDITOR
-  VIEWER
-}
-
-model Workspace {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String   @db.VarChar(255)
-  slug      String   @unique @db.VarChar(255)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  buckets   Bucket[]
-  members   WorkspaceMember[]
-  auditLogs AuditLog[]
-
-  @@map("workspaces")
-}
-
-model User {
-  id        String   @id @default(uuid()) @db.Uuid
-  email     String   @unique @db.VarChar(255)
-  name      String   @db.VarChar(255)
-  avatarUrl String?  @map("avatar_url")
-  createdAt DateTime @default(now()) @map("created_at")
-
-  memberships WorkspaceMember[]
-
-  @@map("users")
-}
-
-model WorkspaceMember {
-  id          String   @id @default(uuid()) @db.Uuid
-  workspaceId String   @map("workspace_id") @db.Uuid
-  userId      String   @map("user_id") @db.Uuid
-  role        Role     @default(VIEWER)
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([workspaceId, userId])
-  @@map("workspace_members")
-}
-
-model Bucket {
-  id                   String       @id @default(uuid()) @db.Uuid
-  workspaceId          String       @map("workspace_id") @db.Uuid
-  name                 String       @db.VarChar(255)
-  provider             ProviderType
-  region               String       @db.VarChar(100)
-  endpoint             String?      @db.VarChar(512)
-  encryptedCredentials String       @map("encrypted_credentials") @db.Text
-  createdAt            DateTime     @default(now()) @map("created_at")
-
-  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  files     FileObject[]
-
-  @@unique([workspaceId, name])
-  @@map("buckets")
-}
-
-model FileObject {
-  id         String       @id @default(uuid()) @db.Uuid
-  bucketId   String       @map("bucket_id") @db.Uuid
-  s3Key      String       @map("s3_key") @db.VarChar(1024)
-  filename   String       @db.VarChar(512)
-  sizeBytes  BigInt       @map("size_bytes")
-  mimeType   String       @map("mime_type") @db.VarChar(255)
-  sha256Hash String?      @map("sha256_hash") @db.Char(64)
-  status     ObjectStatus @default(PENDING_UPLOAD)
-  createdAt  DateTime     @default(now()) @map("created_at")
-  updatedAt  DateTime     @updatedAt @map("updated_at")
-
-  bucket    Bucket           @relation(fields: [bucketId], references: [id], onDelete: Cascade)
-  embedding ObjectEmbedding?
-
-  @@index([bucketId, s3Key])
-  @@index([bucketId, filename])
-  @@index([status])
-  @@map("file_objects")
-}
-
-model ObjectEmbedding {
-  id            String                      @id @default(uuid()) @db.Uuid
-  fileId        String                      @unique @map("file_id") @db.Uuid
-  embeddingClip Unsupported("vector(512)")? @map("embedding_clip")
-  embeddingText Unsupported("vector(1536)")?@map("embedding_text")
-  indexedAt     DateTime                    @default(now()) @map("indexed_at")
-
-  file FileObject @relation(fields: [fileId], references: [id], onDelete: Cascade)
-
-  @@map("object_embeddings")
-}
-
-model AuditLog {
-  id          String   @id @default(uuid()) @db.Uuid
-  workspaceId String   @map("workspace_id") @db.Uuid
-  actorUserId String   @map("actor_user_id") @db.Uuid
-  action      String   @db.VarChar(100)
-  resource    String   @db.VarChar(512)
-  ipAddress   String   @map("ip_address") @db.VarChar(45)
-  metadata    Json     @default("{}")
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  @@index([workspaceId, createdAt])
-  @@map("audit_logs")
-}
-```
-
----
-
-## 4. Vector Search HNSW Index Strategy
-
-To ensure sub-50ms cosine similarity vector search over millions of object embeddings, PostgreSQL DDL migrations apply dedicated HNSW indexes:
+## 3. SQLite DDL Schema
 
 ```sql
--- DDL Migration Script for HNSW Vector Indexes
-CREATE INDEX IF NOT EXISTS idx_object_embeddings_clip_hnsw
-ON object_embeddings USING hnsw (embedding_clip vector_cosine_ops)
-WITH (m = 16, ef_construction = 64);
+CREATE TABLE IF NOT EXISTS files (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  size INTEGER NOT NULL,
+  mime_type TEXT NOT NULL,
+  whole_file_hash TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'ACTIVE',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
 
-CREATE INDEX IF NOT EXISTS idx_object_embeddings_text_hnsw
-ON object_embeddings USING hnsw (embedding_text vector_cosine_ops)
-WITH (m = 16, ef_construction = 64);
-```
+CREATE TABLE IF NOT EXISTS chunks (
+  id TEXT PRIMARY KEY,
+  file_id TEXT NOT NULL,
+  chunk_index INTEGER NOT NULL,
+  size INTEGER NOT NULL,
+  hash TEXT NOT NULL,
+  provider_id TEXT,
+  provider_reference TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,
+  CONSTRAINT uq_file_chunk UNIQUE (file_id, chunk_index)
+);
 
+CREATE TABLE IF NOT EXISTS chunk_locations (
+  chunk_id TEXT NOT NULL,
+  provider_id TEXT NOT NULL,
+  provider_ref TEXT NOT NULL,
+  is_primary INTEGER NOT NULL DEFAULT 1,
+  verified_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (chunk_id, provider_id),
+  FOREIGN KEY (chunk_id) REFERENCES chunks(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS storage_rules (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  priority INTEGER NOT NULL DEFAULT 0,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  conditions TEXT NOT NULL,
+  action TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id TEXT PRIMARY KEY,
+  event_type TEXT NOT NULL,
+  details TEXT NOT NULL,
+  actor TEXT NOT NULL DEFAULT 'SYSTEM',
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sync_ledger (
+  id TEXT PRIMARY KEY,
+  local_path TEXT NOT NULL UNIQUE,
+  absolute_path TEXT NOT NULL,
+  file_size INTEGER NOT NULL,
+  mtime_ms INTEGER NOT NULL,
+  sha256_hash TEXT NOT NULL,
+  remote_file_id TEXT,
+  sync_status TEXT NOT NULL DEFAULT 'PENDING_UPLOAD',
+  direction TEXT NOT NULL DEFAULT 'IDLE',
+  version INTEGER NOT NULL DEFAULT 1,
+  retry_count INTEGER NOT NULL DEFAULT 0,
+  error_message TEXT,
+  is_deleted INTEGER NOT NULL DEFAULT 0,
+  last_synced_at TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 ---
 
-## 5. Cross-References
-- API Models & Schemas: [10_API_SPECIFICATION.md](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/context/10_API_SPECIFICATION.md)
+## 4. Cross-References
+- System Architecture: [04_SYSTEM_ARCHITECTURE.md](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/context/04_SYSTEM_ARCHITECTURE.md)
+- Storage Architecture: [13_STORAGE_ARCHITECTURE.md](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/context/13_STORAGE_ARCHITECTURE.md)
+- Domain Models: [11_DOMAIN_MODELS.md](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/context/11_DOMAIN_MODELS.md)
 - Vector Search Architecture: [14_SEARCH_ARCHITECTURE.md](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/context/14_SEARCH_ARCHITECTURE.md)
 - Domain Models & DDD Aggregates: [11_DOMAIN_MODELS.md](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/context/11_DOMAIN_MODELS.md)

@@ -3,7 +3,6 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { DatabaseSync } from 'node:sqlite';
 import { StorageRule } from '@bucketspace/shared';
 import { createSqliteDatabase, SqliteMetadataRepository, StorageRuleRepository } from '@bucketspace/db';
 import {
@@ -14,7 +13,7 @@ import {
   ProviderRegistry,
   StorageApplicationService,
   InMemoryStorageProvider,
-  LocalStorageAdapter,
+  TelegramStorageAdapter,
 } from '../src';
 
 /* ─── V2.2 Storage Policy Engine Master Test Suite ─── */
