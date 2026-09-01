@@ -4,7 +4,7 @@ import {
 } from '@/modules/db';
 import { FileId, FileMetadata } from '@/shared';
 import { ProviderRegistry } from '../registry/provider-registry';
-import { StorageRouter } from '../router/storage-router';
+import { StorageRouter } from '../routing/storage-router';
 import { ShareLink, TokenShareProvider } from '../share';
 import { InspectionResult, RecoveryEngine } from '../transfer/recovery-engine';
 import { DownloadResult, TransferOrchestrator } from '../transfer/transfer-orchestrator';

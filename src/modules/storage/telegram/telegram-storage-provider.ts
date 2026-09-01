@@ -1,6 +1,7 @@
 import {
   ChunkNotFoundError,
   ChunkStat,
+  concatByteArrays,
   InvalidProviderRefError,
   IStorageProvider,
   ProviderChunkRef,
@@ -178,17 +179,10 @@ export class TelegramStorageAdapter implements IStorageProvider {
   public async putChunk(input: PutChunkInput): Promise<ProviderChunkRef> {
     if (this.mode === 'bot_api') {
       const bufferPieces: Uint8Array[] = [];
-      let totalLength = 0;
       for await (const piece of input.data) {
         bufferPieces.push(piece);
-        totalLength += piece.byteLength;
       }
-      const combinedBytes = new Uint8Array(totalLength);
-      let offset = 0;
-      for (const piece of bufferPieces) {
-        combinedBytes.set(piece, offset);
-        offset += piece.byteLength;
-      }
+      const combinedBytes = concatByteArrays(bufferPieces);
       return this.putChunkBotApi(input.chunkId, combinedBytes);
     }
 

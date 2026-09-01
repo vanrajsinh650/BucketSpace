@@ -100,9 +100,29 @@ export class TransferOrchestrator {
     if (!file) {
       throw new Error(`File metadata for id '${input.fileId}' not found in SQLite repository`);
     }
+    return this.streamAndVerifyFile(file, input.destinationPath, () => input.provider);
+  }
 
+  /**
+   * Download and reassemble a file, resolving each chunk's provider independently
+   * from ProviderRegistry. This enables files whose chunks span multiple providers
+   * (e.g., after a partial migration or multi-provider redundancy).
+   */
+  public static async downloadFileMultiProvider(input: MultiProviderDownloadInput): Promise<DownloadResult> {
+    const file = await input.repository.getFileById(input.fileId);
+    if (!file) {
+      throw new Error(`File metadata for id '${input.fileId}' not found in SQLite repository`);
+    }
+    return this.streamAndVerifyFile(file, input.destinationPath, (ref) => ProviderRegistry.get(ref.providerId));
+  }
+
+  private static async streamAndVerifyFile(
+    file: FileMetadata,
+    destinationPath: string,
+    resolveProvider: (ref: import('@/shared').ProviderChunkRef) => IStorageProvider
+  ): Promise<DownloadResult> {
     const sortedChunks = [...file.chunks].sort((a, b) => a.index - b.index);
-    const writeStream = createWriteStream(input.destinationPath);
+    const writeStream = createWriteStream(destinationPath);
     const wholeFileHasher = createHash('sha256');
 
     try {
@@ -111,7 +131,8 @@ export class TransferOrchestrator {
           throw new Error(`Chunk ${chunk.index} is missing provider reference`);
         }
 
-        const chunkByteStream = await input.provider.getChunk(chunk.providerRef);
+        const chunkProvider = resolveProvider(chunk.providerRef);
+        const chunkByteStream = await chunkProvider.getChunk(chunk.providerRef);
         const chunkHasher = createHash('sha256');
 
         for await (const piece of chunkByteStream) {
@@ -151,79 +172,11 @@ export class TransferOrchestrator {
     }
 
     return {
-      destinationPath: input.destinationPath,
-      file,
-      verifiedHash: computedWholeFileHash,
-    };
-  }
-
-  /**
-   * Download and reassemble a file, resolving each chunk's provider independently
-   * from ProviderRegistry. This enables files whose chunks span multiple providers
-   * (e.g., after a partial migration or multi-provider redundancy).
-   */
-  public static async downloadFileMultiProvider(input: MultiProviderDownloadInput): Promise<DownloadResult> {
-    const file = await input.repository.getFileById(input.fileId);
-    if (!file) {
-      throw new Error(`File metadata for id '${input.fileId}' not found in SQLite repository`);
-    }
-
-    const sortedChunks = [...file.chunks].sort((a, b) => a.index - b.index);
-    const writeStream = createWriteStream(input.destinationPath);
-    const wholeFileHasher = createHash('sha256');
-
-    try {
-      for (const chunk of sortedChunks) {
-        if (!chunk.providerRef) {
-          throw new Error(`Chunk ${chunk.index} is missing provider reference`);
-        }
-
-        // Resolve each chunk's provider independently
-        const chunkProvider = ProviderRegistry.get(chunk.providerRef.providerId);
-        const chunkByteStream = await chunkProvider.getChunk(chunk.providerRef);
-        const chunkHasher = createHash('sha256');
-
-        for await (const piece of chunkByteStream) {
-          chunkHasher.update(piece);
-          wholeFileHasher.update(piece);
-
-          const canContinue = writeStream.write(piece);
-          if (!canContinue) {
-            await new Promise<void>((resolve) => writeStream.once('drain', () => resolve()));
-          }
-        }
-
-        const computedChunkHash = chunkHasher.digest('hex');
-        if (computedChunkHash !== chunk.hash) {
-          throw new Error(
-            `Chunk ${chunk.index} hash mismatch during multi-provider download! Expected '${chunk.hash}', got '${computedChunkHash}'`
-          );
-        }
-      }
-
-      await new Promise<void>((resolve, reject) => {
-        writeStream.end((err?: Error | null) => {
-          if (err) reject(err);
-          else resolve();
-        });
-      });
-    } catch (err) {
-      writeStream.destroy();
-      throw err;
-    }
-
-    const computedWholeFileHash = wholeFileHasher.digest('hex');
-    if (computedWholeFileHash !== file.wholeFileHash) {
-      throw new Error(
-        `Whole-file hash mismatch during multi-provider download reassembly! Expected '${file.wholeFileHash}', got '${computedWholeFileHash}'`
-      );
-    }
-
-    return {
-      destinationPath: input.destinationPath,
+      destinationPath,
       file,
       verifiedHash: computedWholeFileHash,
     };
   }
 }
+
 

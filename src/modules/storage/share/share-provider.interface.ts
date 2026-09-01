@@ -1,13 +1,7 @@
-export interface ShareLink {
-  shareId: string;
-  fileId: string;
-  url: string;
-  createdAt: Date;
-  expiresAt?: Date;
-  passcodeHash?: string;
-  maxDownloads?: number;
-  downloadCount: number;
-}
+import { ShareLink } from '@/shared';
+
+export type { ShareLink };
+
 
 export interface CreateShareOptions {
   expiresInSeconds?: number;

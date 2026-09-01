@@ -42,7 +42,7 @@ export default function PublicSharePage() {
     }
 
     try {
-      const res = await fetch(`http://localhost:4000/api/v1/shares/${token}/verify`, {
+      const res = await fetch(`/api/v1/shares/${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ passcode }),

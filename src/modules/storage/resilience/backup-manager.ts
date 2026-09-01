@@ -124,7 +124,7 @@ export class BackupManager {
         }
 
         const exists = await provider.hasChunk(c.providerRef);
-        if (!exists) {
+        if (!exists || !exists.exists) {
           missingChunks++;
           fileHealthy = false;
         }

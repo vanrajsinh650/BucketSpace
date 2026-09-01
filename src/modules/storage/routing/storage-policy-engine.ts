@@ -3,7 +3,7 @@ import {
   RuleCondition,
   StorageRule,
 } from '@/shared';
-import { matchesCondition, matchesRule } from './rule-matcher';
+import { matchesCondition } from './rule-matcher';
 
 /* ─── Types ─── */
 

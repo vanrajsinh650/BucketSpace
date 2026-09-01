@@ -2,6 +2,7 @@ import { createHash } from 'crypto';
 import {
   ChunkLocation,
   ChunkMetadata,
+  concatByteArrays,
 } from '@/shared';
 import { ChunkLocationRepository } from '@/modules/db';
 import { ProviderRegistry } from '../registry/provider-registry';
@@ -142,7 +143,7 @@ export class RepairEngine {
       for await (const piece of sourceStream) {
         buffers.push(piece);
       }
-      const fullBuffer = concatBuffers(buffers);
+      const fullBuffer = concatByteArrays(buffers);
 
       // Write to damaged provider
       const targetProvider = ProviderRegistry.get(damaged.providerId);
@@ -188,14 +189,3 @@ export class RepairEngine {
   }
 }
 
-/** Concatenate an array of Uint8Arrays into a single buffer */
-function concatBuffers(buffers: Uint8Array[]): Uint8Array {
-  const totalLength = buffers.reduce((sum, b) => sum + b.byteLength, 0);
-  const result = new Uint8Array(totalLength);
-  let offset = 0;
-  for (const buf of buffers) {
-    result.set(buf, offset);
-    offset += buf.byteLength;
-  }
-  return result;
-}

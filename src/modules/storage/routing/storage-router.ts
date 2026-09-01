@@ -1,5 +1,5 @@
 import { FileRoutingInfo, StorageRule } from '@/shared';
-import { PolicyEvaluationResult, StoragePolicyEngine } from '../routing/storage-policy-engine';
+import { PolicyEvaluationResult, StoragePolicyEngine } from './storage-policy-engine';
 import { ProviderCircuitBreaker } from '../resilience/circuit-breaker';
 
 /**

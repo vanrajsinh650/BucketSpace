@@ -21,6 +21,7 @@ import {
   Square,
 } from 'lucide-react';
 import { FileMetadata } from '@/shared';
+import { formatBytes, formatDate } from '../lib/utils';
 import { motion } from 'framer-motion';
 
 interface FileCardProps {
@@ -57,21 +58,6 @@ export function FileCard({
   onPurge,
 }: FileCardProps) {
   const [isHovered, setIsHovered] = useState(false);
-
-  // Format file size
-  const formatSize = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
-  };
-
-  // Format timestamp
-  const formatDate = (timestamp: number | Date): string => {
-    const d = new Date(timestamp);
-    return d.toISOString().split('T')[0];
-  };
 
   // MIME Icon Selector
   const getFileIcon = (mime: string) => {
@@ -133,7 +119,7 @@ export function FileCard({
 
         {/* Middle: Size, Date, Chunks */}
         <div className="hidden sm:flex items-center gap-4 text-[11px] font-mono text-[#666] tabular-nums shrink-0">
-          <span>{formatSize(file.size)}</span>
+          <span>{formatBytes(file.size)}</span>
           <span>{formatDate(file.createdAt)}</span>
           <span className="text-[#555]">{file.chunks.length} chunks</span>
         </div>
@@ -320,7 +306,7 @@ export function FileCard({
           {file.name}
         </div>
         <div className="flex items-center justify-between text-[10px] font-mono text-[#666] tabular-nums">
-          <span>{formatSize(file.size)}</span>
+          <span>{formatBytes(file.size)}</span>
           <span className="text-[#555]">{file.chunks.length} chunks</span>
         </div>
       </div>

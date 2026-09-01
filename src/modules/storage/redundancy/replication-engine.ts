@@ -2,6 +2,7 @@ import { createHash } from 'crypto';
 import {
   ChunkLocation,
   ChunkMetadata,
+  concatByteArrays,
   LocationRole,
   ProviderChunkRef,
 } from '@/shared';
@@ -181,7 +182,7 @@ export class ReplicationEngine {
       for await (const piece of sourceStream) {
         sourceBuffers.push(piece);
       }
-      const fullBuffer = concatBuffers(sourceBuffers);
+      const fullBuffer = concatByteArrays(sourceBuffers);
 
       // Write to target provider
       const targetProvider = ProviderRegistry.get(targetProviderId);
@@ -226,14 +227,3 @@ export class ReplicationEngine {
   }
 }
 
-/** Concatenate an array of Uint8Arrays into a single buffer */
-function concatBuffers(buffers: Uint8Array[]): Uint8Array {
-  const totalLength = buffers.reduce((sum, b) => sum + b.byteLength, 0);
-  const result = new Uint8Array(totalLength);
-  let offset = 0;
-  for (const buf of buffers) {
-    result.set(buf, offset);
-    offset += buf.byteLength;
-  }
-  return result;
-}

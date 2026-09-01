@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Copy, Check, ShieldCheck, Database, HardDrive } from 'lucide-react';
 import { FileMetadata } from '@/shared';
+import { formatBytes } from '../lib/utils';
 
 interface FileInfoModalProps {
   file: FileMetadata | null;
@@ -18,14 +19,6 @@ export function FileInfoModal({ file, onClose }: FileInfoModalProps) {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
-  };
-
-  const formatSize = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
   };
 
   return (
@@ -59,7 +52,7 @@ export function FileInfoModal({ file, onClose }: FileInfoModalProps) {
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-[#121212] p-2.5 border border-[#1e1e1e] rounded">
               <div className="text-[10px] text-[#666] uppercase">Size</div>
-              <div className="text-white font-medium tabular-nums">{formatSize(file.size)} ({file.size} bytes)</div>
+              <div className="text-white font-medium tabular-nums">{formatBytes(file.size)} ({file.size} bytes)</div>
             </div>
             <div className="bg-[#121212] p-2.5 border border-[#1e1e1e] rounded">
               <div className="text-[10px] text-[#666] uppercase">MIME Type</div>
@@ -93,7 +86,7 @@ export function FileInfoModal({ file, onClose }: FileInfoModalProps) {
                     </span>
                   </div>
                   <div className="flex items-center gap-3 text-[10px] text-[#666]">
-                    <span className="tabular-nums">{formatSize(chunk.size)}</span>
+                    <span className="tabular-nums">{formatBytes(chunk.size)}</span>
                     <span className="text-[#22c55e]">Verified</span>
                   </div>
                 </div>

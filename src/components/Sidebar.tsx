@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { formatBytes } from '../lib/utils';
 import {
   FileText,
   FolderArchive,
@@ -48,15 +49,6 @@ export function Sidebar({
   isMobileOpen = false,
   onCloseMobile,
 }: SidebarProps) {
-  // Format bytes to human readable format
-  const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
-  };
-
   const categories: { id: CategoryFilter; label: string; icon: React.ElementType }[] = [
     { id: 'ALL', label: 'All Files', icon: Layers },
     { id: 'PHOTOS', label: 'Photos', icon: ImageIcon },

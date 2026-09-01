@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TelegramAuthService } from '@/modules/storage';
 
+// Force this route to always be dynamic (never statically cached)
 export const dynamic = 'force-dynamic';
-// Set maximum request body size for chunk streaming
+
+// Increase execution timeout to 60s for large file chunk uploads
 export const maxDuration = 60;
+
+// Use the Node.js runtime (required for Buffer, GramJS, etc.)
+export const runtime = 'nodejs';
 
 /**
  * POST /api/v1/telegram/mtproto/chunk

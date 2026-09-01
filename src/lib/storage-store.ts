@@ -1,5 +1,6 @@
 import {
   ChunkMetadata,
+  concatByteArrays,
   createChunkId,
   createFileId,
   DuplicateCheckResult,
@@ -97,13 +98,7 @@ export class HttpTelegramStorageAdapter implements IStorageProvider {
     for await (const chunk of input.data) {
       buffers.push(chunk);
     }
-    const totalLength = buffers.reduce((acc, b) => acc + b.length, 0);
-    const combined = new Uint8Array(totalLength);
-    let offset = 0;
-    for (const b of buffers) {
-      combined.set(b, offset);
-      offset += b.length;
-    }
+    const combined = concatByteArrays(buffers);
 
     const formData = new FormData();
     formData.append('sessionString', this.sessionString);
@@ -220,7 +215,7 @@ export class StorageStore {
     this.apiBaseUrl =
       typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
         ? process.env.NEXT_PUBLIC_API_URL
-        : 'http://localhost:4000';
+        : '';
 
     // Initialize with safe default provider; credentials are vault-secured
     this.activeProvider = new InMemoryStorageProvider();
@@ -344,7 +339,7 @@ export class StorageStore {
       const apiBase =
         typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
           ? process.env.NEXT_PUBLIC_API_URL
-          : 'http://localhost:4000';
+          : '';
       const telegramProvider = new HttpTelegramStorageAdapter(sessionString, apiBase);
       ProviderRegistry.register(telegramProvider);
       this.activeProvider = telegramProvider;
@@ -778,19 +773,11 @@ export class StorageStore {
       const provider = ProviderRegistry.get(chunk.providerRef.providerId);
       const stream = await provider.getChunk(chunk.providerRef);
       const pieces: Uint8Array[] = [];
-      let totalLength = 0;
-
       for await (const piece of stream) {
         pieces.push(piece);
-        totalLength += piece.byteLength;
       }
 
-      const chunkCombined = new Uint8Array(totalLength);
-      let offset = 0;
-      for (const piece of pieces) {
-        chunkCombined.set(piece, offset);
-        offset += piece.byteLength;
-      }
+      const chunkCombined = concatByteArrays(pieces);
 
       const verifiedChunkHash = await calculateSha256(chunkCombined);
       if (verifiedChunkHash !== chunk.hash) {
@@ -804,15 +791,7 @@ export class StorageStore {
       downloadedPieces.push(chunkCombined);
     }
 
-    const fullTotalSize = downloadedPieces.reduce((sum, p) => sum + p.byteLength, 0);
-    const fullCombined = new Uint8Array(fullTotalSize);
-    let fullOffset = 0;
-    for (const piece of downloadedPieces) {
-      fullCombined.set(piece, fullOffset);
-      fullOffset += piece.byteLength;
-    }
-
-    return { bytes: fullCombined, file };
+    return { bytes: concatByteArrays(downloadedPieces), file };
   }
 
   /**
@@ -832,32 +811,16 @@ export class StorageStore {
 
       const stream = await provider.getChunk(chunk.providerRef);
       const pieces: Uint8Array[] = [];
-      let totalLength = 0;
 
       for await (const piece of stream) {
         pieces.push(piece);
-        totalLength += piece.byteLength;
       }
 
-      const chunkCombined = new Uint8Array(totalLength);
-      let offset = 0;
-      for (const piece of pieces) {
-        chunkCombined.set(piece, offset);
-        offset += piece.byteLength;
-      }
-
+      const chunkCombined = concatByteArrays(pieces);
       downloadedPieces.push(chunkCombined);
     }
 
-    const fullTotalSize = downloadedPieces.reduce((sum, p) => sum + p.byteLength, 0);
-    const fullCombined = new Uint8Array(fullTotalSize);
-    let fullOffset = 0;
-    for (const piece of downloadedPieces) {
-      fullCombined.set(piece, fullOffset);
-      fullOffset += piece.byteLength;
-    }
-
-    return fullCombined;
+    return concatByteArrays(downloadedPieces);
   }
 
   /**
@@ -1022,13 +985,7 @@ export class StorageStore {
       }
 
       // Verify source read hash
-      const totalLength = buffers.reduce((sum, b) => sum + b.byteLength, 0);
-      const combined = new Uint8Array(totalLength);
-      let offset = 0;
-      for (const buf of buffers) {
-        combined.set(buf, offset);
-        offset += buf.byteLength;
-      }
+      const combined = concatByteArrays(buffers);
 
       const readHash = await calculateSha256(combined);
       if (readHash !== chunk.hash) {

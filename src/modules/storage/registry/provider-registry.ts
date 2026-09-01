@@ -1,4 +1,8 @@
-import { IStorageProvider, StorageProviderCapabilities } from '@/shared';
+import {
+  concatByteArrays,
+  IStorageProvider,
+  StorageProviderCapabilities,
+} from '@/shared';
 
 /* ─── Portable Crypto Helpers (Browser & Node.js Universal) ─── */
 
@@ -115,17 +119,10 @@ export class ProviderRegistry {
       // 2. Read back and verify hash
       const readStream = await provider.getChunk(ref);
       const pieces: Uint8Array[] = [];
-      let totalLength = 0;
       for await (const piece of readStream) {
         pieces.push(piece);
-        totalLength += piece.byteLength;
       }
-      const combined = new Uint8Array(totalLength);
-      let offset = 0;
-      for (const piece of pieces) {
-        combined.set(piece, offset);
-        offset += piece.byteLength;
-      }
+      const combined = concatByteArrays(pieces);
       const readHash = await computeSha256(combined);
 
       if (readHash !== probeHash) {

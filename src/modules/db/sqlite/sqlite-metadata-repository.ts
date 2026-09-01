@@ -101,33 +101,27 @@ export class SqliteMetadataRepository implements IMetadataRepository {
     return (await this.getFileById(file.id))!;
   }
 
-  public async getFileById(id: FileId): Promise<FileMetadata | null> {
-    const fileStmt = this.db.prepare('SELECT * FROM files WHERE id = ?');
-    const fileRow = fileStmt.get(id) as FileRow | undefined;
-
-    if (!fileRow) {
-      return null;
+  private mapChunkRow(row: ChunkRow): ChunkMetadata {
+    let providerRef: ProviderChunkRef | undefined = undefined;
+    if (row.provider_ref_json && row.provider_ref_json !== 'null') {
+      try {
+        providerRef = JSON.parse(row.provider_ref_json) as ProviderChunkRef;
+      } catch {
+        // Fallback for malformed provider ref
+      }
     }
 
-    const chunkStmt = this.db.prepare('SELECT * FROM chunks WHERE file_id = ? ORDER BY chunk_index ASC');
-    const chunkRows = chunkStmt.all(id) as unknown as ChunkRow[];
+    return {
+      id: createChunkId(row.id),
+      fileId: createFileId(row.file_id),
+      index: row.chunk_index,
+      size: row.size,
+      hash: row.hash,
+      providerRef,
+    };
+  }
 
-    const chunks: ChunkMetadata[] = chunkRows.map((row) => {
-      let providerRef: ProviderChunkRef | undefined = undefined;
-      if (row.provider_ref_json && row.provider_ref_json !== 'null') {
-        providerRef = JSON.parse(row.provider_ref_json) as ProviderChunkRef;
-      }
-
-      return {
-        id: createChunkId(row.id),
-        fileId: createFileId(row.file_id),
-        index: row.chunk_index,
-        size: row.size,
-        hash: row.hash,
-        providerRef,
-      };
-    });
-
+  private mapFileRow(fileRow: FileRow, chunks: ChunkMetadata[] = []): FileMetadata {
     return {
       id: createFileId(fileRow.id),
       name: fileRow.name,
@@ -141,58 +135,63 @@ export class SqliteMetadataRepository implements IMetadataRepository {
     };
   }
 
+  public async getFileById(id: FileId): Promise<FileMetadata | null> {
+    const fileStmt = this.db.prepare('SELECT * FROM files WHERE id = ?');
+    const fileRow = fileStmt.get(id) as FileRow | undefined;
+
+    if (!fileRow) {
+      return null;
+    }
+
+    const chunkStmt = this.db.prepare('SELECT * FROM chunks WHERE file_id = ? ORDER BY chunk_index ASC');
+    const chunkRows = chunkStmt.all(id) as unknown as ChunkRow[];
+    const chunks = chunkRows.map((row) => this.mapChunkRow(row));
+
+    return this.mapFileRow(fileRow, chunks);
+  }
+
   public async listFiles(options?: ListFilesOptions): Promise<FileMetadata[]> {
     const includeTrashed = options?.includeTrashed ?? false;
-    let query = 'SELECT id FROM files WHERE file_status = \'ACTIVE\' ORDER BY created_at DESC';
-    if (includeTrashed) {
-      query = 'SELECT id FROM files ORDER BY created_at DESC';
-    }
+    const query = includeTrashed
+      ? 'SELECT * FROM files ORDER BY created_at DESC'
+      : 'SELECT * FROM files WHERE file_status = \'ACTIVE\' ORDER BY created_at DESC';
 
-    const stmt = this.db.prepare(query);
-    const rows = stmt.all() as unknown as { id: string }[];
+    const fileRows = this.db.prepare(query).all() as unknown as FileRow[];
+    if (fileRows.length === 0) return [];
 
-    const result: FileMetadata[] = [];
-    for (const row of rows) {
-      const file = await this.getFileById(createFileId(row.id));
-      if (file) {
-        result.push(file);
-      }
-    }
-
-    return result;
+    return this.hydrateFilesWithChunks(fileRows);
   }
 
   public async searchFiles(query: string, options?: ListFilesOptions): Promise<FileMetadata[]> {
     const includeTrashed = options?.includeTrashed ?? false;
     const pattern = `%${query.trim().toLowerCase()}%`;
 
-    let sql = `
-      SELECT id FROM files
-      WHERE (LOWER(name) LIKE ? OR LOWER(mime_type) LIKE ?)
-      AND file_status = 'ACTIVE'
-      ORDER BY created_at DESC
-    `;
+    const sql = includeTrashed
+      ? `SELECT * FROM files WHERE (LOWER(name) LIKE ? OR LOWER(mime_type) LIKE ?) ORDER BY created_at DESC`
+      : `SELECT * FROM files WHERE (LOWER(name) LIKE ? OR LOWER(mime_type) LIKE ?) AND file_status = 'ACTIVE' ORDER BY created_at DESC`;
 
-    if (includeTrashed) {
-      sql = `
-        SELECT id FROM files
-        WHERE (LOWER(name) LIKE ? OR LOWER(mime_type) LIKE ?)
-        ORDER BY created_at DESC
-      `;
+    const fileRows = this.db.prepare(sql).all(pattern, pattern) as unknown as FileRow[];
+    if (fileRows.length === 0) return [];
+
+    return this.hydrateFilesWithChunks(fileRows);
+  }
+
+  private hydrateFilesWithChunks(fileRows: FileRow[]): FileMetadata[] {
+    const fileIds = fileRows.map((f) => f.id);
+    const placeholders = fileIds.map(() => '?').join(',');
+    const chunkRows = this.db
+      .prepare(`SELECT * FROM chunks WHERE file_id IN (${placeholders}) ORDER BY chunk_index ASC`)
+      .all(...fileIds) as unknown as ChunkRow[];
+
+    const chunksByFileId = new Map<string, ChunkMetadata[]>();
+    for (const chunkRow of chunkRows) {
+      const chunk = this.mapChunkRow(chunkRow);
+      const list = chunksByFileId.get(chunkRow.file_id) ?? [];
+      list.push(chunk);
+      chunksByFileId.set(chunkRow.file_id, list);
     }
 
-    const stmt = this.db.prepare(sql);
-    const rows = stmt.all(pattern, pattern) as unknown as { id: string }[];
-
-    const result: FileMetadata[] = [];
-    for (const row of rows) {
-      const file = await this.getFileById(createFileId(row.id));
-      if (file) {
-        result.push(file);
-      }
-    }
-
-    return result;
+    return fileRows.map((fileRow) => this.mapFileRow(fileRow, chunksByFileId.get(fileRow.id) ?? []));
   }
 
   public async saveChunk(chunk: ChunkMetadata): Promise<void> {

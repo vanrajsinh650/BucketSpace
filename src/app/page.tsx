@@ -2,23 +2,27 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { DuplicateCheckResult, FileMetadata, StorageRule } from '@/shared';
-import { AnalysisTab } from '../components/AnalysisTab';
-import { BulkActionBar } from '../components/BulkActionBar';
-import { DuplicateConflictModal } from '../components/DuplicateConflictModal';
-import { FileGrid } from '../components/FileGrid';
-import { FileInfoModal } from '../components/FileInfoModal';
-import { FilePreviewModal } from '../components/FilePreviewModal';
-import { FolderSyncModal } from '../components/FolderSyncModal';
-import { Header } from '../components/Header';
-import { MoveFileModal } from '../components/MoveFileModal';
-import { OnboardingLandingPage } from '../components/OnboardingLandingPage';
-import { ProviderOnboardingModal } from '../components/ProviderOnboardingModal';
-import { ProviderSettings, ProviderDisplayInfo } from '../components/ProviderSettings';
-import { RedundancyModal } from '../components/RedundancyModal';
-import { ShareModal } from '../components/ShareModal';
-import { Sidebar, MainTab } from '../components/Sidebar';
-import { StorageRulesPanel } from '../components/storage-rules/StorageRulesPanel';
-import { UploadModal } from '../components/UploadModal';
+import {
+  AnalysisTab,
+  BulkActionBar,
+  DuplicateConflictModal,
+  FileGrid,
+  FileInfoModal,
+  FilePreviewModal,
+  FolderSyncModal,
+  Header,
+  MainTab,
+  MoveFileModal,
+  OnboardingLandingPage,
+  ProviderDisplayInfo,
+  ProviderOnboardingModal,
+  ProviderSettings,
+  RedundancyModal,
+  ShareModal,
+  Sidebar,
+  StorageRulesPanel,
+  UploadModal,
+} from '../components';
 import {
   CategoryFilter,
   SortDirection,

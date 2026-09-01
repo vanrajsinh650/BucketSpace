@@ -15,6 +15,7 @@ import {
   File,
 } from 'lucide-react';
 import { FileMetadata } from '@/shared';
+import { formatBytes } from '../lib/utils';
 
 interface FilePreviewModalProps {
   file: FileMetadata | null;
@@ -45,14 +46,6 @@ export function FilePreviewModal({
 
   if (!isOpen || !file) return null;
 
-  const formatSize = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
-  };
-
   const isImage = file.mimeType.startsWith('image/');
   const isVideo = file.mimeType.startsWith('video/');
   const isAudio = file.mimeType.startsWith('audio/');
@@ -72,7 +65,7 @@ export function FilePreviewModal({
               {file.name}
             </span>
             <span className="text-[10px] font-mono text-[#666] uppercase">
-              {formatSize(file.size)}
+              {formatBytes(file.size)}
             </span>
           </div>
           <button

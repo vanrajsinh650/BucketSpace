@@ -98,7 +98,7 @@ pnpm type-check
 pnpm test
 
 # 4. Launch the local web interface
-pnpm --filter "@bucketspace/web" dev
+pnpm dev
 ```
 
 Web UI: `http://localhost:3000`
@@ -109,16 +109,17 @@ Web UI: `http://localhost:3000`
 
 ```
 BucketSpace/
-├── apps/
-│   ├── api/                 # Fastify REST API
-│   ├── cli/                 # CLI Interface
-│   └── web/                 # Next.js 15 Web UI
-├── packages/
-│   ├── shared/              # Domain Contracts & Types
-│   ├── security/            # Encryption & Key Derivation
-│   ├── db/                  # SQLite Metadata & Sync Ledger
-│   └── storage-adapters/    # Telegram Storage Adapter, Router, Transfer Engine
-└── context/                 # Architectural Documentation & Project State
+├── src/
+│   ├── app/                 # Next.js 15 App Router & REST API routes
+│   ├── components/          # React UI components & modals
+│   ├── lib/                 # Browser state store & ZIP streaming helpers
+│   ├── modules/
+│   │   ├── db/              # SQLite metadata repository & audit logging
+│   │   ├── security/        # AES-256-GCM envelope vault & scrypt hashing
+│   │   └── storage/         # Telegram MTProto adapter, chunker, routing & redundancy
+│   └── shared/              # Canonical domain contracts, IDs & byte utilities
+├── tests/                   # Deterministic test suites (chunker, encryption, share, SQLite, auth)
+└── context/                 # Architectural specifications & security runbooks
 ```
 
 ---

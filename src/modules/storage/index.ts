@@ -2,7 +2,6 @@ export * from './contracts/storage-provider';
 export * from './in-memory/in-memory-storage-provider';
 export * from './transfer';
 export * from './telegram';
-export * from './router';
 export * from './routing';
 export * from './registry';
 export * from './share';

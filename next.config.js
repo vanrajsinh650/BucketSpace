@@ -1,6 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
+
+  // Allow chunked file uploads up to 50MB through the App Router API routes
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '50mb',
+    },
+  },
+
+  // Keep these heavy server-only packages out of the browser bundle
+  serverExternalPackages: ['telegram', 'better-sqlite3', 'gramjs'],
+
   async headers() {
     return [
       {
