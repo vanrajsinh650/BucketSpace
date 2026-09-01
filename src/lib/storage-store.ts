@@ -82,7 +82,7 @@ export class HttpTelegramStorageAdapter implements IStorageProvider {
     return {
       providerId: this.providerId,
       maxObjectSizeBytes: 2000000000, // 2 GB per chunk
-      optimalChunkSizeBytes: 5 * 1024 * 1024, // 5 MB chunks
+      optimalChunkSizeBytes: 20 * 1024 * 1024, // 20 MB high-throughput chunks
       supportsStreamingRead: true,
       supportsStreamingWrite: true,
       supportsByteRangeRead: false,
@@ -494,7 +494,7 @@ export class StorageStore {
     file: File,
     onProgress?: (progress: UploadProgressState) => void
   ): Promise<FileMetadata> {
-    const CHUNK_SIZE = Math.floor(4.5 * 1024 * 1024); // 4.5 MB cloud-safe chunk invariant
+    const CHUNK_SIZE = 20 * 1024 * 1024; // 20 MB high-throughput chunks
     const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
     const CONCURRENCY = 4; // 4 parallel upload streams
 
@@ -695,7 +695,7 @@ export class StorageStore {
       throw new Error(`File '${existingFileId}' not found for replacement`);
     }
 
-    const CHUNK_SIZE = Math.floor(4.5 * 1024 * 1024);
+    const CHUNK_SIZE = 20 * 1024 * 1024;
     const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
     const CONCURRENCY = 4;
 

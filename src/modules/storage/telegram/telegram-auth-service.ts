@@ -79,6 +79,9 @@ export class TelegramAuthService {
 
     const client = new TelegramClient(session, apiId, apiHash, {
       connectionRetries: 5,
+      floodSleepThreshold: 60,
+      useIPV6: false,
+      autoReconnect: true,
     });
 
     await client.connect();
@@ -378,17 +381,12 @@ export class TelegramAuthService {
     const filename = params.filename || `chunk_${params.chunkId}.bin`;
     const customFile = new CustomFile(filename, params.buffer.length, '', params.buffer);
 
-    // Stream 512KB MTProto parts using 4 parallel workers
-    const uploadedFile = await client.uploadFile({
-      file: customFile,
-      workers: 4,
-    });
-
+    // Stream MTProto 512KB parts using 6 parallel socket workers
     const message = await client.sendFile(targetEntity, {
-      file: uploadedFile,
+      file: customFile,
       caption: `[bucketspace-chunk:${params.chunkId}]`,
       silent: true,
-      workers: 4,
+      workers: 6,
     });
 
     const doc = message.media && 'document' in message.media ? (message.media.document as any) : undefined;
