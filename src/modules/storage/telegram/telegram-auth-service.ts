@@ -32,6 +32,24 @@ export interface Verify2FAResult {
   sessionString: string;
 }
 
+// Attach state to globalThis to survive Next.js App Router hot-reloads across API routes
+interface GlobalTelegramState {
+  activeSessions: Map<string, ActiveLoginSession>;
+  clientPool: Map<string, { client: TelegramClient; lastUsed: number }>;
+}
+
+const globalForTelegram = globalThis as unknown as {
+  __bucketspace_telegram_state?: GlobalTelegramState;
+};
+
+const telegramState: GlobalTelegramState =
+  globalForTelegram.__bucketspace_telegram_state || {
+    activeSessions: new Map<string, ActiveLoginSession>(),
+    clientPool: new Map<string, { client: TelegramClient; lastUsed: number }>(),
+  };
+
+globalForTelegram.__bucketspace_telegram_state = telegramState;
+
 /**
  * Real Telegram MTProto 2.0 Authentication & Chunk Storage Service.
  *
@@ -39,16 +57,11 @@ export interface Verify2FAResult {
  * and direct MTProto binary chunk upload/download streaming to Telegram Saved Messages.
  */
 export class TelegramAuthService {
-  private static activeSessions = new Map<string, ActiveLoginSession>();
-  private static clientPool = new Map<string, { client: TelegramClient; lastUsed: number }>();
-  private static demoChunks = new Map<string | number, Buffer>();
-  private static demoMsgCounter = 1000;
-
   /**
    * Get or create a connected TelegramClient instance for a saved sessionString.
    */
   public static async getClient(sessionString: string): Promise<TelegramClient> {
-    const cached = this.clientPool.get(sessionString);
+    const cached = telegramState.clientPool.get(sessionString);
     if (cached && cached.client.connected) {
       cached.lastUsed = Date.now();
       return cached.client;
@@ -63,7 +76,7 @@ export class TelegramAuthService {
     });
 
     await client.connect();
-    this.clientPool.set(sessionString, { client, lastUsed: Date.now() });
+    telegramState.clientPool.set(sessionString, { client, lastUsed: Date.now() });
     return client;
   }
 
@@ -123,15 +136,15 @@ export class TelegramAuthService {
         ? process.env.TELEGRAM_API_HASH.trim()
         : DEFAULT_TELEGRAM_API_HASH;
 
-    // 3. Clean up any previous session for this phone number or expired sessions (> 10 min)
-    for (const [token, existing] of this.activeSessions.entries()) {
-      if (existing.phone === cleanPhone || Date.now() - existing.createdAt > 10 * 60 * 1000) {
+    // 3. Clean up any previous session for this phone number or expired sessions (> 15 min)
+    for (const [token, existing] of telegramState.activeSessions.entries()) {
+      if (existing.phone === cleanPhone || Date.now() - existing.createdAt > 15 * 60 * 1000) {
         try {
           await existing.client.disconnect();
         } catch {
           // ignore disconnect error
         }
-        this.activeSessions.delete(token);
+        telegramState.activeSessions.delete(token);
       }
     }
 
@@ -152,7 +165,7 @@ export class TelegramAuthService {
     );
 
     const sessionToken = `tgsess_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-    this.activeSessions.set(sessionToken, {
+    telegramState.activeSessions.set(sessionToken, {
       client,
       phone: cleanPhone,
       phoneCodeHash: result.phoneCodeHash,
@@ -170,17 +183,12 @@ export class TelegramAuthService {
 
   /**
    * Verify the 5-digit OTP code received on Telegram.
-   *
-   * IMPORTANT: We must use the raw `Auth.SignIn` RPC call directly with the
-   * stored `phoneCodeHash`. Using the high-level `client.signInUser()` helper
-   * would internally re-invoke `sendCode`, generating a NEW phoneCodeHash and
-   * immediately invalidating the OTP the user just received.
    */
   public static async verifyCode(params: {
     sessionToken: string;
     code: string;
   }): Promise<VerifyCodeResult> {
-    const session = this.activeSessions.get(params.sessionToken);
+    const session = telegramState.activeSessions.get(params.sessionToken);
     if (!session || !session.phoneCodeHash) {
       throw new Error('Authentication session expired or not found. Please request a new code.');
     }
@@ -197,7 +205,7 @@ export class TelegramAuthService {
       );
 
       const sessionString = session.client.session.save() as unknown as string;
-      this.activeSessions.delete(params.sessionToken);
+      telegramState.activeSessions.delete(params.sessionToken);
       return { success: true, sessionString };
     } catch (err: any) {
       const msg = (err?.errorMessage || err?.message || '').toLowerCase();
@@ -210,7 +218,8 @@ export class TelegramAuthService {
         msg.includes('password');
 
       if (requires2FA) {
-        // Keep session alive so the verify2FA step can reuse the same client
+        // Refresh session timestamp so user has plenty of time to enter their 2FA password
+        session.createdAt = Date.now();
         return { success: false, requires2FA: true };
       }
       throw err;
@@ -224,27 +233,35 @@ export class TelegramAuthService {
     sessionToken: string;
     password: string;
   }): Promise<Verify2FAResult> {
-    const session = this.activeSessions.get(params.sessionToken);
+    const session = telegramState.activeSessions.get(params.sessionToken);
     if (!session) {
       throw new Error('Authentication session expired. Please start again.');
     }
 
-    await session.client.signInWithPassword(
-      {
-        apiId: session.apiId,
-        apiHash: session.apiHash,
-      },
-      {
-        password: async () => params.password,
-        onError: (err) => {
-          throw err;
+    try {
+      await session.client.signInWithPassword(
+        {
+          apiId: session.apiId,
+          apiHash: session.apiHash,
         },
-      }
-    );
+        {
+          password: async () => params.password,
+          onError: (err: any) => {
+            throw err;
+          },
+        }
+      );
 
-    const sessionString = session.client.session.save() as unknown as string;
-    this.activeSessions.delete(params.sessionToken);
-    return { success: true, sessionString };
+      const sessionString = session.client.session.save() as unknown as string;
+      telegramState.activeSessions.delete(params.sessionToken);
+      return { success: true, sessionString };
+    } catch (err: any) {
+      const msg = (err?.errorMessage || err?.message || '').toLowerCase();
+      if (msg.includes('password_hash_invalid') || msg.includes('password invalid')) {
+        throw new Error('Incorrect 2FA password. Please check your Telegram cloud password and try again.');
+      }
+      throw err;
+    }
   }
 
   /**
