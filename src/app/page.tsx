@@ -63,10 +63,12 @@ export default function BucketSpaceApp() {
   const [providerList, setProviderList] = useState<ProviderDisplayInfo[]>([]);
   const [rulesList, setRulesList] = useState<StorageRule[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [mounted, setMounted] = useState(false);
 
   const uploadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    setMounted(true);
     return () => {
       if (uploadTimerRef.current) {
         clearTimeout(uploadTimerRef.current);
@@ -408,7 +410,18 @@ export default function BucketSpaceApp() {
     }
   };
 
-  /* ─── Onboarding Landing Gate (Rendered AFTER all hooks are called) ─── */
+  /* ─── Hydration Guard & Onboarding Landing Gate ─── */
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center font-mono text-xs text-zinc-500">
+        <div className="flex items-center gap-2">
+          <div className="w-3.5 h-3.5 border-2 border-zinc-700 border-t-zinc-200 rounded-full animate-spin" />
+          <span>Initializing BucketSpace...</span>
+        </div>
+      </div>
+    );
+  }
+
   const isFirstRun = !store.hasUserProvider();
   if (isFirstRun) {
     return (
