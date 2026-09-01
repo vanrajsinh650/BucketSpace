@@ -19,8 +19,6 @@
 graph TD
     User[User / Client] -->|Web UI / CLI| App[BucketSpace Web App]
     App -->|HTTP / REST| Core[BucketSpace Storage Core & Fastify Gateway]
-    Core -->|ACID Metadata| SQLite[(SQLite Files & Chunks DB)]
-    Core -->|Sync Ledger| SyncDB[(SQLite Sync Ledger)]
     Core -->|MTProto 2.0 / Bot API| TelegramCloud{Telegram Cloud Infrastructure: MTProto 2.0 DCs}
 ```
 
@@ -32,7 +30,6 @@ graph TB
         NextUI[Next.js 15 Web Workspace App]
         CryptoEngine[WebCrypto AES-256-GCM Encryption]
         Chunker[Adaptive Multi-Part Chunker]
-    end
 
     subgraph Core Storage Engine
         StorageService[Storage Application Service]

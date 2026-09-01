@@ -45,7 +45,7 @@ export function ProviderOnboardingModal({
   const API_BASE =
     typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
       ? process.env.NEXT_PUBLIC_API_URL
-      : 'http://localhost:4000';
+      : '';
 
   const handleTelegramPhone = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +69,7 @@ export function ProviderOnboardingModal({
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) {
         throw new Error(data.message || 'Failed to send verification code from Telegram.');
       }
@@ -80,7 +80,11 @@ export function ProviderOnboardingModal({
       }
       setTelegramStep('code');
     } catch (err: any) {
-      setErrorMessage(err.message || 'Network error connecting to API gateway.');
+      const msg =
+        err?.message === 'Failed to fetch'
+          ? 'Unable to reach the Telegram service. Please ensure your web server is running and try again.'
+          : err?.message || 'Failed to send verification code from Telegram.';
+      setErrorMessage(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -99,7 +103,7 @@ export function ProviderOnboardingModal({
         body: JSON.stringify({ sessionToken, code }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(data.message || 'Invalid or expired verification code.');
       }
@@ -116,7 +120,11 @@ export function ProviderOnboardingModal({
       await onConnectProvider('telegram', { sessionString: data.sessionString, phone });
       onClose();
     } catch (err: any) {
-      setErrorMessage(err.message || 'Verification failed.');
+      const msg =
+        err?.message === 'Failed to fetch'
+          ? 'Network connection error. Please try again.'
+          : err?.message || 'Verification failed.';
+      setErrorMessage(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -135,7 +143,7 @@ export function ProviderOnboardingModal({
         body: JSON.stringify({ sessionToken, password: password2FA }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) {
         throw new Error(data.message || 'Invalid 2FA password.');
       }
@@ -143,7 +151,11 @@ export function ProviderOnboardingModal({
       await onConnectProvider('telegram', { sessionString: data.sessionString, phone });
       onClose();
     } catch (err: any) {
-      setErrorMessage(err.message || '2FA Authentication failed.');
+      const msg =
+        err?.message === 'Failed to fetch'
+          ? 'Network connection error. Please try again.'
+          : err?.message || '2FA Authentication failed.';
+      setErrorMessage(msg);
     } finally {
       setIsSubmitting(false);
     }
