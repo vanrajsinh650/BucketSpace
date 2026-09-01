@@ -425,9 +425,22 @@ export class TelegramAuthService {
       }
     }
 
-    const messages = await client.getMessages(targetEntity, { ids: [params.messageId] });
+    let messages = await client.getMessages(targetEntity, { ids: [params.messageId] });
+    if ((!messages || messages.length === 0 || !messages[0] || !messages[0].media) && targetEntity !== 'me') {
+      // Fallback for older files stored in 'Saved Messages' before vault creation
+      try {
+        const fallbackMessages = await client.getMessages('me', { ids: [params.messageId] });
+        if (fallbackMessages && fallbackMessages[0] && fallbackMessages[0].media) {
+          messages = fallbackMessages;
+          targetEntity = 'me';
+        }
+      } catch {
+        // Ignore fallback error
+      }
+    }
+
     if (!messages || messages.length === 0 || !messages[0]) {
-      throw new Error(`Telegram message #${params.messageId} not found in storage vault`);
+      throw new Error(`Telegram message #${params.messageId} not found in storage vault or Saved Messages`);
     }
 
     const message = messages[0];
@@ -463,6 +476,17 @@ export class TelegramAuthService {
       }
     }
 
-    await client.deleteMessages(targetEntity, [params.messageId], { revoke: true });
+    try {
+      await client.deleteMessages(targetEntity, [params.messageId], { revoke: true });
+    } catch {
+      // Fallback delete from 'me' if message was from legacy Saved Messages
+      if (targetEntity !== 'me') {
+        try {
+          await client.deleteMessages('me', [params.messageId], { revoke: true });
+        } catch {
+          // ignore
+        }
+      }
+    }
   }
 }
