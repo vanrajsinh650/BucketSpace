@@ -3,6 +3,9 @@ import { StringSession } from 'telegram/sessions';
 import { CustomFile } from 'telegram/client/uploads';
 import type { TelegramRefData } from './telegram-storage-provider';
 
+export const DEFAULT_TELEGRAM_API_ID = 37608030;
+export const DEFAULT_TELEGRAM_API_HASH = '51ebcc8fbaa1b9ac93d5f410dfb53aa7';
+
 interface ActiveLoginSession {
   client: TelegramClient;
   phone: string;
@@ -28,9 +31,6 @@ export interface Verify2FAResult {
   success: boolean;
   sessionString: string;
 }
-
-export const DEFAULT_TELEGRAM_API_ID = 2040;
-export const DEFAULT_TELEGRAM_API_HASH = 'b18441a1ff607e10a989891a5462e627';
 
 /**
  * Real Telegram MTProto 2.0 Authentication & Chunk Storage Service.
@@ -68,18 +68,22 @@ export class TelegramAuthService {
   }
 
   /**
-   * Validate whether a sessionString is still authorized on Telegram.
+   * Check if a sessionString is valid and actively authenticated with Telegram.
    */
-  public static async checkSession(sessionString: string): Promise<{ valid: boolean; user?: any }> {
+  public static async checkSession(sessionString: string): Promise<{
+    valid: boolean;
+    user?: { id: string; firstName?: string; username?: string; phone?: string };
+  }> {
     try {
       const client = await this.getClient(sessionString);
       const me = await client.getMe();
-      if (!me) return { valid: false };
-
+      if (!me) {
+        return { valid: false };
+      }
       return {
         valid: true,
         user: {
-          id: (me as any).id?.toString(),
+          id: String((me as any).id),
           firstName: (me as any).firstName,
           username: (me as any).username,
           phone: (me as any).phone,
@@ -104,7 +108,7 @@ export class TelegramAuthService {
       cleanPhone = '+' + cleanPhone;
     }
 
-    // 2. Resolve credentials (custom override or built-in official client credentials)
+    // 2. Resolve credentials (custom override or built-in user credentials)
     const apiId =
       params.apiId && !isNaN(Number(params.apiId)) && Number(params.apiId) > 0
         ? Number(params.apiId)
@@ -119,7 +123,7 @@ export class TelegramAuthService {
         ? process.env.TELEGRAM_API_HASH.trim()
         : DEFAULT_TELEGRAM_API_HASH;
 
-    // 3. Clean up any existing session for this phone number or expired sessions (> 10 min)
+    // 3. Clean up any previous session for this phone number or expired sessions (> 10 min)
     for (const [token, existing] of this.activeSessions.entries()) {
       if (existing.phone === cleanPhone || Date.now() - existing.createdAt > 10 * 60 * 1000) {
         try {
@@ -253,18 +257,6 @@ export class TelegramAuthService {
     filename?: string;
     targetChatId?: string;
   }): Promise<TelegramRefData> {
-    if (params.sessionString.startsWith('dev_session_')) {
-      const msgId = ++this.demoMsgCounter;
-      this.demoChunks.set(msgId, params.buffer);
-      this.demoChunks.set(params.chunkId, params.buffer);
-      return {
-        chatId: 'me',
-        messageId: msgId,
-        fileId: `chk_${params.chunkId}`,
-        size: params.buffer.length,
-      };
-    }
-
     const client = await this.getClient(params.sessionString);
     const targetEntity = params.targetChatId || 'me';
     const filename = params.filename || `chunk_${params.chunkId}.bin`;
@@ -297,12 +289,6 @@ export class TelegramAuthService {
     messageId: number;
     targetChatId?: string;
   }): Promise<Buffer> {
-    if (params.sessionString.startsWith('dev_session_')) {
-      const buf = this.demoChunks.get(params.messageId) || this.demoChunks.get(String(params.messageId));
-      if (buf) return buf;
-      return Buffer.alloc(0);
-    }
-
     const client = await this.getClient(params.sessionString);
     const targetEntity = params.targetChatId || 'me';
 
@@ -332,12 +318,6 @@ export class TelegramAuthService {
     messageId: number;
     targetChatId?: string;
   }): Promise<void> {
-    if (params.sessionString.startsWith('dev_session_')) {
-      this.demoChunks.delete(params.messageId);
-      this.demoChunks.delete(String(params.messageId));
-      return;
-    }
-
     const client = await this.getClient(params.sessionString);
     const targetEntity = params.targetChatId || 'me';
     await client.deleteMessages(targetEntity, [params.messageId], { revoke: true });

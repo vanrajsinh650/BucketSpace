@@ -282,15 +282,22 @@ export function ProviderOnboardingModal({
                     Change
                   </button>
                 </div>
-                <div className="p-2.5 bg-blue-950/30 border border-blue-800/40 rounded-lg text-blue-300 text-[11px] flex items-center gap-2">
-                  <Check className="w-4 h-4 text-blue-400 shrink-0" />
-                  <span>Check your Telegram notifications or chat from Telegram on your phone/PC.</span>
-                </div>
+                {sessionToken.startsWith('tgsess_dev_') && (
+                  <div className="p-2.5 bg-emerald-950/30 border border-emerald-800/40 rounded-lg text-emerald-300 text-[11px] flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>Ready! Quick verify code:</span>
+                    </div>
+                    <span className="bg-emerald-900/60 text-white font-mono font-bold px-2 py-0.5 rounded text-xs border border-emerald-700/50 tracking-widest">
+                      12345
+                    </span>
+                  </div>
+                )}
                 <div className="space-y-1">
                   <label className="text-[10px] text-[#666] uppercase block">Telegram Code</label>
                   <input
                     type="text"
-                    placeholder="•••••"
+                    placeholder="12345"
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                     className="w-full bg-[#121212] border border-[#1e1e1e] rounded p-2 text-white font-mono text-center tracking-widest text-lg focus:outline-none focus:border-[#444]"

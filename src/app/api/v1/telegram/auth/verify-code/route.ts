@@ -26,18 +26,10 @@ export async function POST(req: NextRequest) {
       requires2FA: result.requires2FA,
     });
   } catch (err: any) {
-    let errorMessage = err?.errorMessage || err?.message || 'Invalid or expired verification code.';
-
-    if (errorMessage.includes('PHONE_CODE_INVALID')) {
-      errorMessage = 'Invalid 5-digit code. Please check your Telegram message and enter the latest code.';
-    } else if (errorMessage.includes('PHONE_CODE_EXPIRED')) {
-      errorMessage = 'The verification code has expired. Please go back and request a new code.';
-    }
-
     return NextResponse.json(
       {
         success: false,
-        message: errorMessage,
+        message: err?.message || 'Invalid or expired verification code.',
       },
       { status: 400 }
     );
