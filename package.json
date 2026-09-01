@@ -34,14 +34,5 @@
     "tailwindcss": "^3.4.4",
     "tsx": "^4.19.0",
     "typescript": "^5.5.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "bufferutil",
-      "es5-ext",
-      "esbuild",
-      "sharp",
-      "utf-8-validate"
-    ]
   }
 }
