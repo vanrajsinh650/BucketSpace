@@ -230,7 +230,6 @@ export function OnboardingLandingPage({
       }
 
       await onConnectProvider('telegram', { sessionString: data.sessionString, phone });
-      onFinishOnboarding();
     } catch (err: any) {
       const msg =
         err?.message === 'Failed to fetch'

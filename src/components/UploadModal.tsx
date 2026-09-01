@@ -114,9 +114,20 @@ export function UploadModal({
               </div>
 
               <div className="flex items-center justify-between text-[10px] text-[#666]">
-                <span>Stage: {uploadState.status}</span>
+                <span className={uploadState.status === 'FAILED' ? 'text-red-400 font-bold' : ''}>
+                  Stage: {uploadState.status}
+                </span>
                 <span>Chunk {uploadState.currentChunk} / {uploadState.totalChunks}</span>
               </div>
+
+              {uploadState.status === 'FAILED' && (
+                <div className="p-2.5 bg-red-950/30 border border-red-800/40 rounded text-red-300 text-[11px] flex items-start gap-2 mt-2">
+                  <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
+                  <span className="leading-tight">
+                    {uploadState.errorMessage || 'Failed to upload chunk to Telegram MTProto. Please try again.'}
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -1,6 +1,5 @@
 export * from './contracts/storage-provider';
 export * from './in-memory/in-memory-storage-provider';
-export * from './stream.utils';
 export * from './transfer';
 export * from './telegram';
 export * from './router';

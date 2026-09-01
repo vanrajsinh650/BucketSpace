@@ -71,7 +71,7 @@ export class HttpTelegramStorageAdapter implements IStorageProvider {
     sessionString: string,
     apiBaseUrl = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
       ? process.env.NEXT_PUBLIC_API_URL
-      : 'http://localhost:4000'
+      : ''
   ) {
     this.sessionString = sessionString;
     this.apiBaseUrl = apiBaseUrl;
