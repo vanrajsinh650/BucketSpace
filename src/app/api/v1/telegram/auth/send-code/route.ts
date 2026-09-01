@@ -37,15 +37,23 @@ export async function POST(req: NextRequest) {
       isCodeViaApp: result.isCodeViaApp,
     });
   } catch (err: any) {
-    const seconds = err?.seconds;
-    if (seconds) {
-      const mins = Math.ceil(seconds / 60);
+    let errorMessage = err?.errorMessage || err?.message || 'Failed to send verification code from Telegram.';
+
+    if (errorMessage.includes('PHONE_NUMBER_INVALID')) {
+      errorMessage = 'Invalid phone number format. Please include your country code (e.g. +91 8320452875).';
+    } else if (errorMessage.includes('PHONE_NUMBER_UNREGISTERED')) {
+      errorMessage = 'This phone number is not registered on Telegram. Please create an account on Telegram first.';
+    } else if (errorMessage.includes('API_ID_INVALID') || errorMessage.includes('API_ID_PUBLISHED_FLOOD')) {
+      errorMessage = 'Telegram API ID is invalid or busy. You can provide your custom API ID from my.telegram.org in custom credentials.';
+    } else if (errorMessage.includes('FLOOD_WAIT') || err?.seconds) {
+      const waitSeconds = err?.seconds || 60;
+      const mins = Math.ceil(waitSeconds / 60);
       return NextResponse.json(
         {
           success: false,
           errorCode: 'FLOOD_WAIT',
-          message: `Telegram rate limit hit. Please wait ${seconds} seconds (about ${mins} min) before requesting a new code.`,
-          waitSeconds: seconds,
+          message: `Telegram rate limit reached. Please wait ${waitSeconds} seconds (about ${mins} min) before requesting another code.`,
+          waitSeconds,
         },
         { status: 429 }
       );
@@ -54,7 +62,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        message: err?.message || 'Failed to send verification code from Telegram.',
+        message: errorMessage,
       },
       { status: 400 }
     );

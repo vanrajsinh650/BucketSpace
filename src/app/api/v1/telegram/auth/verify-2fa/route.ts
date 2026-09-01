@@ -25,10 +25,16 @@ export async function POST(req: NextRequest) {
       sessionString: result.sessionString,
     });
   } catch (err: any) {
+    let errorMessage = err?.errorMessage || err?.message || 'Invalid 2FA password.';
+
+    if (errorMessage.includes('PASSWORD_HASH_INVALID')) {
+      errorMessage = 'Incorrect 2FA password. Please check your Telegram cloud password and try again.';
+    }
+
     return NextResponse.json(
       {
         success: false,
-        message: err?.message || 'Invalid 2FA password.',
+        message: errorMessage,
       },
       { status: 400 }
     );

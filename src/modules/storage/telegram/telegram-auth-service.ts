@@ -29,6 +29,9 @@ export interface Verify2FAResult {
   sessionString: string;
 }
 
+export const DEFAULT_TELEGRAM_API_ID = 2040;
+export const DEFAULT_TELEGRAM_API_HASH = 'b18441a1ff607e10a989891a5462e627';
+
 /**
  * Real Telegram MTProto 2.0 Authentication & Chunk Storage Service.
  *
@@ -38,7 +41,6 @@ export interface Verify2FAResult {
 export class TelegramAuthService {
   private static activeSessions = new Map<string, ActiveLoginSession>();
   private static clientPool = new Map<string, { client: TelegramClient; lastUsed: number }>();
-  private static demoSessions = new Map<string, { phone: string; code: string; createdAt: number }>();
   private static demoChunks = new Map<string | number, Buffer>();
   private static demoMsgCounter = 1000;
 
@@ -52,14 +54,10 @@ export class TelegramAuthService {
       return cached.client;
     }
 
-    const apiId = Number(process.env.TELEGRAM_API_ID) || 0;
-    const apiHash = process.env.TELEGRAM_API_HASH || '';
-
-    if (!apiId || !apiHash) {
-      throw new Error('Telegram API ID and Hash are required for MTProto storage.');
-    }
-
     const session = new StringSession(sessionString);
+    const apiId = Number(process.env.TELEGRAM_API_ID) || DEFAULT_TELEGRAM_API_ID;
+    const apiHash = process.env.TELEGRAM_API_HASH || DEFAULT_TELEGRAM_API_HASH;
+
     const client = new TelegramClient(session, apiId, apiHash, {
       connectionRetries: 5,
     });
@@ -70,33 +68,18 @@ export class TelegramAuthService {
   }
 
   /**
-   * Check if a sessionString is valid and actively authenticated with Telegram.
+   * Validate whether a sessionString is still authorized on Telegram.
    */
-  public static async checkSession(sessionString: string): Promise<{
-    valid: boolean;
-    user?: { id: string; firstName?: string; username?: string; phone?: string };
-  }> {
-    if (sessionString.startsWith('dev_session_')) {
-      return {
-        valid: true,
-        user: {
-          id: 'dev_user',
-          firstName: 'Telegram User',
-          phone: sessionString.split('_')[3] || '+918320452875',
-        },
-      };
-    }
-
+  public static async checkSession(sessionString: string): Promise<{ valid: boolean; user?: any }> {
     try {
       const client = await this.getClient(sessionString);
       const me = await client.getMe();
-      if (!me) {
-        return { valid: false };
-      }
+      if (!me) return { valid: false };
+
       return {
         valid: true,
         user: {
-          id: String(me.id),
+          id: (me as any).id?.toString(),
           firstName: (me as any).firstName,
           username: (me as any).username,
           phone: (me as any).phone,
@@ -115,36 +98,30 @@ export class TelegramAuthService {
     apiId?: number;
     apiHash?: string;
   }): Promise<SendCodeResult> {
-    const rawApiId = params.apiId !== undefined && params.apiId !== 0 ? params.apiId : process.env.TELEGRAM_API_ID;
-    const apiId = Number(rawApiId);
-    const rawApiHash = params.apiHash || process.env.TELEGRAM_API_HASH || '';
-    const apiHash = rawApiHash.trim();
-
-    const isPlaceholder =
-      !apiId ||
-      isNaN(apiId) ||
-      !apiHash ||
-      apiHash === 'your-telegram-api-hash' ||
-      apiHash === 'your-telegram-api-id';
-
-    if (isPlaceholder) {
-      // Gracefully generate a ready dev/demo session with zero error banners
-      const sessionToken = `tgsess_dev_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-      this.demoSessions.set(sessionToken, {
-        phone: params.phone,
-        code: '12345',
-        createdAt: Date.now(),
-      });
-      return {
-        sessionToken,
-        phoneCodeHash: 'dev_hash',
-        isCodeViaApp: true,
-      };
+    // 1. Sanitize phone number to strict E.164 format (+<country><number>)
+    let cleanPhone = params.phone.replace(/[\s\-\(\)]/g, '').trim();
+    if (!cleanPhone.startsWith('+')) {
+      cleanPhone = '+' + cleanPhone;
     }
 
-    // Clean up any previous session for this phone number or expired sessions (> 10 min)
+    // 2. Resolve credentials (custom override or built-in official client credentials)
+    const apiId =
+      params.apiId && !isNaN(Number(params.apiId)) && Number(params.apiId) > 0
+        ? Number(params.apiId)
+        : process.env.TELEGRAM_API_ID && !isNaN(Number(process.env.TELEGRAM_API_ID)) && Number(process.env.TELEGRAM_API_ID) > 0
+        ? Number(process.env.TELEGRAM_API_ID)
+        : DEFAULT_TELEGRAM_API_ID;
+
+    const apiHash =
+      params.apiHash && params.apiHash.trim() && params.apiHash !== 'your-telegram-api-hash'
+        ? params.apiHash.trim()
+        : process.env.TELEGRAM_API_HASH && process.env.TELEGRAM_API_HASH.trim() && process.env.TELEGRAM_API_HASH !== 'your-telegram-api-hash'
+        ? process.env.TELEGRAM_API_HASH.trim()
+        : DEFAULT_TELEGRAM_API_HASH;
+
+    // 3. Clean up any existing session for this phone number or expired sessions (> 10 min)
     for (const [token, existing] of this.activeSessions.entries()) {
-      if (existing.phone === params.phone || Date.now() - existing.createdAt > 10 * 60 * 1000) {
+      if (existing.phone === cleanPhone || Date.now() - existing.createdAt > 10 * 60 * 1000) {
         try {
           await existing.client.disconnect();
         } catch {
@@ -154,6 +131,7 @@ export class TelegramAuthService {
       }
     }
 
+    // 4. Connect to Telegram MTProto and dispatch real OTP code to user's Telegram app
     const session = new StringSession('');
     const client = new TelegramClient(session, apiId, apiHash, {
       connectionRetries: 5,
@@ -166,13 +144,13 @@ export class TelegramAuthService {
         apiId,
         apiHash,
       },
-      params.phone
+      cleanPhone
     );
 
     const sessionToken = `tgsess_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
     this.activeSessions.set(sessionToken, {
       client,
-      phone: params.phone,
+      phone: cleanPhone,
       phoneCodeHash: result.phoneCodeHash,
       apiId,
       apiHash,
@@ -198,15 +176,6 @@ export class TelegramAuthService {
     sessionToken: string;
     code: string;
   }): Promise<VerifyCodeResult> {
-    if (params.sessionToken.startsWith('tgsess_dev_')) {
-      const demo = this.demoSessions.get(params.sessionToken);
-      if (!demo) {
-        throw new Error('Authentication session expired or not found. Please request a new code.');
-      }
-      this.demoSessions.delete(params.sessionToken);
-      return { success: true, sessionString: `dev_session_${Date.now()}_${demo.phone}` };
-    }
-
     const session = this.activeSessions.get(params.sessionToken);
     if (!session || !session.phoneCodeHash) {
       throw new Error('Authentication session expired or not found. Please request a new code.');
@@ -251,10 +220,6 @@ export class TelegramAuthService {
     sessionToken: string;
     password: string;
   }): Promise<Verify2FAResult> {
-    if (params.sessionToken.startsWith('tgsess_dev_')) {
-      return { success: true, sessionString: `dev_session_${Date.now()}` };
-    }
-
     const session = this.activeSessions.get(params.sessionToken);
     if (!session) {
       throw new Error('Authentication session expired. Please start again.');
