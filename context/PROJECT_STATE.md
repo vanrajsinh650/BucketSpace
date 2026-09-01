@@ -47,24 +47,23 @@ AI components (embeddings, vector chunks, OCR, RAG, Ollama) and external paid cl
                     BUCKETSPACE V0
                           │
                     ┌─────▼─────┐
-                    │ Desktop UI │
+                    │ Web Drive │
+                    │ Dashboard │
                     └─────┬─────┘
                           │
-                    Local Application
+              Next.js 15 Full-Stack App
                           │
              ┌────────────┼────────────┐
              │            │            │
-          Metadata      Storage      Transfer
-           SQLite       Engine        Manager
+          Metadata      Storage      Security
+           SQLite       Engine       Envelope
              │            │            │
              │      ┌─────▼─────┐      │
-             │      │ Telegram  │      │
-             │      │ Adapter   │      │
+             │      │  Telegram │      │
+             │      │  MTProto  │      │
              │      └───────────┘      │
              │                         │
-             └────────────┬────────────┘
-                          │
-                    Local File Index
+             └─────────────────────────┘
 ```
 
 ### Key Design Decisions

@@ -1,22 +1,36 @@
 {
-  "name": "bucketspace-monorepo",
-  "private": true,
+  "name": "bucketspace",
   "version": "1.0.0",
-  "description": "Telegram Cloud Storage Engine & Personal Web Drive",
+  "private": true,
+  "description": "BucketSpace — Personal Cloud Storage Engine Powered by Telegram MTProto",
   "scripts": {
-    "dev": "pnpm --parallel --filter @bucketspace/api --filter @bucketspace/web dev",
-    "dev:web": "pnpm --filter @bucketspace/web dev",
-    "dev:api": "pnpm --filter @bucketspace/api dev",
-    "build": "pnpm --filter \"./packages/*\" build && pnpm --filter @bucketspace/api build && pnpm --filter @bucketspace/web build",
-    "lint": "pnpm --recursive lint",
-    "type-check": "pnpm --recursive type-check",
-    "test": "pnpm --recursive test"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "chokidar": "^5.0.0",
+    "clsx": "^2.1.1",
+    "framer-motion": "^13.1.0",
+    "geist": "^1.7.2",
+    "lucide-react": "^0.395.0",
+    "next": "15.0.0",
+    "react": "^19.0.0-rc-6f23342f1d-20240625",
+    "react-dom": "^19.0.0-rc-6f23342f1d-20240625",
+    "tailwind-merge": "^2.6.1",
+    "telegram": "^2.26.22",
+    "zod": "^3.23.8",
+    "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "npm:types-react@rc",
+    "@types/react-dom": "npm:types-react-dom@rc",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.4",
     "typescript": "^5.5.0"
-  },
-  "engines": {
-    "node": ">=22.0.0",
-    "pnpm": ">=9.0.0"
   }
 }

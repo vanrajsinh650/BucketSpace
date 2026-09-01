@@ -1,19 +1,9 @@
-packages:
-  - 'apps/*'
-  - 'packages/*'
-
 allowBuilds:
-  '@prisma/client': true
-  '@prisma/engines': true
-  bufferutil: true
-  es5-ext: false
-  esbuild: true
-  prisma: true
-  sharp: true
-  utf-8-validate: true
-
-onlyBuiltDependencies:
-  - '@prisma/client'
-  - '@prisma/engines'
-  - 'prisma'
-  - 'sharp'
+  '@prisma/client': set this to true or false
+  '@prisma/engines': set this to true or false
+  bufferutil: set this to true or false
+  es5-ext: set this to true or false
+  esbuild: set this to true or false
+  prisma: set this to true or false
+  sharp: set this to true or false
+  utf-8-validate: set this to true or false

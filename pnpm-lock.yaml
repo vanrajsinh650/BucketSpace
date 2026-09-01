@@ -7,7 +7,59 @@ settings:
 importers:
 
   .:
+    dependencies:
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
+      framer-motion:
+        specifier: ^13.1.0
+        version: 13.1.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      geist:
+        specifier: ^1.7.2
+        version: 1.7.2(next@15.0.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))
+      lucide-react:
+        specifier: ^0.395.0
+        version: 0.395.0(react@19.2.8)
+      next:
+        specifier: 15.0.0
+        version: 15.0.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      react:
+        specifier: ^19.0.0-rc-6f23342f1d-20240625
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.0.0-rc-6f23342f1d-20240625
+        version: 19.2.8(react@19.2.8)
+      tailwind-merge:
+        specifier: ^2.6.1
+        version: 2.6.1
+      telegram:
+        specifier: ^2.26.22
+        version: 2.26.22
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
+      zustand:
+        specifier: ^5.0.0
+        version: 5.0.15(react@19.2.8)(types-react@19.0.0-rc.1)
     devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
+      '@types/react':
+        specifier: npm:types-react@rc
+        version: types-react@19.0.0-rc.1
+      '@types/react-dom':
+        specifier: npm:types-react-dom@rc
+        version: types-react-dom@19.0.0-rc.1
+      autoprefixer:
+        specifier: ^10.4.19
+        version: 10.5.4(postcss@8.5.25)
+      postcss:
+        specifier: ^8.4.38
+        version: 8.5.25
+      tailwindcss:
+        specifier: ^3.4.4
+        version: 3.4.19(tsx@4.23.5)
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
@@ -1458,6 +1510,24 @@ packages:
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
+  zustand@5.0.15:
+    resolution: {integrity: sha512-MpSEjRiBkA9crSYeOUH32rJC7SVqAbm0Fqcqge/bUi2PPoLcBWKOsG+C8mevmpr8TwXHBVkChbbJiyvkE+i/3A==}
+    engines: {node: '>=12.20.0'}
+    peerDependencies:
+      '@types/react': '>=18.0.0'
+      immer: '>=9.0.6'
+      react: '>=18.0.0'
+      use-sync-external-store: '>=1.2.0'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      immer:
+        optional: true
+      react:
+        optional: true
+      use-sync-external-store:
+        optional: true
+
 snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
@@ -2608,3 +2678,8 @@ snapshots:
   yaeti@0.0.6: {}
 
   zod@3.25.76: {}
+
+  zustand@5.0.15(react@19.2.8)(types-react@19.0.0-rc.1):
+    optionalDependencies:
+      '@types/react': types-react@19.0.0-rc.1
+      react: 19.2.8
