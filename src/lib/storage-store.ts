@@ -82,7 +82,7 @@ export class HttpTelegramStorageAdapter implements IStorageProvider {
     return {
       providerId: this.providerId,
       maxObjectSizeBytes: 2000000000, // 2 GB per chunk
-      optimalChunkSizeBytes: 16 * 1024 * 1024, // 16 MB high-throughput chunks
+      optimalChunkSizeBytes: 8 * 1024 * 1024, // 8 MB rapid-throughput chunks
       supportsStreamingRead: true,
       supportsStreamingWrite: true,
       supportsByteRangeRead: false,
@@ -105,7 +105,7 @@ export class HttpTelegramStorageAdapter implements IStorageProvider {
     formData.append('chunkId', input.chunkId);
     formData.append('filename', `chunk_${input.chunkId}.bin`);
     formData.append('targetChatId', 'vault');
-    const blobSafe = new Blob([combined.buffer as ArrayBuffer], { type: 'application/octet-stream' });
+    const blobSafe = new Blob([combined as unknown as BlobPart], { type: 'application/octet-stream' });
     formData.append('file', blobSafe);
 
     let lastError: Error | null = null;
@@ -494,9 +494,9 @@ export class StorageStore {
     file: File,
     onProgress?: (progress: UploadProgressState) => void
   ): Promise<FileMetadata> {
-    const CHUNK_SIZE = 16 * 1024 * 1024; // 16 MB high-throughput chunks
+    const CHUNK_SIZE = 8 * 1024 * 1024; // 8 MB rapid chunks
     const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
-    const CONCURRENCY = 4; // 4 parallel upload streams
+    const CONCURRENCY = 2; // 2 parallel streams for consistent throughput
 
     onProgress?.({
       fileName: file.name,
@@ -538,6 +538,15 @@ export class StorageStore {
     const targetProvider = ProviderRegistry.has(resolvedProviderId)
       ? ProviderRegistry.get(resolvedProviderId)
       : this.activeProvider;
+
+    // Immediately notify UI that uploading has actively begun
+    onProgress?.({
+      fileName: file.name,
+      currentChunk: Math.min(1, totalChunks),
+      totalChunks,
+      percent: 10,
+      status: 'UPLOADING',
+    });
 
     // Concurrent worker function pulling chunk tasks from the queue
     const uploadWorker = async () => {
@@ -584,7 +593,7 @@ export class StorageStore {
             fileName: file.name,
             currentChunk: completedCount,
             totalChunks,
-            percent: Math.min(95, Math.round((completedCount / totalChunks) * 90) + 5),
+            percent: Math.min(95, Math.round((completedCount / totalChunks) * 85) + 10),
             status: 'UPLOADING',
           });
         } catch (err: any) {
@@ -594,7 +603,7 @@ export class StorageStore {
       }
     };
 
-    // Execute 4 parallel upload streams
+    // Execute 2 parallel upload streams
     const workerCount = Math.min(CONCURRENCY, totalChunks);
     const workers = Array.from({ length: workerCount }, () => uploadWorker());
     await Promise.all(workers);
@@ -695,9 +704,9 @@ export class StorageStore {
       throw new Error(`File '${existingFileId}' not found for replacement`);
     }
 
-    const CHUNK_SIZE = 16 * 1024 * 1024;
+    const CHUNK_SIZE = 8 * 1024 * 1024;
     const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
-    const CONCURRENCY = 4;
+    const CONCURRENCY = 2;
 
     onProgress?.({
       fileName: file.name,
@@ -722,6 +731,14 @@ export class StorageStore {
     const targetProvider = ProviderRegistry.has(resolvedProviderId)
       ? ProviderRegistry.get(resolvedProviderId)
       : this.activeProvider;
+
+    onProgress?.({
+      fileName: file.name,
+      currentChunk: Math.min(1, totalChunks),
+      totalChunks,
+      percent: 10,
+      status: 'UPLOADING',
+    });
 
     const uploadWorker = async () => {
       while (nextChunkIndex < totalChunks && !uploadError) {
@@ -760,7 +777,7 @@ export class StorageStore {
             fileName: file.name,
             currentChunk: completedCount,
             totalChunks,
-            percent: Math.min(95, Math.round((completedCount / totalChunks) * 90) + 5),
+            percent: Math.min(95, Math.round((completedCount / totalChunks) * 85) + 10),
             status: 'UPLOADING',
           });
         } catch (err: any) {
