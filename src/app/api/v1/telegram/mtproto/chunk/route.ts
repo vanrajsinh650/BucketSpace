@@ -4,15 +4,15 @@ import { TelegramAuthService } from '@/modules/storage';
 // Force this route to always be dynamic (never statically cached)
 export const dynamic = 'force-dynamic';
 
-// Increase execution timeout to 60s for large file chunk uploads
-export const maxDuration = 60;
+// Increase execution timeout to 300s for large file chunk uploads
+export const maxDuration = 300;
 
 // Use the Node.js runtime (required for Buffer, GramJS, etc.)
 export const runtime = 'nodejs';
 
 /**
  * POST /api/v1/telegram/mtproto/chunk
- * Streams a binary encrypted file chunk directly to Telegram Saved Messages ('me') via MTProto.
+ * Streams a binary encrypted file chunk directly to Telegram Storage Vault via MTProto.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -25,6 +25,8 @@ export async function POST(req: NextRequest) {
       (formData.get('sessionString') as string) ||
       req.headers.get('x-telegram-session') ||
       '';
+
+    console.log(`[chunk-upload] chunkId=${chunkId} size=${file?.size ?? 0} session=${sessionString ? 'present' : 'MISSING'}`);
 
     if (!file) {
       return NextResponse.json(
@@ -43,6 +45,15 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
+    if (buffer.length === 0) {
+      return NextResponse.json(
+        { success: false, message: 'Received empty chunk buffer — upload aborted' },
+        { status: 400 }
+      );
+    }
+
+    console.log(`[chunk-upload] Starting MTProto upload: chunkId=${chunkId} bufferBytes=${buffer.length}`);
+
     const reference = await TelegramAuthService.uploadChunk({
       sessionString,
       chunkId,
@@ -51,12 +62,15 @@ export async function POST(req: NextRequest) {
       targetChatId,
     });
 
+    console.log(`[chunk-upload] Done: chunkId=${chunkId} messageId=${(reference as any).messageId}`);
+
     return NextResponse.json({
       success: true,
       reference,
     });
   } catch (err: any) {
     const message = err?.message || 'Failed to upload chunk to Telegram MTProto';
+    console.error('[chunk-upload] ERROR:', message, err?.stack);
     return NextResponse.json(
       { success: false, message },
       { status: 500 }

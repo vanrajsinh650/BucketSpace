@@ -82,7 +82,7 @@ export class HttpTelegramStorageAdapter implements IStorageProvider {
     return {
       providerId: this.providerId,
       maxObjectSizeBytes: 2000000000, // 2 GB per chunk
-      optimalChunkSizeBytes: 8 * 1024 * 1024, // 8 MB rapid-throughput chunks
+      optimalChunkSizeBytes: 4 * 1024 * 1024, // 4 MB safe chunks for HTTP transport
       supportsStreamingRead: true,
       supportsStreamingWrite: true,
       supportsByteRangeRead: false,
@@ -121,7 +121,9 @@ export class HttpTelegramStorageAdapter implements IStorageProvider {
 
         if (!res.ok) {
           const errJson = await res.json().catch(() => ({}));
-          throw new Error(errJson.message || `Failed to upload chunk to Telegram MTProto (HTTP ${res.status})`);
+          const errMsg = errJson.message || `HTTP ${res.status}`;
+          console.error(`[putChunk] Attempt ${attempt} failed: ${errMsg}`);
+          throw new Error(`Chunk upload failed: ${errMsg}`);
         }
 
         const data = await res.json();
@@ -131,8 +133,9 @@ export class HttpTelegramStorageAdapter implements IStorageProvider {
         };
       } catch (err: any) {
         lastError = err;
+        console.error(`[putChunk] Attempt ${attempt}/3 error:`, err?.message);
         if (attempt < 3) {
-          await new Promise((r) => setTimeout(r, attempt * 1000));
+          await new Promise((r) => setTimeout(r, attempt * 1500));
         }
       }
     }
@@ -494,9 +497,9 @@ export class StorageStore {
     file: File,
     onProgress?: (progress: UploadProgressState) => void
   ): Promise<FileMetadata> {
-    const CHUNK_SIZE = 8 * 1024 * 1024; // 8 MB rapid chunks
+    const CHUNK_SIZE = 4 * 1024 * 1024; // 4 MB safe chunks for HTTP transport
     const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
-    const CONCURRENCY = 2; // 2 parallel streams for consistent throughput
+    const CONCURRENCY = 3; // 3 parallel upload streams
 
     onProgress?.({
       fileName: file.name,
@@ -704,9 +707,9 @@ export class StorageStore {
       throw new Error(`File '${existingFileId}' not found for replacement`);
     }
 
-    const CHUNK_SIZE = 8 * 1024 * 1024;
+    const CHUNK_SIZE = 4 * 1024 * 1024;
     const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
-    const CONCURRENCY = 2;
+    const CONCURRENCY = 3;
 
     onProgress?.({
       fileName: file.name,
