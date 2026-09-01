@@ -2,15 +2,12 @@
   "name": "bucketspace-monorepo",
   "private": true,
   "version": "1.0.0",
-  "description": "AI-First Telegram Cloud Drive & Multi-Cloud Workspace",
+  "description": "Telegram Cloud Storage Engine & Personal Web Drive",
   "scripts": {
     "dev": "pnpm --parallel --filter @bucketspace/api --filter @bucketspace/web dev",
     "dev:web": "pnpm --filter @bucketspace/web dev",
     "dev:api": "pnpm --filter @bucketspace/api dev",
-    "dev:desktop": "pnpm --filter @bucketspace/desktop dev",
-    "dev:all": "pnpm --parallel --filter \"./apps/*\" dev",
-    "build": "pnpm --filter \"./packages/*\" build && pnpm --filter \"./apps/*\" build",
-    "build:desktop": "pnpm --filter @bucketspace/desktop build",
+    "build": "pnpm --filter \"./packages/*\" build && pnpm --filter @bucketspace/api build && pnpm --filter @bucketspace/web build",
     "lint": "pnpm --recursive lint",
     "type-check": "pnpm --recursive type-check",
     "test": "pnpm --recursive test"

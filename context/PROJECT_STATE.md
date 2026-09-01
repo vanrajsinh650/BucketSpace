@@ -401,6 +401,4 @@ In accordance with user directives and deep extraction of design principles from
    - Deterministic 20MB / 512KB adaptive multi-part chunking.
    - 100% SHA-256 digest validation on upload, download, and reassembly.
    - Folder auto-sync state machine with SQLite sync ledger.
-   - Dark technical minimalist UI (Next.js 15) and Electron desktop app.
-
-
+   - Dark technical minimalist Web UI (Next.js 15 App Router).

@@ -17,8 +17,8 @@
 
 ```mermaid
 graph TD
-    User[User / Client] -->|UI / CLI| App[BucketSpace Web / Desktop App]
-    App -->|Local IPC / HTTP| Core[BucketSpace Storage Core & Fastify Gateway]
+    User[User / Client] -->|Web UI / CLI| App[BucketSpace Web App]
+    App -->|HTTP / REST| Core[BucketSpace Storage Core & Fastify Gateway]
     Core -->|ACID Metadata| SQLite[(SQLite Files & Chunks DB)]
     Core -->|Sync Ledger| SyncDB[(SQLite Sync Ledger)]
     Core -->|MTProto 2.0 / Bot API| TelegramCloud{Telegram Cloud Infrastructure: MTProto 2.0 DCs}
@@ -29,7 +29,7 @@ graph TD
 ```mermaid
 graph TB
     subgraph Client Application
-        NextUI[Next.js 15 Web Workspace / Electron App]
+        NextUI[Next.js 15 Web Workspace App]
         CryptoEngine[WebCrypto AES-256-GCM Encryption]
         Chunker[Adaptive Multi-Part Chunker]
     end
