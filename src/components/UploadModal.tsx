@@ -114,8 +114,9 @@ export function UploadModal({
               </div>
 
               <div className="flex items-center justify-between text-[10px] text-[#666]">
-                <span className={uploadState.status === 'FAILED' ? 'text-red-400 font-bold' : ''}>
+                <span className={uploadState.status === 'FAILED' ? 'text-red-400 font-bold' : 'text-emerald-400/90 font-medium'}>
                   Stage: {uploadState.status}
+                  {uploadState.status === 'UPLOADING' && ' (4x Parallel Streams)'}
                 </span>
                 <span>Chunk {uploadState.currentChunk} / {uploadState.totalChunks}</span>
               </div>

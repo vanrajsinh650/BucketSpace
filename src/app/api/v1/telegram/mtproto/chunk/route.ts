@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     const file = formData.get('file') as Blob | null;
     const chunkId = (formData.get('chunkId') as string) || '';
     const filename = (formData.get('filename') as string) || `chunk_${chunkId}.bin`;
-    const targetChatId = (formData.get('targetChatId') as string) || 'me';
+    const targetChatId = (formData.get('targetChatId') as string) || 'vault';
     const sessionString =
       (formData.get('sessionString') as string) ||
       req.headers.get('x-telegram-session') ||
@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const messageId = Number(searchParams.get('messageId'));
-    const targetChatId = searchParams.get('targetChatId') || 'me';
+    const targetChatId = searchParams.get('targetChatId') || 'vault';
     const sessionString =
       req.headers.get('x-telegram-session') ||
       searchParams.get('sessionString') ||
@@ -123,7 +123,7 @@ export async function DELETE(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
     const messageId = Number(body.messageId);
-    const targetChatId = body.targetChatId || 'me';
+    const targetChatId = body.targetChatId || 'vault';
     const sessionString =
       req.headers.get('x-telegram-session') ||
       body.sessionString ||

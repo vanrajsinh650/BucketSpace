@@ -1,4 +1,4 @@
-import { TelegramClient } from 'telegram';
+import { Api, TelegramClient } from 'telegram';
 import { StringSession } from 'telegram/sessions';
 import { CustomFile } from 'telegram/client/uploads';
 import type { TelegramRefData } from './telegram-storage-provider';
@@ -36,6 +36,7 @@ export interface Verify2FAResult {
 interface GlobalTelegramState {
   activeSessions: Map<string, ActiveLoginSession>;
   clientPool: Map<string, { client: TelegramClient; lastUsed: number }>;
+  vaultChannels: Map<string, any>;
 }
 
 const globalForTelegram = globalThis as unknown as {
@@ -46,7 +47,12 @@ const telegramState: GlobalTelegramState =
   globalForTelegram.__bucketspace_telegram_state || {
     activeSessions: new Map<string, ActiveLoginSession>(),
     clientPool: new Map<string, { client: TelegramClient; lastUsed: number }>(),
+    vaultChannels: new Map<string, any>(),
   };
+
+if (!telegramState.vaultChannels) {
+  telegramState.vaultChannels = new Map<string, any>();
+}
 
 globalForTelegram.__bucketspace_telegram_state = telegramState;
 
@@ -265,7 +271,91 @@ export class TelegramAuthService {
   }
 
   /**
-   * Upload a chunk binary buffer directly to Telegram Saved Messages ('me') via MTProto.
+   * Discovers or provisions an automated, hidden, and archived storage vault channel ('📦 BucketSpace Vault').
+   * This guarantees user's personal 'Saved Messages' and chat list stay 100% clean.
+   */
+  public static async getOrCreateStorageVault(sessionString: string): Promise<any> {
+    const cached = telegramState.vaultChannels.get(sessionString);
+    if (cached) {
+      return cached;
+    }
+
+    const client = await this.getClient(sessionString);
+
+    try {
+      // 1. Search existing dialogs for an existing storage vault channel
+      const dialogs = await client.getDialogs({ limit: 100 });
+      const existing = dialogs.find(
+        (d) =>
+          d.isChannel &&
+          (d.title === '📦 BucketSpace Vault' ||
+            d.title === 'BucketSpace Vault' ||
+            (d.title && d.title.includes('BucketSpace')))
+      );
+
+      if (existing && existing.entity) {
+        telegramState.vaultChannels.set(sessionString, existing.entity);
+        return existing.entity;
+      }
+    } catch {
+      // Fall through to channel creation
+    }
+
+    // 2. Automatically create a private storage vault channel
+    try {
+      const createRes = (await client.invoke(
+        new Api.channels.CreateChannel({
+          title: '📦 BucketSpace Vault',
+          about: 'Automated encrypted cloud storage vault for BucketSpace. Do not delete.',
+          megagroup: false,
+        })
+      )) as any;
+
+      const channel = createRes.chats && createRes.chats[0] ? createRes.chats[0] : createRes;
+      const inputPeer = await client.getInputEntity(channel);
+
+      // 3. Move channel to Telegram Archive folder (folderId: 1)
+      try {
+        await client.invoke(
+          new Api.folders.EditPeerFolders({
+            folderPeers: [
+              new Api.InputFolderPeer({
+                peer: inputPeer,
+                folderId: 1,
+              }),
+            ],
+          })
+        );
+      } catch {
+        // Non-critical if archiving fails
+      }
+
+      // 4. Mute notifications indefinitely (muteUntil = max int32)
+      try {
+        await client.invoke(
+          new Api.account.UpdateNotifySettings({
+            peer: new Api.InputNotifyPeer({ peer: inputPeer }),
+            settings: new Api.InputPeerNotifySettings({
+              muteUntil: 2147483647,
+              silent: true,
+            }),
+          })
+        );
+      } catch {
+        // Non-critical if mute fails
+      }
+
+      telegramState.vaultChannels.set(sessionString, channel);
+      return channel;
+    } catch {
+      // If channel creation is not permitted by Telegram account limits, fallback safely to 'me'
+      return 'me';
+    }
+  }
+
+  /**
+   * Upload a chunk binary buffer directly to Telegram Storage Vault via MTProto.
+   * Uses 4-worker parallel streaming and silent notifications for maximum throughput.
    */
   public static async uploadChunk(params: {
     sessionString: string;
@@ -275,19 +365,37 @@ export class TelegramAuthService {
     targetChatId?: string;
   }): Promise<TelegramRefData> {
     const client = await this.getClient(params.sessionString);
-    const targetEntity = params.targetChatId || 'me';
-    const filename = params.filename || `chunk_${params.chunkId}.bin`;
 
+    let targetEntity: any = params.targetChatId;
+    if (!targetEntity || targetEntity === 'vault') {
+      try {
+        targetEntity = await this.getOrCreateStorageVault(params.sessionString);
+      } catch {
+        targetEntity = 'me';
+      }
+    }
+
+    const filename = params.filename || `chunk_${params.chunkId}.bin`;
     const customFile = new CustomFile(filename, params.buffer.length, '', params.buffer);
-    const message = await client.sendFile(targetEntity, {
+
+    // Stream 512KB MTProto parts using 4 parallel workers
+    const uploadedFile = await client.uploadFile({
       file: customFile,
+      workers: 4,
+    });
+
+    const message = await client.sendFile(targetEntity, {
+      file: uploadedFile,
       caption: `[bucketspace-chunk:${params.chunkId}]`,
+      silent: true,
+      workers: 4,
     });
 
     const doc = message.media && 'document' in message.media ? (message.media.document as any) : undefined;
+    const chatIdStr = typeof targetEntity === 'string' ? targetEntity : String((targetEntity as any)?.id || 'vault');
 
     return {
-      chatId: targetEntity,
+      chatId: chatIdStr,
       messageId: message.id,
       fileId: doc ? String(doc.id) : `msg_${message.id}`,
       documentId: doc ? String(doc.id) : undefined,
@@ -307,11 +415,19 @@ export class TelegramAuthService {
     targetChatId?: string;
   }): Promise<Buffer> {
     const client = await this.getClient(params.sessionString);
-    const targetEntity = params.targetChatId || 'me';
+
+    let targetEntity: any = params.targetChatId;
+    if (!targetEntity || targetEntity === 'vault') {
+      try {
+        targetEntity = await this.getOrCreateStorageVault(params.sessionString);
+      } catch {
+        targetEntity = 'me';
+      }
+    }
 
     const messages = await client.getMessages(targetEntity, { ids: [params.messageId] });
     if (!messages || messages.length === 0 || !messages[0]) {
-      throw new Error(`Telegram message #${params.messageId} not found in chat '${targetEntity}'`);
+      throw new Error(`Telegram message #${params.messageId} not found in storage vault`);
     }
 
     const message = messages[0];
@@ -320,6 +436,7 @@ export class TelegramAuthService {
     }
 
     const buffer = (await client.downloadMedia(message.media, {})) as Buffer | undefined;
+
     if (!buffer) {
       throw new Error(`Failed to download media for message #${params.messageId}`);
     }
@@ -336,7 +453,16 @@ export class TelegramAuthService {
     targetChatId?: string;
   }): Promise<void> {
     const client = await this.getClient(params.sessionString);
-    const targetEntity = params.targetChatId || 'me';
+
+    let targetEntity: any = params.targetChatId;
+    if (!targetEntity || targetEntity === 'vault') {
+      try {
+        targetEntity = await this.getOrCreateStorageVault(params.sessionString);
+      } catch {
+        targetEntity = 'me';
+      }
+    }
+
     await client.deleteMessages(targetEntity, [params.messageId], { revoke: true });
   }
 }

@@ -104,6 +104,7 @@ export class HttpTelegramStorageAdapter implements IStorageProvider {
     formData.append('sessionString', this.sessionString);
     formData.append('chunkId', input.chunkId);
     formData.append('filename', `chunk_${input.chunkId}.bin`);
+    formData.append('targetChatId', 'vault');
     const blobSafe = new Blob([combined.buffer as ArrayBuffer], { type: 'application/octet-stream' });
     formData.append('file', blobSafe);
 
@@ -142,7 +143,7 @@ export class HttpTelegramStorageAdapter implements IStorageProvider {
   public async getChunk(ref: import('@/shared').ProviderChunkRef): Promise<AsyncIterable<Uint8Array>> {
     const refObj = (ref.reference || {}) as Record<string, unknown>;
     const messageId = refObj.messageId;
-    const targetChatId = (refObj.chatId as string) || 'me';
+    const targetChatId = (refObj.chatId as string) || 'vault';
 
     const res = await fetch(
       `${this.apiBaseUrl}/api/v1/telegram/mtproto/chunk?messageId=${encodeURIComponent(
@@ -493,8 +494,9 @@ export class StorageStore {
     file: File,
     onProgress?: (progress: UploadProgressState) => void
   ): Promise<FileMetadata> {
-    const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunk invariant
-    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    const CHUNK_SIZE = Math.floor(4.5 * 1024 * 1024); // 4.5 MB cloud-safe chunk invariant
+    const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
+    const CONCURRENCY = 4; // 4 parallel upload streams
 
     onProgress?.({
       fileName: file.name,
@@ -521,65 +523,84 @@ export class StorageStore {
       });
     }
 
-    const chunkHashes: string[] = [];
+    const chunkHashes: string[] = new Array(totalChunks);
+    let nextChunkIndex = 0;
+    let completedCount = uploadedChunks.length;
+    let uploadError: Error | null = null;
 
-    for (let index = 0; index < totalChunks; index++) {
-      const start = index * CHUNK_SIZE;
-      const end = Math.min(start + CHUNK_SIZE, file.size);
+    // Resolve target provider via deterministic StoragePolicyEngine router
+    const resolvedProviderId = this.router.resolveProviderId({
+      name: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      size: file.size,
+    });
 
-      // Stream only 5MB slice on-the-fly — never loads multi-GB file into browser RAM
-      const chunkBlob = file.slice(start, end);
-      const chunkBuffer = await chunkBlob.arrayBuffer();
-      const chunkBytes = new Uint8Array(chunkBuffer);
-      const chunkHash = await calculateSha256(chunkBytes);
-      chunkHashes.push(chunkHash);
+    const targetProvider = ProviderRegistry.has(resolvedProviderId)
+      ? ProviderRegistry.get(resolvedProviderId)
+      : this.activeProvider;
 
-      const existingChunk = uploadedChunks.find((c) => c.index === index);
-      if (existingChunk && existingChunk.providerRef) {
-        // Already uploaded on provider; skip chunk transmission
-        continue;
+    // Concurrent worker function pulling chunk tasks from the queue
+    const uploadWorker = async () => {
+      while (nextChunkIndex < totalChunks && !uploadError) {
+        const index = nextChunkIndex++;
+        const start = index * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, file.size);
+
+        try {
+          const chunkBlob = file.slice(start, end);
+          const chunkBuffer = await chunkBlob.arrayBuffer();
+          const chunkBytes = new Uint8Array(chunkBuffer);
+          const chunkHash = await calculateSha256(chunkBytes);
+          chunkHashes[index] = chunkHash;
+
+          const existingChunk = uploadedChunks.find((c) => c.index === index);
+          if (existingChunk && existingChunk.providerRef) {
+            continue;
+          }
+
+          const chunkId = createChunkId(`chunk-${fileId}-${index}`);
+          const providerRef = await targetProvider.putChunk({
+            chunkId,
+            size: chunkBytes.byteLength,
+            hash: chunkHash,
+            data: (async function* () {
+              yield chunkBytes;
+            })(),
+          });
+
+          uploadedChunks.push({
+            id: chunkId,
+            fileId,
+            index,
+            size: chunkBytes.byteLength,
+            hash: chunkHash,
+            providerRef,
+          });
+
+          completedCount++;
+          this.saveResumableSession(sessionKey, { fileId, chunks: uploadedChunks });
+
+          onProgress?.({
+            fileName: file.name,
+            currentChunk: completedCount,
+            totalChunks,
+            percent: Math.min(95, Math.round((completedCount / totalChunks) * 90) + 5),
+            status: 'UPLOADING',
+          });
+        } catch (err: any) {
+          uploadError = err instanceof Error ? err : new Error(String(err));
+          break;
+        }
       }
+    };
 
-      onProgress?.({
-        fileName: file.name,
-        currentChunk: index + 1,
-        totalChunks,
-        percent: Math.round(((index + 1) / totalChunks) * 85) + 5,
-        status: 'UPLOADING',
-      });
+    // Execute 4 parallel upload streams
+    const workerCount = Math.min(CONCURRENCY, totalChunks);
+    const workers = Array.from({ length: workerCount }, () => uploadWorker());
+    await Promise.all(workers);
 
-      const chunkId = createChunkId(`chunk-${fileId}-${index}`);
-
-      // Resolve target provider via deterministic StoragePolicyEngine router
-      const resolvedProviderId = this.router.resolveProviderId({
-        name: file.name,
-        mimeType: file.type || 'application/octet-stream',
-        size: file.size,
-      });
-
-      const targetProvider = ProviderRegistry.has(resolvedProviderId)
-        ? ProviderRegistry.get(resolvedProviderId)
-        : this.activeProvider;
-
-      const providerRef = await targetProvider.putChunk({
-        chunkId,
-        size: chunkBytes.byteLength,
-        hash: chunkHash,
-        data: (async function* () {
-          yield chunkBytes;
-        })(),
-      });
-
-      uploadedChunks.push({
-        id: chunkId,
-        fileId,
-        index,
-        size: chunkBytes.byteLength,
-        hash: chunkHash,
-        providerRef,
-      });
-
-      this.saveResumableSession(sessionKey, { fileId, chunks: uploadedChunks });
+    if (uploadError) {
+      throw uploadError;
     }
 
     this.clearResumableSession(sessionKey);
@@ -591,6 +612,9 @@ export class StorageStore {
       percent: 98,
       status: 'VERIFYING',
     });
+
+    // Ensure chunks are sorted by index
+    uploadedChunks.sort((a, b) => a.index - b.index);
 
     const wholeFileHash = await calculateSha256(new TextEncoder().encode(chunkHashes.join(':')));
 
@@ -671,8 +695,9 @@ export class StorageStore {
       throw new Error(`File '${existingFileId}' not found for replacement`);
     }
 
-    const CHUNK_SIZE = 5 * 1024 * 1024;
-    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    const CHUNK_SIZE = Math.floor(4.5 * 1024 * 1024);
+    const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
+    const CONCURRENCY = 4;
 
     onProgress?.({
       fileName: file.name,
@@ -682,59 +707,78 @@ export class StorageStore {
       status: 'HASHING',
     });
 
-    const chunkHashes: string[] = [];
+    const chunkHashes: string[] = new Array(totalChunks);
     const uploadedChunks: ChunkMetadata[] = [];
+    let nextChunkIndex = 0;
+    let completedCount = 0;
+    let uploadError: Error | null = null;
 
-    for (let index = 0; index < totalChunks; index++) {
-      const start = index * CHUNK_SIZE;
-      const end = Math.min(start + CHUNK_SIZE, file.size);
+    const resolvedProviderId = this.router.resolveProviderId({
+      name: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      size: file.size,
+    });
 
-      // Stream only 5MB slice on-the-fly
-      const chunkBlob = file.slice(start, end);
-      const chunkBuffer = await chunkBlob.arrayBuffer();
-      const chunkBytes = new Uint8Array(chunkBuffer);
-      const chunkHash = await calculateSha256(chunkBytes);
-      chunkHashes.push(chunkHash);
+    const targetProvider = ProviderRegistry.has(resolvedProviderId)
+      ? ProviderRegistry.get(resolvedProviderId)
+      : this.activeProvider;
 
-      onProgress?.({
-        fileName: file.name,
-        currentChunk: index + 1,
-        totalChunks,
-        percent: Math.round(((index + 1) / totalChunks) * 85) + 5,
-        status: 'UPLOADING',
-      });
+    const uploadWorker = async () => {
+      while (nextChunkIndex < totalChunks && !uploadError) {
+        const index = nextChunkIndex++;
+        const start = index * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, file.size);
 
-      const chunkId = createChunkId(`chunk-${existing.id}-${index}-${Date.now()}`);
+        try {
+          const chunkBlob = file.slice(start, end);
+          const chunkBuffer = await chunkBlob.arrayBuffer();
+          const chunkBytes = new Uint8Array(chunkBuffer);
+          const chunkHash = await calculateSha256(chunkBytes);
+          chunkHashes[index] = chunkHash;
 
-      const resolvedProviderId = this.router.resolveProviderId({
-        name: file.name,
-        mimeType: file.type || 'application/octet-stream',
-        size: file.size,
-      });
+          const chunkId = createChunkId(`chunk-${existing.id}-${index}-${Date.now()}`);
+          const providerRef = await targetProvider.putChunk({
+            chunkId,
+            size: chunkBytes.byteLength,
+            hash: chunkHash,
+            data: (async function* () {
+              yield chunkBytes;
+            })(),
+          });
 
-      const targetProvider = ProviderRegistry.has(resolvedProviderId)
-        ? ProviderRegistry.get(resolvedProviderId)
-        : this.activeProvider;
+          uploadedChunks.push({
+            id: chunkId,
+            fileId: existing.id,
+            index,
+            size: chunkBytes.byteLength,
+            hash: chunkHash,
+            providerRef,
+          });
 
-      const providerRef = await targetProvider.putChunk({
-        chunkId,
-        size: chunkBytes.byteLength,
-        hash: chunkHash,
-        data: (async function* () {
-          yield chunkBytes;
-        })(),
-      });
+          completedCount++;
+          onProgress?.({
+            fileName: file.name,
+            currentChunk: completedCount,
+            totalChunks,
+            percent: Math.min(95, Math.round((completedCount / totalChunks) * 90) + 5),
+            status: 'UPLOADING',
+          });
+        } catch (err: any) {
+          uploadError = err instanceof Error ? err : new Error(String(err));
+          break;
+        }
+      }
+    };
 
-      uploadedChunks.push({
-        id: chunkId,
-        fileId: existing.id,
-        index,
-        size: chunkBytes.byteLength,
-        hash: chunkHash,
-        providerRef,
-      });
+    const workerCount = Math.min(CONCURRENCY, totalChunks);
+    const workers = Array.from({ length: workerCount }, () => uploadWorker());
+    await Promise.all(workers);
+
+    if (uploadError) {
+      throw uploadError;
     }
 
+    uploadedChunks.sort((a, b) => a.index - b.index);
     const wholeFileHash = await calculateSha256(new TextEncoder().encode(chunkHashes.join(':')));
     existing.name = file.name;
     existing.size = file.size;
