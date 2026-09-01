@@ -4,8 +4,11 @@
   "version": "1.0.0",
   "description": "AI-First Telegram Cloud Drive & Multi-Cloud Workspace",
   "scripts": {
-    "dev": "pnpm --parallel --filter \"./apps/*\" dev",
+    "dev": "pnpm --parallel --filter @bucketspace/api --filter @bucketspace/web dev",
+    "dev:web": "pnpm --filter @bucketspace/web dev",
+    "dev:api": "pnpm --filter @bucketspace/api dev",
     "dev:desktop": "pnpm --filter @bucketspace/desktop dev",
+    "dev:all": "pnpm --parallel --filter \"./apps/*\" dev",
     "build": "pnpm --filter \"./packages/*\" build && pnpm --filter \"./apps/*\" build",
     "build:desktop": "pnpm --filter @bucketspace/desktop build",
     "lint": "pnpm --recursive lint",
