@@ -4,7 +4,16 @@
   "private": true,
   "description": "OWASP-compliant envelope encryption vault and scrypt passcode hasher for BucketSpace",
   "main": "dist/index.js",
+  "module": "src/index.ts",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./src/index.ts",
+      "require": "./dist/index.js",
+      "default": "./src/index.ts"
+    }
+  },
   "scripts": {
     "build": "tsc --build",
     "clean": "tsc --build --clean",

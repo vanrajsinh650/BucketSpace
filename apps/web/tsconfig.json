@@ -16,7 +16,11 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@bucketspace/shared": ["../../packages/shared/src/index.ts"],
+      "@bucketspace/storage-adapters": ["../../packages/storage-adapters/src/index.ts"],
+      "@bucketspace/security": ["../../packages/security/src/index.ts"],
+      "@bucketspace/db": ["../../packages/db/src/index.ts"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

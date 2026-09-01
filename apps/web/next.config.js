@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
+  transpilePackages: [
+    '@bucketspace/shared',
+    '@bucketspace/storage-adapters',
+    '@bucketspace/db',
+    '@bucketspace/security',
+  ],
   async headers() {
     return [
       {
