@@ -37,6 +37,7 @@ interface GlobalTelegramState {
   activeSessions: Map<string, ActiveLoginSession>;
   clientPool: Map<string, { client: TelegramClient; lastUsed: number }>;
   vaultChannels: Map<string, any>;
+  vaultPromises: Map<string, Promise<any>>;
 }
 
 const globalForTelegram = globalThis as unknown as {
@@ -48,10 +49,14 @@ const telegramState: GlobalTelegramState =
     activeSessions: new Map<string, ActiveLoginSession>(),
     clientPool: new Map<string, { client: TelegramClient; lastUsed: number }>(),
     vaultChannels: new Map<string, any>(),
+    vaultPromises: new Map<string, Promise<any>>(),
   };
 
 if (!telegramState.vaultChannels) {
   telegramState.vaultChannels = new Map<string, any>();
+}
+if (!telegramState.vaultPromises) {
+  telegramState.vaultPromises = new Map<string, Promise<any>>();
 }
 
 globalForTelegram.__bucketspace_telegram_state = telegramState;
@@ -283,76 +288,95 @@ export class TelegramAuthService {
       return cached;
     }
 
-    const client = await this.getClient(sessionString);
-
-    try {
-      // 1. Search existing dialogs for an existing storage vault channel
-      const dialogs = await client.getDialogs({ limit: 100 });
-      const existing = dialogs.find(
-        (d) =>
-          d.isChannel &&
-          (d.title === '📦 BucketSpace Vault' ||
-            d.title === 'BucketSpace Vault' ||
-            (d.title && d.title.includes('BucketSpace')))
-      );
-
-      if (existing && existing.entity) {
-        telegramState.vaultChannels.set(sessionString, existing.entity);
-        return existing.entity;
-      }
-    } catch {
-      // Fall through to channel creation
+    const inFlight = telegramState.vaultPromises.get(sessionString);
+    if (inFlight) {
+      return inFlight;
     }
 
-    // 2. Automatically create a private storage vault channel
-    try {
-      const createRes = (await client.invoke(
-        new Api.channels.CreateChannel({
-          title: '📦 BucketSpace Vault',
-          about: 'Automated encrypted cloud storage vault for BucketSpace. Do not delete.',
-          megagroup: false,
-        })
-      )) as any;
+    const promise = (async () => {
+      const client = await this.getClient(sessionString);
 
-      const channel = createRes.chats && createRes.chats[0] ? createRes.chats[0] : createRes;
-      const inputPeer = await client.getInputEntity(channel);
-
-      // 3. Move channel to Telegram Archive folder (folderId: 1)
       try {
-        await client.invoke(
-          new Api.folders.EditPeerFolders({
-            folderPeers: [
-              new Api.InputFolderPeer({
-                peer: inputPeer,
-                folderId: 1,
+        // 1. Search existing dialogs across BOTH main inbox (folder 0) and archive (folder 1)
+        const [mainDialogs, archivedDialogs] = await Promise.all([
+          client.getDialogs({ limit: 100 }).catch(() => []),
+          client.getDialogs({ limit: 100, folder: 1 }).catch(() => []),
+        ]);
+
+        const allDialogs = [...mainDialogs, ...archivedDialogs];
+        const existing = allDialogs.find(
+          (d: any) =>
+            d.isChannel &&
+            (d.title === '📦 BucketSpace Vault' ||
+              d.title === 'BucketSpace Vault' ||
+              (d.title && d.title.includes('BucketSpace')))
+        );
+
+        if (existing && existing.entity) {
+          telegramState.vaultChannels.set(sessionString, existing.entity);
+          return existing.entity;
+        }
+      } catch {
+        // Fall through to channel creation
+      }
+
+      // 2. Automatically create a single private storage vault channel if none exists
+      try {
+        const createRes = (await client.invoke(
+          new Api.channels.CreateChannel({
+            title: '📦 BucketSpace Vault',
+            about: 'Automated encrypted cloud storage vault for BucketSpace. Do not delete.',
+            megagroup: false,
+          })
+        )) as any;
+
+        const channel = createRes.chats && createRes.chats[0] ? createRes.chats[0] : createRes;
+        const inputPeer = await client.getInputEntity(channel);
+
+        // 3. Move channel to Telegram Archive folder (folderId: 1)
+        try {
+          await client.invoke(
+            new Api.folders.EditPeerFolders({
+              folderPeers: [
+                new Api.InputFolderPeer({
+                  peer: inputPeer,
+                  folderId: 1,
+                }),
+              ],
+            })
+          );
+        } catch {
+          // Non-critical if archiving fails
+        }
+
+        // 4. Mute notifications indefinitely (muteUntil = max int32)
+        try {
+          await client.invoke(
+            new Api.account.UpdateNotifySettings({
+              peer: new Api.InputNotifyPeer({ peer: inputPeer }),
+              settings: new Api.InputPeerNotifySettings({
+                muteUntil: 2147483647,
+                silent: true,
               }),
-            ],
-          })
-        );
-      } catch {
-        // Non-critical if archiving fails
-      }
+            })
+          );
+        } catch {
+          // Non-critical if mute fails
+        }
 
-      // 4. Mute notifications indefinitely (muteUntil = max int32)
-      try {
-        await client.invoke(
-          new Api.account.UpdateNotifySettings({
-            peer: new Api.InputNotifyPeer({ peer: inputPeer }),
-            settings: new Api.InputPeerNotifySettings({
-              muteUntil: 2147483647,
-              silent: true,
-            }),
-          })
-        );
+        telegramState.vaultChannels.set(sessionString, channel);
+        return channel;
       } catch {
-        // Non-critical if mute fails
+        // If channel creation is not permitted by Telegram account limits, fallback safely to 'me'
+        return 'me';
       }
+    })();
 
-      telegramState.vaultChannels.set(sessionString, channel);
-      return channel;
-    } catch {
-      // If channel creation is not permitted by Telegram account limits, fallback safely to 'me'
-      return 'me';
+    telegramState.vaultPromises.set(sessionString, promise);
+    try {
+      return await promise;
+    } finally {
+      telegramState.vaultPromises.delete(sessionString);
     }
   }
 
