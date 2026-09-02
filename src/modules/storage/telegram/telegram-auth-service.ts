@@ -9,12 +9,12 @@ export interface TelegramCredentials {
 }
 
 /**
- * Resolves Telegram MTProto credentials strictly from environment variables or runtime parameters.
+ * Resolves Telegram MTProto credentials strictly from server-side environment variables.
  * Throws an explicit configuration error if credentials are not configured.
  */
-export function resolveTelegramCredentials(override?: { apiId?: number; apiHash?: string }): TelegramCredentials {
-  const apiIdRaw = override?.apiId || (typeof process !== 'undefined' ? process.env.TELEGRAM_API_ID : undefined);
-  const apiHashRaw = override?.apiHash || (typeof process !== 'undefined' ? process.env.TELEGRAM_API_HASH : undefined);
+export function resolveTelegramCredentials(): TelegramCredentials {
+  const apiIdRaw = typeof process !== 'undefined' ? process.env.TELEGRAM_API_ID : undefined;
+  const apiHashRaw = typeof process !== 'undefined' ? process.env.TELEGRAM_API_HASH : undefined;
 
   const apiId = Number(apiIdRaw);
   const apiHash = typeof apiHashRaw === 'string' ? apiHashRaw.trim() : '';
@@ -149,8 +149,6 @@ export class TelegramAuthService {
    */
   public static async sendCode(params: {
     phone: string;
-    apiId?: number;
-    apiHash?: string;
   }): Promise<SendCodeResult> {
     // 1. Sanitize phone number to strict E.164 format (+<country><number>)
     let cleanPhone = params.phone.replace(/[\s\-\(\)]/g, '').trim();
@@ -158,11 +156,8 @@ export class TelegramAuthService {
       cleanPhone = '+' + cleanPhone;
     }
 
-    // 2. Resolve credentials (custom override or environment variables)
-    const { apiId, apiHash } = resolveTelegramCredentials({
-      apiId: params.apiId,
-      apiHash: params.apiHash,
-    });
+    // 2. Resolve credentials from server-side environment variables.
+    const { apiId, apiHash } = resolveTelegramCredentials();
 
     // 3. Clean up any previous session for this phone number or expired sessions (> 15 min)
     for (const [token, existing] of telegramState.activeSessions.entries()) {

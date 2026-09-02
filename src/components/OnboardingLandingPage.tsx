@@ -6,21 +6,12 @@ import {
   HardDrive,
   Cloud,
   Lock,
-  Play,
-  Layers,
   ArrowRight,
-  Cpu,
   Terminal,
-  Sliders,
   X,
   AlertCircle,
   Loader2,
-  CheckCircle2,
   Key,
-  ChevronDown,
-  ChevronUp,
-  ExternalLink,
-  Sparkles,
 } from 'lucide-react';
 import { PhoneInputWithCountry } from './PhoneInputWithCountry';
 
@@ -30,98 +21,21 @@ interface OnboardingLandingPageProps {
     config: Record<string, unknown>
   ) => Promise<{ success: boolean; message?: string }>;
   onFinishOnboarding: () => void;
-  onLaunchSandbox?: () => void;
 }
 
 export function OnboardingLandingPage({
   onConnectProvider,
   onFinishOnboarding,
-  onLaunchSandbox,
 }: OnboardingLandingPageProps) {
   // Modal connection state
   const [modalOpen, setModalOpen] = useState(false);
   const [phone, setPhone] = useState('');
-  const [apiId, setApiId] = useState('');
-  const [apiHash, setApiHash] = useState('');
-  const [showApiCreds, setShowApiCreds] = useState(false);
   const [code, setCode] = useState('');
   const [password2FA, setPassword2FA] = useState('');
   const [step, setStep] = useState<'phone' | 'code' | '2fa'>('phone');
   const [sessionToken, setSessionToken] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedApiId = localStorage.getItem('bucketspace_telegram_api_id') || '';
-      const savedApiHash = localStorage.getItem('bucketspace_telegram_api_hash') || '';
-      if (savedApiId) setApiId(savedApiId);
-      if (savedApiHash) setApiHash(savedApiHash);
-    }
-  }, []);
-
-  // Interactive Live Vault Demo State
-  const [selectedDemoFile, setSelectedDemoFile] = useState(0);
-  const [isSimulatingChunking, setIsSimulatingChunking] = useState(false);
-  const [simulatedProgress, setSimulatedProgress] = useState(100);
-  const simIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
-
-  React.useEffect(() => {
-    return () => {
-      if (simIntervalRef.current) {
-        clearInterval(simIntervalRef.current);
-      }
-    };
-  }, []);
-
-  const demoFiles = [
-    {
-      name: 'family_vacation_4k.mp4',
-      size: '1.42 GB',
-      chunks: 355,
-      hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-      provider: 'Telegram Cloud Vault',
-      speed: '48.2 MB/s',
-    },
-    {
-      name: 'tax_documents_2026.pdf',
-      size: 'Demo File',
-      chunks: 6,
-      hash: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
-      provider: 'Telegram Cloud Vault',
-      speed: '35.0 MB/s',
-    },
-    {
-      name: 'project_assets.zip',
-      size: '640 MB',
-      chunks: 160,
-      hash: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
-      provider: 'Telegram Cloud Vault',
-      speed: '42.4 MB/s',
-    },
-  ];
-
-  const handleSimulate = (index: number) => {
-    setSelectedDemoFile(index);
-    setIsSimulatingChunking(true);
-    setSimulatedProgress(0);
-
-    if (simIntervalRef.current) {
-      clearInterval(simIntervalRef.current);
-    }
-
-    let p = 0;
-    simIntervalRef.current = setInterval(() => {
-      p += 20;
-      setSimulatedProgress(p);
-      if (p >= 100) {
-        if (simIntervalRef.current) {
-          clearInterval(simIntervalRef.current);
-        }
-        setIsSimulatingChunking(false);
-      }
-    }, 150);
-  };
 
   /* ─── REAL Telegram MTProto Auth Handlers ─── */
 
@@ -136,19 +50,10 @@ export function OnboardingLandingPage({
     setErrorMessage('');
 
     try {
-      if (typeof window !== 'undefined') {
-        if (apiId) localStorage.setItem('bucketspace_telegram_api_id', apiId);
-        if (apiHash) localStorage.setItem('bucketspace_telegram_api_hash', apiHash);
-      }
-
       const res = await fetch(`${API_BASE}/api/v1/telegram/auth/send-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone,
-          apiId: apiId ? Number(apiId) : undefined,
-          apiHash: apiHash || undefined,
-        }),
+        body: JSON.stringify({ phone }),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -157,9 +62,6 @@ export function OnboardingLandingPage({
       }
 
       setSessionToken(data.sessionToken);
-      if (data.sessionToken?.startsWith('tgsess_dev_')) {
-        setCode('12345');
-      }
       setStep('code');
     } catch (err: any) {
       const msg =
@@ -230,6 +132,7 @@ export function OnboardingLandingPage({
       }
 
       await onConnectProvider('telegram', { sessionString: data.sessionString, phone });
+      onFinishOnboarding();
     } catch (err: any) {
       const msg =
         err?.message === 'Failed to fetch'
@@ -254,10 +157,7 @@ export function OnboardingLandingPage({
         
         <div className="hidden lg:flex items-center gap-8 text-sm text-stone-400">
           <a href="#features" className="hover:text-stone-50 transition-colors">Features</a>
-          
-          <a href="#open-source" className="hover:text-stone-50 transition-colors">Open Source</a>
-          <a href="#docs" className="hover:text-stone-50 transition-colors">Docs</a>
-          
+          <a href="https://github.com/vanrajsinh650/BucketSpace" target="_blank" rel="noreferrer" className="hover:text-stone-50 transition-colors">GitHub</a>
         </div>
 
         <div className="flex items-center gap-4">
@@ -288,7 +188,7 @@ export function OnboardingLandingPage({
       <main className="pt-32 pb-16 px-6 md:px-12 max-w-7xl mx-auto">
         <div className="relative flex flex-col lg:flex-row items-center min-h-[60vh] md:min-h-[70vh]">
           {/* Ethereal Floating Clouds - CSS & Image blend */}
-          <div className="absolute right-[-10%] top-[-10%] w-full lg:w-[120%] h-[120%] pointer-events-none opacity-80 mix-blend-screen motion-safe:motion-safe:animate-float-delayed">
+          <div className="absolute right-[-10%] top-[-10%] w-full lg:w-[120%] h-[120%] pointer-events-none opacity-80 mix-blend-screen motion-safe:animate-float-delayed">
             {/* We use a beautiful dark abstract cloud texture masked perfectly into the background */}
             <div 
               className="w-full h-full bg-no-repeat bg-contain bg-right-top"
@@ -304,7 +204,7 @@ export function OnboardingLandingPage({
           <div className="relative z-10 lg:w-1/2 flex flex-col items-start text-left mt-12 lg:mt-0">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 mb-8 backdrop-blur-sm">
               <span className="w-1.5 h-1.5 rounded-full bg-white motion-safe:animate-pulse-slow" />
-              <span className="text-xs font-medium text-stone-300">Client-side encrypted. Telegram-backed.</span>
+              <span className="text-xs font-medium text-stone-300">Client-side encryption. Telegram-backed storage.</span>
             </div>
 
             <h1 className="font-serif text-6xl sm:text-7xl lg:text-8xl xl:text-[7.5rem] leading-[1.05] tracking-tight mb-8">
@@ -312,7 +212,7 @@ export function OnboardingLandingPage({
             </h1>
             
             <p className="text-lg md:text-xl text-stone-400 mb-10 max-w-lg leading-relaxed font-sans">
-              A personal cloud storage layer built on Telegram MTProto. Encrypted on your device before upload.
+              A personal storage workspace built on Telegram MTProto. Files are encrypted on this device before upload.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
@@ -346,7 +246,7 @@ export function OnboardingLandingPage({
           <div className="p-6 flex flex-col gap-3">
             <HardDrive className="w-6 h-6 text-stone-400" />
             <h3 className="font-medium text-[15px]">Your Files</h3>
-            <p className="text-sm text-stone-500 leading-relaxed">All your files in one private space.</p>
+            <p className="text-sm text-stone-500 leading-relaxed">Keep your uploaded files in one workspace.</p>
           </div>
           <div className="p-6 flex flex-col gap-3">
             <Lock className="w-6 h-6 text-stone-400" />
@@ -356,12 +256,12 @@ export function OnboardingLandingPage({
           <div className="p-6 flex flex-col gap-3">
             <Terminal className="w-6 h-6 text-stone-400" />
             <h3 className="font-medium text-[15px]">Open source</h3>
-            <p className="text-sm text-stone-500 leading-relaxed">Transparent and built with the community.</p>
+            <p className="text-sm text-stone-500 leading-relaxed">Source code is available on GitHub.</p>
           </div>
           <div className="p-6 flex flex-col gap-3">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-stone-400"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            <h3 className="font-medium text-[15px]">Made for you</h3>
-            <p className="text-sm text-stone-500 leading-relaxed">Simple, fast and built around your needs.</p>
+            <h3 className="font-medium text-[15px]">File controls</h3>
+            <p className="text-sm text-stone-500 leading-relaxed">Search, preview, download, and share files.</p>
           </div>
         </div>
 
@@ -370,10 +270,10 @@ export function OnboardingLandingPage({
           <div className="lg:w-1/3 flex flex-col">
             <span className="text-sm font-medium text-stone-500 mb-4">Everything in one place</span>
             <h2 className="font-serif text-5xl md:text-6xl tracking-tight leading-[1.1] mb-6">
-              All your files.<br />Always with you.
+              All your files.<br />One workspace.
             </h2>
             <p className="text-lg text-stone-400 mb-10 leading-relaxed max-w-sm font-sans">
-              Upload, organize and access your files from any device. Keep everything in one place.
+              Upload, search, preview, download, and share files from the BucketSpace workspace.
             </p>
             
             <div className="flex flex-wrap gap-4 mb-10">
@@ -388,9 +288,7 @@ export function OnboardingLandingPage({
               </div>
             </div>
 
-            <button className="flex items-center gap-2 text-sm font-medium bg-[#111] hover:bg-[#1a1a1a] border border-white/10 px-5 py-3 rounded-full w-fit transition-colors">
-              <Play className="w-4 h-4" /> See how it works
-            </button>
+            <p className="text-sm text-stone-500">The interface shown is an illustrative example.</p>
           </div>
 
           <div className="lg:w-2/3 w-full">
@@ -400,7 +298,7 @@ export function OnboardingLandingPage({
               <div className="h-14 border-b border-white/5 flex items-center px-4 justify-between bg-[#0a0a0a]">
                 <div className="flex items-center gap-2 text-stone-300">
                   <Cloud className="w-5 h-5" />
-                  <span className="font-semibold text-sm">BucketSpace</span>
+                  <span className="font-semibold text-sm">BucketSpace — Example interface</span>
                 </div>
                 <div className="flex-1 max-w-md mx-6">
                   <div className="bg-[#1a1a1a] border border-white/5 rounded-full px-4 py-1.5 flex items-center gap-2">
@@ -409,13 +307,9 @@ export function OnboardingLandingPage({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="bg-[#1a1a1a] border border-white/5 text-stone-300 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-white/10 transition">
+                  <span className="bg-[#1a1a1a] border border-white/5 text-stone-300 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5">
                     <Send className="w-3 h-3" /> Upload
-                  </button>
-                  <button className="bg-white text-black text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    New
-                  </button>
+                  </span>
                 </div>
               </div>
               
@@ -423,21 +317,21 @@ export function OnboardingLandingPage({
                 {/* Sidebar */}
                 <div className="w-56 border-r border-white/5 bg-[#0a0a0a]/50 p-4 flex flex-col gap-1">
                   <div className="flex items-center gap-3 px-3 py-2 bg-white/10 rounded-lg text-white text-sm font-medium">
-                    <HardDrive className="w-4 h-4" /> My Drive
+                    <HardDrive className="w-4 h-4" /> All Files
                   </div>
                   <div className="flex items-center gap-3 px-3 py-2 text-stone-400 hover:text-stone-300 hover:bg-white/5 rounded-lg text-sm transition">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Recent
+                    <ImageIcon className="w-4 h-4" /> Photos
                   </div>
                   <div className="flex items-center gap-3 px-3 py-2 text-stone-400 hover:text-stone-300 hover:bg-white/5 rounded-lg text-sm transition">
-                    <ShareIcon className="w-4 h-4" /> Shared
+                    <FilePdfIcon className="w-4 h-4" /> Documents
                   </div>
                   <div className="flex items-center gap-3 px-3 py-2 text-stone-400 hover:text-stone-300 hover:bg-white/5 rounded-lg text-sm transition">
                     <TrashIcon className="w-4 h-4" /> Trash
                   </div>
                   
                   <div className="mt-auto pt-6 border-t border-white/5">
-                    <div className="text-xs text-stone-500 mb-2">Storage</div>
-                    <div className="text-xs font-medium text-stone-300 mb-2"><span className="text-white">Demo</span> Storage</div>
+                    <div className="text-xs text-stone-500 mb-2">Example workspace</div>
+                    <div className="text-xs font-medium text-stone-300 mb-2"><span className="text-white">Demo</span> data</div>
                     <div className="h-1.5 w-full bg-[#222] rounded-full overflow-hidden">
                       <div className="h-full bg-white w-[0%] rounded-full"></div>
                     </div>
@@ -446,7 +340,7 @@ export function OnboardingLandingPage({
 
                 {/* Main Content Area */}
                 <div className="flex-1 bg-[#111] p-6">
-                  <h3 className="text-lg font-medium mb-6 text-stone-200">My Drive</h3>
+                  <h3 className="text-lg font-medium mb-6 text-stone-200">All Files</h3>
                   
                   <div className="grid grid-cols-12 text-xs font-medium text-stone-500 pb-3 border-b border-white/5 mb-3">
                     <div className="col-span-6">Name</div>
@@ -456,9 +350,9 @@ export function OnboardingLandingPage({
 
                   <div className="flex flex-col gap-1 text-sm text-stone-300">
                     {[
-                      { icon: <FolderIcon className="w-4 h-4 text-white" />, name: 'Projects', date: 'Example', size: 'Demo File' },
-                      { icon: <FolderIcon className="w-4 h-4 text-white" />, name: 'Photos', date: 'Example', size: 'Demo File' },
-                      { icon: <FolderIcon className="w-4 h-4 text-white" />, name: 'Documents', date: 'Example', size: 'Demo File' },
+                      { icon: <FileDesignIcon className="w-4 h-4 text-blue-400" />, name: 'Project Notes.md', date: 'Example', size: 'Demo File' },
+                      { icon: <ImageIcon className="w-4 h-4 text-green-400" />, name: 'Summer Photo.jpg', date: 'Example', size: 'Demo File' },
+                      { icon: <FilePdfIcon className="w-4 h-4 text-red-400" />, name: 'Budget.pdf', date: 'Example', size: 'Demo File' },
                       { icon: <FileDesignIcon className="w-4 h-4 text-blue-400" />, name: 'Design System.fig', date: 'Example', size: 'Demo File' },
                       { icon: <FilePdfIcon className="w-4 h-4 text-red-400" />, name: 'Presentation.pdf', date: 'Example', size: 'Demo File' },
                       { icon: <ImageIcon className="w-4 h-4 text-green-400" />, name: 'Screenshot.png', date: 'Example', size: 'Demo File' },
@@ -483,13 +377,13 @@ export function OnboardingLandingPage({
         <div className="mb-40">
           <div className="flex flex-col md:flex-row justify-between items-end mb-12">
             <div>
-              <span className="text-sm font-medium text-stone-500 mb-4 block">Powerful features</span>
+              <span className="text-sm font-medium text-stone-500 mb-4 block">Workspace features</span>
               <h2 className="font-serif text-4xl md:text-5xl tracking-tight leading-[1.1] max-w-xl">
-                Everything you need.<br />Nothing you don't.
+                Core workspace<br />features.
               </h2>
             </div>
-            <a href="#features" className="text-sm font-medium text-stone-300 hover:text-white flex items-center gap-1.5 transition-colors mt-6 md:mt-0 font-sans">
-              Explore all features <ArrowRight className="w-4 h-4" />
+            <a href="https://github.com/vanrajsinh650/BucketSpace" target="_blank" rel="noreferrer" className="text-sm font-medium text-stone-300 hover:text-white flex items-center gap-1.5 transition-colors mt-6 md:mt-0 font-sans">
+              View the project <ArrowRight className="w-4 h-4" />
             </a>
           </div>
 
@@ -499,11 +393,8 @@ export function OnboardingLandingPage({
                 <SearchIcon className="w-5 h-5 text-stone-300" />
               </div>
               <div>
-                <h3 className="text-lg font-medium mb-3 text-stone-200">Local File Indexing</h3>
-                <p className="text-sm text-stone-400 leading-relaxed mb-6">Search your files instantly using the client-side IndexedDB index.</p>
-                <button className="text-xs font-semibold uppercase tracking-wider text-stone-300 hover:text-white flex items-center gap-1.5 transition">
-                  Learn more <ArrowRight className="w-3 h-3" />
-                </button>
+                <h3 className="text-lg font-medium mb-3 text-stone-200">File search</h3>
+                <p className="text-sm text-stone-400 leading-relaxed">Find files in your workspace by name.</p>
               </div>
             </div>
 
@@ -512,11 +403,8 @@ export function OnboardingLandingPage({
                 <FolderIcon className="w-5 h-5 text-stone-300" />
               </div>
               <div>
-                <h3 className="text-lg font-medium mb-3 text-stone-200">Virtual File System</h3>
-                <p className="text-sm text-stone-400 leading-relaxed mb-6">Organize your files in a local virtual directory structure.</p>
-                <button className="text-xs font-semibold uppercase tracking-wider text-stone-300 hover:text-white flex items-center gap-1.5 transition">
-                  Learn more <ArrowRight className="w-3 h-3" />
-                </button>
+                <h3 className="text-lg font-medium mb-3 text-stone-200">File categories</h3>
+                <p className="text-sm text-stone-400 leading-relaxed">Browse photos, videos, documents, archives, and trash.</p>
               </div>
             </div>
 
@@ -525,11 +413,8 @@ export function OnboardingLandingPage({
                 <ShareIcon className="w-5 h-5 text-stone-300" />
               </div>
               <div>
-                <h3 className="text-lg font-medium mb-3 text-stone-200">Export Configurations</h3>
-                <p className="text-sm text-stone-400 leading-relaxed mb-6">Export a shareable configuration token for others to download files.</p>
-                <button className="text-xs font-semibold uppercase tracking-wider text-stone-300 hover:text-white flex items-center gap-1.5 transition">
-                  Learn more <ArrowRight className="w-3 h-3" />
-                </button>
+                <h3 className="text-lg font-medium mb-3 text-stone-200">Share links</h3>
+                <p className="text-sm text-stone-400 leading-relaxed">Create links for downloading individual files.</p>
               </div>
             </div>
 
@@ -539,10 +424,7 @@ export function OnboardingLandingPage({
               </div>
               <div>
                 <h3 className="text-lg font-medium mb-3 text-stone-200">Open source</h3>
-                <p className="text-sm text-stone-400 leading-relaxed mb-6">Inspect the code and contribute on GitHub. Fully transparent architecture.</p>
-                <button className="text-xs font-semibold uppercase tracking-wider text-stone-300 hover:text-white flex items-center gap-1.5 transition">
-                  Learn more <ArrowRight className="w-3 h-3" />
-                </button>
+                <p className="text-sm text-stone-400 leading-relaxed">Inspect the implementation and contribute on GitHub.</p>
               </div>
             </div>
           </div>
@@ -563,16 +445,13 @@ export function OnboardingLandingPage({
           </div>
           
           <div className="relative z-10 p-12 md:p-16 max-w-xl">
-            <span className="text-xs font-semibold uppercase tracking-wider text-stone-400 mb-4 block font-sans">Simple. Private. Yours.</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-stone-400 mb-4 block font-sans">Built around your files</span>
             <h2 className="font-serif text-4xl md:text-5xl tracking-tight leading-[1.1] mb-6">
-              Your data stays yours.
+              Encryption before upload.
             </h2>
             <p className="text-stone-400 leading-relaxed mb-8 font-sans">
-              Open-source client architecture. Keys never leave your browser.
+              BucketSpace encrypts file chunks in the browser before they are sent to Telegram storage.
             </p>
-            <button className="text-xs font-semibold uppercase tracking-wider text-white border border-white/20 hover:bg-white/10 px-5 py-2.5 rounded-full transition-colors flex items-center gap-2 w-fit">
-              Learn about privacy <ArrowRight className="w-3 h-3" />
-            </button>
           </div>
         </div>
 
@@ -589,7 +468,7 @@ export function OnboardingLandingPage({
               <span className="font-semibold tracking-tight text-lg">BucketSpace</span>
             </div>
             <p className="text-xs text-stone-500 mb-8 leading-relaxed">
-              Private cloud storage that puts you in control. Built for privacy. Built for you.
+              A Telegram-backed personal storage workspace with client-side file encryption.
             </p>
             <div className="flex gap-4 mb-8">
               <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-stone-400 hover:text-white transition"><Terminal className="w-4 h-4" /></div>
@@ -601,20 +480,11 @@ export function OnboardingLandingPage({
           <div className="flex gap-16 lg:gap-24">
             <div className="flex flex-col gap-4 text-sm">
               <span className="font-medium mb-2 text-stone-200">Product</span>
-              <a href="https://github.com/vanrajsinh650/BucketSpace" className="text-stone-500 hover:text-stone-300">Features</a>
-              
-              
-              <a href="https://github.com/vanrajsinh650/BucketSpace" className="text-stone-500 hover:text-stone-300">Docs</a>
+              <a href="#features" className="text-stone-500 hover:text-stone-300">Features</a>
             </div>
             <div className="flex flex-col gap-4 text-sm">
               <span className="font-medium mb-2 text-stone-200">Project</span>
-              <a href="https://github.com/vanrajsinh650/BucketSpace" className="text-stone-500 hover:text-stone-300">Open Source</a>
-              <a href="https://github.com/vanrajsinh650/BucketSpace" className="text-stone-500 hover:text-stone-300">GitHub</a>
-            </div>
-            <div className="flex flex-col gap-4 text-sm">
-              <span className="font-medium mb-2 text-stone-200">Legal</span>
-              
-              
+              <a href="https://github.com/vanrajsinh650/BucketSpace" target="_blank" rel="noreferrer" className="text-stone-500 hover:text-stone-300">GitHub</a>
             </div>
           </div>
         </div>
@@ -627,6 +497,7 @@ export function OnboardingLandingPage({
             <button
               onClick={() => setModalOpen(false)}
               className="absolute top-4 right-4 text-stone-500 hover:text-white"
+              aria-label="Close Telegram sign-in"
             >
               <X className="w-5 h-5" />
             </button>
@@ -636,7 +507,7 @@ export function OnboardingLandingPage({
               </div>
               <h3 className="text-xl font-semibold">Connect to Telegram</h3>
               <p className="text-stone-400 text-sm mt-1 text-center">
-                BucketSpace uses your Telegram cloud storage for encrypted private syncing.
+                Sign in with your Telegram phone number to connect storage.
               </p>
             </div>
 
@@ -653,47 +524,10 @@ export function OnboardingLandingPage({
                   <label className="text-sm font-medium text-stone-300">Phone Number</label>
                   <PhoneInputWithCountry value={phone} onChange={setPhone} />
                   <p className="text-[11px] text-stone-500">
-                    Must include country code (e.g. +1). Never shared.
+                    Include the country code (for example, +1).
                   </p>
                 </div>
                 
-                <button
-                  type="button"
-                  onClick={() => setShowApiCreds(!showApiCreds)}
-                  className="flex items-center justify-between w-full py-2 px-3 rounded-lg border border-white/10 bg-white/5 text-xs text-stone-300 hover:bg-white/10"
-                >
-                  <span className="flex items-center gap-2"><SettingsIcon className="w-4 h-4"/> Advanced Configuration</span>
-                  {showApiCreds ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                </button>
-
-                {showApiCreds && (
-                  <div className="space-y-4 p-4 rounded-xl bg-black/50 border border-white/5">
-                    <p className="text-xs text-stone-400">
-                      If your environment doesn't have API keys set, you can provide them here.
-                    </p>
-                    <div className="space-y-2">
-                      <label className="text-xs text-stone-400">API ID</label>
-                      <input
-                        type="text"
-                        value={apiId}
-                        onChange={(e) => setApiId(e.target.value)}
-                        placeholder="Optional"
-                        className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs text-stone-400">API Hash</label>
-                      <input
-                        type="password"
-                        value={apiHash}
-                        onChange={(e) => setApiHash(e.target.value)}
-                        placeholder="Optional"
-                        className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30"
-                      />
-                    </div>
-                  </div>
-                )}
-
                 <button
                   type="submit"
                   disabled={!phone || isSubmitting}

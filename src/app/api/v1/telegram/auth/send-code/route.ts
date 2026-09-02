@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { phone, apiId, apiHash } = body;
+    const { phone } = body;
 
     if (!phone || typeof phone !== 'string' || !phone.trim()) {
       return NextResponse.json(
@@ -15,19 +15,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const parsedApiId =
-      apiId !== undefined && String(apiId).trim() !== ''
-        ? Number(apiId)
-        : undefined;
-    const parsedApiHash =
-      apiHash !== undefined && String(apiHash).trim() !== ''
-        ? String(apiHash).trim()
-        : undefined;
-
     const result = await TelegramAuthService.sendCode({
       phone: phone.trim(),
-      apiId: parsedApiId,
-      apiHash: parsedApiHash,
     });
 
     return NextResponse.json({

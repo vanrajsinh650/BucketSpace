@@ -27,18 +27,28 @@ describe('TelegramAuthService - MTProto 2.0 Authentication', () => {
     );
   });
 
-  it('should validate and enforce configured credentials in resolveTelegramCredentials', () => {
+  it('should validate and enforce server-configured credentials in resolveTelegramCredentials', () => {
     const { resolveTelegramCredentials } = require('../src/modules/storage/telegram/telegram-auth-service');
-    assert.throws(
-      () => resolveTelegramCredentials({ apiId: 0, apiHash: 'valid_hash' }),
-      /TELEGRAM_API_ID is not configured/i
-    );
-    assert.throws(
-      () => resolveTelegramCredentials({ apiId: 12345, apiHash: '' }),
-      /TELEGRAM_API_HASH is not configured/i
-    );
-    const resolved = resolveTelegramCredentials({ apiId: 12345, apiHash: 'abc123hash' });
-    assert.strictEqual(resolved.apiId, 12345);
-    assert.strictEqual(resolved.apiHash, 'abc123hash');
+    const originalApiId = process.env.TELEGRAM_API_ID;
+    const originalApiHash = process.env.TELEGRAM_API_HASH;
+
+    try {
+      delete process.env.TELEGRAM_API_ID;
+      delete process.env.TELEGRAM_API_HASH;
+      assert.throws(() => resolveTelegramCredentials(), /TELEGRAM_API_ID is not configured/i);
+
+      process.env.TELEGRAM_API_ID = '12345';
+      assert.throws(() => resolveTelegramCredentials(), /TELEGRAM_API_HASH is not configured/i);
+
+      process.env.TELEGRAM_API_HASH = 'abc123hash';
+      const resolved = resolveTelegramCredentials();
+      assert.strictEqual(resolved.apiId, 12345);
+      assert.strictEqual(resolved.apiHash, 'abc123hash');
+    } finally {
+      if (originalApiId === undefined) delete process.env.TELEGRAM_API_ID;
+      else process.env.TELEGRAM_API_ID = originalApiId;
+      if (originalApiHash === undefined) delete process.env.TELEGRAM_API_HASH;
+      else process.env.TELEGRAM_API_HASH = originalApiHash;
+    }
   });
 });

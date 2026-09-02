@@ -144,7 +144,7 @@ export default function PublicSharePage() {
               <File className="w-8 h-8 text-[#888] shrink-0" />
               <div className="min-w-0 flex-1">
                 <div className="text-white font-medium truncate">{shareData?.fileName || 'Encrypted File'}</div>
-                <div className="text-[10px] text-[#666]">AES-256-GCM Zero-Knowledge Encrypted</div>
+                <div className="text-[10px] text-[#666]">AES-256-GCM encrypted file</div>
               </div>
             </div>
 

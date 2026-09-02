@@ -106,7 +106,7 @@ export function FileGrid({
           <div className="space-y-1">
             <div className="font-mono text-sm font-semibold text-white">No files found</div>
             <div className="font-mono text-xs text-[#666] max-w-sm mx-auto">
-              Drop files here or click upload to store zero-knowledge encrypted chunks.
+              Drop files here or click upload to encrypt files in your browser before storage.
             </div>
           </div>
           {onOpenUpload && (

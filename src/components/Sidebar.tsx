@@ -149,8 +149,8 @@ export function Sidebar({
               />
             </div>
             <div className="text-[9px] font-mono text-[#555] flex justify-between">
-              <span>Unlimited Cluster</span>
-              <span>Encrypted</span>
+              <span>Telegram storage</span>
+              <span>Client encrypted</span>
             </div>
           </div>
 
