@@ -3,8 +3,6 @@ import { StringSession } from 'telegram/sessions';
 import { CustomFile } from 'telegram/client/uploads';
 import type { TelegramRefData } from './telegram-storage-provider';
 
-export const DEFAULT_TELEGRAM_API_ID = 37608030;
-export const DEFAULT_TELEGRAM_API_HASH = '51ebcc8fbaa1b9ac93d5f410dfb53aa7';
 export interface TelegramCredentials {
   apiId: number;
   apiHash: string;
@@ -105,8 +103,6 @@ export class TelegramAuthService {
     }
 
     const session = new StringSession(sessionString);
-    const apiId = Number(process.env.TELEGRAM_API_ID) || DEFAULT_TELEGRAM_API_ID;
-    const apiHash = process.env.TELEGRAM_API_HASH || DEFAULT_TELEGRAM_API_HASH;
     const { apiId, apiHash } = resolveTelegramCredentials();
 
     const client = new TelegramClient(session, apiId, apiHash, {
@@ -162,25 +158,11 @@ export class TelegramAuthService {
       cleanPhone = '+' + cleanPhone;
     }
 
-    // 2. Resolve credentials (custom override or built-in user credentials)
-    const apiId =
-      params.apiId && !isNaN(Number(params.apiId)) && Number(params.apiId) > 0
-        ? Number(params.apiId)
-        : process.env.TELEGRAM_API_ID && !isNaN(Number(process.env.TELEGRAM_API_ID)) && Number(process.env.TELEGRAM_API_ID) > 0
-        ? Number(process.env.TELEGRAM_API_ID)
-        : DEFAULT_TELEGRAM_API_ID;
     // 2. Resolve credentials (custom override or environment variables)
     const { apiId, apiHash } = resolveTelegramCredentials({
       apiId: params.apiId,
       apiHash: params.apiHash,
     });
-
-    const apiHash =
-      params.apiHash && params.apiHash.trim() && params.apiHash !== 'your-telegram-api-hash'
-        ? params.apiHash.trim()
-        : process.env.TELEGRAM_API_HASH && process.env.TELEGRAM_API_HASH.trim() && process.env.TELEGRAM_API_HASH !== 'your-telegram-api-hash'
-        ? process.env.TELEGRAM_API_HASH.trim()
-        : DEFAULT_TELEGRAM_API_HASH;
 
     // 3. Clean up any previous session for this phone number or expired sessions (> 15 min)
     for (const [token, existing] of telegramState.activeSessions.entries()) {

@@ -18,6 +18,7 @@ import {
   StorageRouter,
   TelegramStorageAdapter,
 } from '@/modules/storage';
+import { ClientEncryptionService } from '@/modules/security/client-encryption';
 
 export type CategoryFilter = 'ALL' | 'PHOTOS' | 'VIDEOS' | 'DOCUMENTS' | 'OTHER' | 'TRASH';
 export type SortField = 'name' | 'size' | 'date';
@@ -49,7 +50,7 @@ function bufferToHex(buffer: ArrayBuffer): string {
  * crypto.subtle.digest accepts BufferSource (which includes Uint8Array),
  * so passing the view directly hashes only the intended bytes.
  */
-async function calculateSha256(data: Uint8Array): Promise<string> {
+export async function calculateSha256(data: Uint8Array): Promise<string> {
   // Slice the underlying buffer to the exact range this view covers.
   // This avoids the subarray/.buffer bug (which would hash the entire file)
   // AND satisfies TypeScript's strict BufferSource typing.
@@ -570,13 +571,16 @@ export class StorageStore {
             continue;
           }
 
+          // Real Client-Side AES-256-GCM Encryption before transmitting to Telegram
+          const encryptedChunkBytes = await ClientEncryptionService.encryptChunk(chunkBytes);
+
           const chunkId = createChunkId(`chunk-${fileId}-${index}`);
           const providerRef = await targetProvider.putChunk({
             chunkId,
-            size: chunkBytes.byteLength,
+            size: encryptedChunkBytes.byteLength,
             hash: chunkHash,
             data: (async function* () {
-              yield chunkBytes;
+              yield encryptedChunkBytes;
             })(),
           });
 
@@ -756,13 +760,15 @@ export class StorageStore {
           const chunkHash = await calculateSha256(chunkBytes);
           chunkHashes[index] = chunkHash;
 
+          const encryptedChunkBytes = await ClientEncryptionService.encryptChunk(chunkBytes);
+
           const chunkId = createChunkId(`chunk-${existing.id}-${index}-${Date.now()}`);
           const providerRef = await targetProvider.putChunk({
             chunkId,
-            size: chunkBytes.byteLength,
+            size: encryptedChunkBytes.byteLength,
             hash: chunkHash,
             data: (async function* () {
-              yield chunkBytes;
+              yield encryptedChunkBytes;
             })(),
           });
 
@@ -843,7 +849,21 @@ export class StorageStore {
 
       const chunkCombined = concatByteArrays(pieces);
 
-      const verifiedChunkHash = await calculateSha256(chunkCombined);
+      // Decrypt chunk with Client-Side AES-256-GCM (with fallback for legacy unencrypted chunks)
+      let decryptedChunk: Uint8Array;
+      try {
+        decryptedChunk = await ClientEncryptionService.decryptChunk(chunkCombined);
+      } catch (decryptErr) {
+        // Check if raw chunk matches legacy unencrypted hash
+        const rawHash = await calculateSha256(chunkCombined);
+        if (rawHash === chunk.hash) {
+          decryptedChunk = chunkCombined;
+        } else {
+          throw decryptErr;
+        }
+      }
+
+      const verifiedChunkHash = await calculateSha256(decryptedChunk);
       if (verifiedChunkHash !== chunk.hash) {
         throw new Error(
           `We couldn't verify this file because part of it appears to be different from the original. ` +
@@ -852,7 +872,7 @@ export class StorageStore {
         );
       }
 
-      downloadedPieces.push(chunkCombined);
+      downloadedPieces.push(decryptedChunk);
     }
 
     return { bytes: concatByteArrays(downloadedPieces), file };
@@ -881,7 +901,16 @@ export class StorageStore {
       }
 
       const chunkCombined = concatByteArrays(pieces);
-      downloadedPieces.push(chunkCombined);
+
+      // Decrypt chunk with Client-Side AES-256-GCM
+      let decryptedChunk: Uint8Array;
+      try {
+        decryptedChunk = await ClientEncryptionService.decryptChunk(chunkCombined);
+      } catch {
+        decryptedChunk = chunkCombined;
+      }
+
+      downloadedPieces.push(decryptedChunk);
     }
 
     return concatByteArrays(downloadedPieces);

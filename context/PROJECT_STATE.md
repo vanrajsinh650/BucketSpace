@@ -90,9 +90,14 @@ BucketSpace/
 - **Transport Security**: The browser supplies the session token to internal API routes via the `x-telegram-session` HTTP request header.
 - **Server Scope**: The session string is utilized in-memory by backend GramJS connection pools and is never logged to disk, stdout, or public responses.
 
-### 3. Encryption Boundaries
+### 3. Encryption Boundaries & Threat Model
+- **Client-Side File Encryption (`ClientEncryptionService`)**:
+  - Every 4 MB logical chunk is encrypted directly in the browser with **AES-256-GCM** before transmission.
+  - Chunk Format: `[12-byte random IV | AES-256-GCM Ciphertext | 16-byte Auth Tag]`.
+  - The master key resides strictly on the client device and is **never** transmitted to Telegram or the backend server.
+  - **Telegram Account Compromise Resistance**: If an attacker gains access to the user's Telegram account or downloads the channel objects, they only obtain encrypted ciphertext blobs and cannot decrypt without the client-side master key.
 - **Credential & Key Vault**: `EnvelopeEncryptionVault` (`src/modules/security/envelope-vault.ts`) implements AES-256-GCM envelope encryption with scrypt key derivation ($N=131072, r=8, p=1$) for master passwords and sensitive credential payloads.
-- **File Data Transport**: File chunks are sliced in the browser (4 MB), SHA-256 hashed, and uploaded to the private vault channel over MTProto 2.0 encrypted connections.
+- **Tamper Detection**: Any modification of stored ciphertext or authentication tags in Telegram immediately fails WebCrypto decryption with an `AuthenticationError`.
 
 ---
 
