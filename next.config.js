@@ -2,13 +2,11 @@
 const nextConfig = {
   poweredByHeader: false,
 
-  // Allow chunked file uploads up to 50MB through both Server Actions and API routes
+  // Allow chunked file uploads up to 50MB through Server Actions
   experimental: {
     serverActions: {
       bodySizeLimit: '50mb',
     },
-    // Increase the body parser limit for App Router API route handlers
-    serverComponentsHmrCache: false,
   },
 
   // Keep these heavy server-only packages out of the browser bundle

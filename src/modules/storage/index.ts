@@ -12,4 +12,3 @@ export * from './queue';
 export * from './application';
 export * from './duplicate';
 export * from './preview';
-export * from './sync';

@@ -77,26 +77,6 @@ export function createSqliteDatabase(filepath: string = ':memory:'): DatabaseSyn
 
     CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp);
     CREATE INDEX IF NOT EXISTS idx_audit_logs_event_type ON audit_logs(event_type);
-
-    CREATE TABLE IF NOT EXISTS sync_ledger (
-      local_path TEXT PRIMARY KEY,
-      absolute_path TEXT NOT NULL,
-      file_size INTEGER NOT NULL,
-      mtime_ms INTEGER NOT NULL,
-      sha256_hash TEXT NOT NULL,
-      remote_file_id TEXT,
-      sync_status TEXT NOT NULL DEFAULT 'PENDING_UPLOAD',
-      direction TEXT NOT NULL DEFAULT 'IDLE',
-      error_message TEXT,
-      retry_count INTEGER NOT NULL DEFAULT 0,
-      last_synced_at TEXT,
-      version INTEGER NOT NULL DEFAULT 1,
-      is_deleted INTEGER NOT NULL DEFAULT 0
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_sync_status ON sync_ledger(sync_status);
-    CREATE INDEX IF NOT EXISTS idx_sync_remote_file_id ON sync_ledger(remote_file_id);
-    CREATE INDEX IF NOT EXISTS idx_sync_sha256_hash ON sync_ledger(sha256_hash);
   `);
 
   return db;

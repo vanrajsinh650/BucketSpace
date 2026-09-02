@@ -6,4 +6,3 @@ export * from './errors';
 export * from './providers';
 export * from './storage-rules';
 export * from './security-contracts';
-export * from './sync-events';

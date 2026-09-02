@@ -9,7 +9,6 @@ import {
   FileGrid,
   FileInfoModal,
   FilePreviewModal,
-  FolderSyncModal,
   Header,
   MainTab,
   MoveFileModal,
@@ -58,7 +57,6 @@ export default function BucketSpaceApp() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
-  const [syncModalOpen, setSyncModalOpen] = useState(false);
   const [selectedFileForRedundancy, setSelectedFileForRedundancy] = useState<FileMetadata | null>(null);
   const [providerList, setProviderList] = useState<ProviderDisplayInfo[]>([]);
   const [rulesList, setRulesList] = useState<StorageRule[]>([]);
@@ -446,7 +444,6 @@ export default function BucketSpaceApp() {
         onSelectCategory={setActiveCategory}
         onOpenSettings={handleOpenSettings}
         onOpenRules={handleOpenRules}
-        onOpenSync={() => setSyncModalOpen(true)}
         categoryCounts={categoryCounts}
         storageUsedBytes={storageUsedBytes}
         providerName={providerName}
@@ -460,7 +457,6 @@ export default function BucketSpaceApp() {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onOpenUpload={() => setUploadModalOpen(true)}
-          onOpenSync={() => setSyncModalOpen(true)}
           providerName={providerName}
           onDisconnect={handleDisconnect}
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
@@ -633,12 +629,6 @@ export default function BucketSpaceApp() {
           onClose={() => setRulesOpen(false)}
         />
       )}
-
-      {/* Folder Auto-Sync Daemon Modal */}
-      <FolderSyncModal
-        isOpen={syncModalOpen}
-        onClose={() => setSyncModalOpen(false)}
-      />
     </div>
   );
 }

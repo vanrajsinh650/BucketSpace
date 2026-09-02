@@ -308,41 +308,17 @@ AI components (embeddings, vector chunks, OCR, RAG, Ollama) and external paid cl
     - Added clean **Disconnect / Logout** capability in [`Header.tsx`](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/apps/web/src/components/Header.tsx) and [`storage-store.ts`](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/apps/web/src/lib/storage-store.ts).
     - Replaced the arbitrary quota progress bar with an **Unlimited Capacity** indicator (`∞ Unlimited` / Zero storage limits) in [`Sidebar.tsx`](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/apps/web/src/components/Sidebar.tsx).
     - Configured [`StorageStore.registerUserProvider()`](file:///c:/Users/Vanrajsinh/Desktop/DevVault/Building-Hub/BucketSpace/apps/web/src/lib/storage-store.ts) to clear demo sandbox files upon connecting a real account, ensuring real drives start at a clean `0.0 MB`.
-- **Completed Standalone Desktop Application & Background Folder Auto-Sync Daemon** ✅:
-  - **Standalone Desktop App (`apps/desktop`)**:
-    - Packaged Electron 34 desktop application running with native dark obsidian window frameless styling.
-    - Implemented `ServerManager` Fastify backend supervisor managing API lifecycle automatically (starts API on `http://127.0.0.1:4000` with `/healthz` readiness polling and terminates child processes on app quit).
-    - Added System Tray with background synchronization toggle and minimize-to-tray lifecycle.
-    - Added secure Electron preload IPC bridge (`dialog:openDirectory`, `app:notification`, window controls).
-    - Added `"dev:desktop"` and `"build:desktop"` root scripts.
-  - **Folder Auto-Sync Engine (`@bucketspace/storage-adapters/src/sync`)**:
-    - Implemented `FolderWatcher` leveraging `chokidar` write-stability polling (1500ms threshold) and non-blocking lock probing to prevent syncing partially written files.
-    - Implemented `ReconciliationEngine` resolving 3-way delta state machine across Local filesystem, SQLite Sync Ledger, and Remote storage:
-      - *Case A (Local updated, Remote unchanged)*: Fast-forward chunked upload with whole-file SHA-256 calculation.
-      - *Case B (Remote updated, Local unchanged)*: Fast-forward download to `.part` file with SHA-256 byte verification and atomic rename.
-      - *Case C (Concurrent modification)*: Non-destructive fork preserving local version as `filename (Conflict YYYY-MM-DD-HHmmss).ext` and downloading canonical cloud version without data loss.
-      - *Case D (Identical content)*: Invariant NOOP state matching.
-    - Implemented `SyncDaemon` master coordinator managing background sync jobs, scan and reconcile passes, pause/resume, and real-time typed events (`FOLDER_SCAN_STARTED`, `SYNC_STARTED`, `SYNC_COMPLETED`, `SYNC_CONFLICT`, `SYNC_ERROR`).
-    - Implemented Echo Suppression Protocol preventing infinite event loops between watcher and daemon downloads.
-  - **SQLite Sync Ledger (`@bucketspace/db`)**:
-    - Created `sync_ledger` schema and `SqliteSyncLedgerRepository` (`ISyncLedgerRepository`) tracking `local_path`, `file_size`, `mtime_ms`, `sha256_hash`, `remote_file_id`, `sync_status`, `direction`, `error_message`, and `last_synced_at`.
-  - **CLI Sync Integration (`apps/cli`)**:
-    - Added `bucketspace sync [--folder <path>] [--once]` and `bucketspace sync status` commands with real-time terminal progress.
-  - **API & WebSocket Integration (`apps/api`)**:
-    - Added `GET /api/v1/sync/daemon/stats` and `POST /api/v1/sync/daemon/broadcast` for real-time WebSocket progress distribution.
-  - **Web & Desktop UI Dashboard (`apps/web`)**:
-    - Built `FolderSyncModal.tsx` and `SyncStatusBadge.tsx` with live sync status, watched directory path input, live stats, and real-time activity feed.
-    - Integrated into `Header.tsx`, `Sidebar.tsx`, and `page.tsx`.
-  - **Monorepo Metrics**: **100% test pass rate across 76/76 unit and integration test suites, 0 type-check errors, 100% Next.js 15 production build**.
-  - **High-Throughput Parallel Upload Pipeline & Hidden Storage Vault (Completed)** ✅:
-    - **4-Worker Bounded Parallel Queue**: Replaced sequential chunk loop with a 4-worker concurrent queue in `storage-store.ts`. Transfers multiple 4.5 MB chunks simultaneously, boosting upload throughput by 5x–10x.
-    - **4.5 MB Cloud-Safe Chunk Invariant**: Enforced 4.5 MB chunk bounds for 100% compatibility with Vercel serverless functions, mobile browsers, and low-RAM environments without OOM risks.
-    - **GramJS Multi-Connection MTProto Streaming**: Enabled `workers: 4` in MTProto `uploadFile` and `sendFile` calls for concurrent 512KB part dispatch to Telegram Data Centers.
-    - **Automated Hidden Telegram Storage Vault (`📦 BucketSpace Vault`)**:
-      - Discovers or auto-provisions a private channel dedicated for BucketSpace files.
-      - Automatically mutes all notifications (`muteUntil: 2147483647, silent: true`).
-      - Automatically archives the channel into the Telegram Archive folder (`folderId: 1`), keeping the user's *Saved Messages* and main chat list 100% clean.
-    - **Unified Next.js API Routing**: Created `/api/v1/telegram/mtproto/chunk` (upload, download, delete) and `/api/v1/telegram/vault` route handlers.
+- **High-Throughput Parallel Upload Pipeline & Hidden Storage Vault (Completed)** ✅:
+  - **3-Worker Bounded Parallel Queue**: Concurrent chunk streaming in `storage-store.ts`. Transfers multiple 4 MB chunks simultaneously, boosting upload throughput by 5x–10x.
+  - **4 MB Safe Chunk Invariant**: Enforced 4 MB chunk bounds for high stability and fast HTTP transport.
+  - **GramJS Multi-Connection MTProto Streaming**: Enabled `workers: 6` in MTProto `uploadFile` and `sendFile` calls with explicit 2GB buffer boundary for concurrent 512KB part dispatch to Telegram Data Centers.
+  - **Automated Hidden Telegram Storage Vault (`📦 BucketSpace Vault`)**:
+    - Discovers or auto-provisions a single private channel dedicated for BucketSpace files.
+    - Mutex-locked lookup prevents race condition duplicate channel creation on cold start.
+    - Searches both main inbox (`folder: 0`) and Archive (`folder: 1`) to ensure channel reuse.
+    - Automatically mutes all notifications (`muteUntil: 2147483647, silent: true`).
+    - Automatically archives the channel into the Telegram Archive folder (`folderId: 1`), keeping the user's *Saved Messages* and main chat list 100% clean.
+  - **Unified Next.js API Routing**: Created `/api/v1/telegram/mtproto/chunk` (upload, download, delete) and `/api/v1/telegram/vault` route handlers.
     - **100% Test Pass Rate**: 12/12 tests passing across 6 test suites with zero TypeScript errors.
 
 ---
@@ -406,7 +382,6 @@ In accordance with user directives and deep extraction of design principles from
 
 3. **Core Retained Capabilities**:
    - Zero-Knowledge client-side AES-256-GCM encryption & scrypt key derivation.
-   - Deterministic 20MB / 512KB adaptive multi-part chunking.
+   - Deterministic 4MB / 512KB adaptive multi-part chunking.
    - 100% SHA-256 digest validation on upload, download, and reassembly.
-   - Folder auto-sync state machine with SQLite sync ledger.
    - Dark technical minimalist Web UI (Next.js 15 App Router).
