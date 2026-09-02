@@ -42,6 +42,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // GramJS CustomFile requires a Node Buffer. Buffer.from(arrayBuffer) is a
+    // zero-copy view when possible in Node 16+, but may copy in older runtimes.
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
@@ -52,6 +54,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const t0 = Date.now();
     console.log(`[chunk-upload] Starting MTProto upload: chunkId=${chunkId} bufferBytes=${buffer.length}`);
 
     const reference = await TelegramAuthService.uploadChunk({
@@ -62,7 +65,9 @@ export async function POST(req: NextRequest) {
       targetChatId,
     });
 
-    console.log(`[chunk-upload] Done: chunkId=${chunkId} messageId=${(reference as any).messageId}`);
+    const elapsed = Date.now() - t0;
+    const throughputMBs = (buffer.length / 1024 / 1024 / (elapsed / 1000)).toFixed(1);
+    console.log(`[chunk-upload] Done: chunkId=${chunkId} messageId=${(reference as any).messageId} elapsed=${elapsed}ms throughput=${throughputMBs}MB/s`);
 
     return NextResponse.json({
       success: true,

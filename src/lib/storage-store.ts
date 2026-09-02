@@ -44,18 +44,18 @@ function bufferToHex(buffer: ArrayBuffer): string {
 /**
  * Calculates SHA-256 hash using Web Crypto API.
  *
- * CRITICAL: Pass the Uint8Array directly, NOT data.buffer.
- * When data is a subarray/slice, data.buffer returns the entire
- * underlying ArrayBuffer, ignoring byteOffset and byteLength.
- * crypto.subtle.digest accepts BufferSource (which includes Uint8Array),
- * so passing the view directly hashes only the intended bytes.
+ * When the Uint8Array owns its entire backing ArrayBuffer (the common case
+ * after File.slice().arrayBuffer()), we pass it directly to avoid a copy.
+ * Only when the view is a subarray of a larger buffer do we slice.
  */
 export async function calculateSha256(data: Uint8Array): Promise<string> {
-  // Slice the underlying buffer to the exact range this view covers.
-  // This avoids the subarray/.buffer bug (which would hash the entire file)
-  // AND satisfies TypeScript's strict BufferSource typing.
-  const safeBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
-  const hashBuffer = await crypto.subtle.digest('SHA-256', safeBuffer);
+  // Fast path: view covers the entire backing buffer — no copy needed.
+  // Slow path: subarray/slice — must isolate the exact range.
+  const hashInput =
+    data.byteOffset === 0 && data.byteLength === data.buffer.byteLength
+      ? data.buffer
+      : data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', hashInput as ArrayBuffer);
   return bufferToHex(hashBuffer);
 }
 
@@ -95,18 +95,20 @@ export class HttpTelegramStorageAdapter implements IStorageProvider {
   }
 
   public async putChunk(input: import('@/shared').PutChunkInput): Promise<import('@/shared').ProviderChunkRef> {
+    // Collect stream buffers — in practice, the caller yields a single Uint8Array.
+    // We pass them directly to Blob without an intermediate concat copy.
     const buffers: Uint8Array[] = [];
     for await (const chunk of input.data) {
       buffers.push(chunk);
     }
-    const combined = concatByteArrays(buffers);
 
     const formData = new FormData();
     formData.append('sessionString', this.sessionString);
     formData.append('chunkId', input.chunkId);
     formData.append('filename', `chunk_${input.chunkId}.bin`);
     formData.append('targetChatId', 'vault');
-    const blobSafe = new Blob([combined as unknown as BlobPart], { type: 'application/octet-stream' });
+    // Pass buffers array directly to Blob — avoids concat copy
+    const blobSafe = new Blob(buffers as unknown as BlobPart[], { type: 'application/octet-stream' });
     formData.append('file', blobSafe);
 
     let lastError: Error | null = null;
@@ -498,9 +500,9 @@ export class StorageStore {
     file: File,
     onProgress?: (progress: UploadProgressState) => void
   ): Promise<FileMetadata> {
-    const CHUNK_SIZE = 4 * 1024 * 1024; // 4 MB safe chunks for HTTP transport
+    const CHUNK_SIZE = 4 * 1024 * 1024; // 4 MB chunks for HTTP transport
     const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
-    const CONCURRENCY = 3; // 3 parallel upload streams
+    const CONCURRENCY = 5; // 5 parallel upload workers (overlaps CPU hash/encrypt with network)
 
     onProgress?.({
       fileName: file.name,
@@ -560,19 +562,25 @@ export class StorageStore {
         const end = Math.min(start + CHUNK_SIZE, file.size);
 
         try {
+          const t0 = performance.now();
+
           const chunkBlob = file.slice(start, end);
           const chunkBuffer = await chunkBlob.arrayBuffer();
           const chunkBytes = new Uint8Array(chunkBuffer);
+          const tSlice = performance.now();
+
           const chunkHash = await calculateSha256(chunkBytes);
           chunkHashes[index] = chunkHash;
+          const tHash = performance.now();
 
           const existingChunk = uploadedChunks.find((c) => c.index === index);
           if (existingChunk && existingChunk.providerRef) {
             continue;
           }
 
-          // Real Client-Side AES-256-GCM Encryption before transmitting to Telegram
+          // Client-Side AES-256-GCM Encryption before transmitting to provider
           const encryptedChunkBytes = await ClientEncryptionService.encryptChunk(chunkBytes);
+          const tEncrypt = performance.now();
 
           const chunkId = createChunkId(`chunk-${fileId}-${index}`);
           const providerRef = await targetProvider.putChunk({
@@ -583,6 +591,15 @@ export class StorageStore {
               yield encryptedChunkBytes;
             })(),
           });
+          const tUpload = performance.now();
+
+          // Development diagnostics — timing breakdown per chunk
+          console.debug(
+            `[upload] chunk ${index}/${totalChunks} | ` +
+            `slice=${(tSlice - t0).toFixed(0)}ms hash=${(tHash - tSlice).toFixed(0)}ms ` +
+            `encrypt=${(tEncrypt - tHash).toFixed(0)}ms upload=${(tUpload - tEncrypt).toFixed(0)}ms ` +
+            `total=${(tUpload - t0).toFixed(0)}ms | ${(chunkBytes.byteLength / 1024 / 1024).toFixed(1)}MB`
+          );
 
           uploadedChunks.push({
             id: chunkId,
@@ -610,7 +627,7 @@ export class StorageStore {
       }
     };
 
-    // Execute 2 parallel upload streams
+    // Execute parallel upload workers (bounded by CONCURRENCY)
     const workerCount = Math.min(CONCURRENCY, totalChunks);
     const workers = Array.from({ length: workerCount }, () => uploadWorker());
     await Promise.all(workers);
@@ -713,7 +730,7 @@ export class StorageStore {
 
     const CHUNK_SIZE = 4 * 1024 * 1024;
     const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
-    const CONCURRENCY = 3;
+    const CONCURRENCY = 5;
 
     onProgress?.({
       fileName: file.name,
@@ -902,12 +919,18 @@ export class StorageStore {
 
       const chunkCombined = concatByteArrays(pieces);
 
-      // Decrypt chunk with Client-Side AES-256-GCM
+      // Decrypt chunk with Client-Side AES-256-GCM (with fallback for legacy unencrypted chunks)
       let decryptedChunk: Uint8Array;
       try {
         decryptedChunk = await ClientEncryptionService.decryptChunk(chunkCombined);
-      } catch {
-        decryptedChunk = chunkCombined;
+      } catch (decryptErr) {
+        // Only accept raw data if hash matches — prevents accepting tampered plaintext
+        const rawHash = await calculateSha256(chunkCombined);
+        if (rawHash === chunk.hash) {
+          decryptedChunk = chunkCombined;
+        } else {
+          throw decryptErr;
+        }
       }
 
       downloadedPieces.push(decryptedChunk);

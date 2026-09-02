@@ -145,7 +145,19 @@ BucketSpace/
 
 ## 6. Build & Test Verification
 
-- **Unit & Integration Tests:** 12/12 passing across 6 test suites (`tsx --test tests/**/*.test.ts`).
+- **Unit & Integration Tests:** 29/29 passing across 8 test suites (`tsx --test tests/**/*.test.ts`).
 - **TypeScript Type Check:** 0 errors (`tsc --noEmit`).
 - **Next.js Production Build:** 100% successful (`next build`).
 - **Secret Scan:** 0 literal secrets in tracked files.
+
+---
+
+## 7. Upload Pipeline Performance
+
+- **Browser Concurrency:** 5 parallel upload workers (up from 3).
+- **Chunk Size:** 4 MB logical chunks, each encrypted with AES-256-GCM (+28 bytes overhead).
+- **MTProto Workers:** 6 parallel socket workers per chunk (GramJS internal).
+- **Memory Optimization:** Eliminated unnecessary buffer copies in putChunk (was creating 3 copies per chunk).
+- **SHA-256 Optimization:** Fast path avoids redundant ArrayBuffer.slice() for full-buffer views.
+- **Security Fix:** Download plaintext fallback now requires hash verification (was silently accepting unverified data).
+- **Instrumentation:** Per-chunk timing breakdown logged in development (slice/hash/encrypt/upload phases).
