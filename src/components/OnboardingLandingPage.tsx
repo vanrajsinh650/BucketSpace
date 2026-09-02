@@ -85,7 +85,7 @@ export function OnboardingLandingPage({
     },
     {
       name: 'tax_documents_2026.pdf',
-      size: '24.5 MB',
+      size: 'Demo File',
       chunks: 6,
       hash: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
       provider: 'Telegram Cloud Vault',
@@ -242,606 +242,548 @@ export function OnboardingLandingPage({
   };
 
   return (
-    <div className="min-h-[100dvh] bg-black text-white font-sans selection:bg-white selection:text-black relative overflow-x-hidden">
-      {/* ─── Background 1px Structural Grid ─── */}
-      <div
-        className="fixed inset-0 pointer-events-none opacity-20"
-        style={{
-          backgroundImage: `linear-gradient(to right, #1e1e1e 1px, transparent 1px), linear-gradient(to bottom, #1e1e1e 1px, transparent 1px)`,
-          backgroundSize: '4rem 4rem',
-        }}
-      />
-
-      {/* ─── Sticky Header Navigation ─── */}
-      <header className="sticky top-0 z-40 h-16 border-b border-[#1e1e1e] bg-black/90 backdrop-blur-md px-6 sm:px-12 flex items-center justify-between">
+    <div className="min-h-screen bg-[#0a0a0a] text-stone-50 font-sans selection:bg-stone-50 selection:text-black overflow-x-hidden">
+      {/* ─── Navigation ─── */}
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 py-5 bg-[#0a0a0a]/80 backdrop-blur-md border-b border-white/5">
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 bg-white text-black font-mono font-black text-xs flex items-center justify-center rounded">
-            B
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center border border-white/20">
+            <Cloud className="w-4 h-4 text-white" />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-sm font-bold tracking-tight uppercase text-white">
-              BucketSpace
-            </span>
-            <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono text-[#22c55e] border border-[#22c55e]/30 bg-[#22c55e]/10">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-ping" />
-              CLUSTER LIVE
-            </span>
-          </div>
+          <span className="font-semibold text-lg tracking-tight">BucketSpace</span>
+        </div>
+        
+        <div className="hidden lg:flex items-center gap-8 text-sm text-stone-400">
+          <a href="#features" className="hover:text-stone-50 transition-colors">Features</a>
+          
+          <a href="#open-source" className="hover:text-stone-50 transition-colors">Open Source</a>
+          <a href="#docs" className="hover:text-stone-50 transition-colors">Docs</a>
+          
         </div>
 
-        {/* Desktop Nav Links */}
-        <nav className="hidden md:flex items-center gap-8 text-xs font-mono uppercase tracking-wider text-[#888]">
-          <a href="#features" className="hover:text-white transition-colors">Capabilities</a>
-          <a href="#architecture" className="hover:text-white transition-colors">Architecture</a>
-          <a href="#benchmarks" className="hover:text-white transition-colors">Comparison</a>
-        </nav>
-
-        {/* Header Actions */}
-        <div className="flex items-center gap-3">
-          {onLaunchSandbox && (
-            <button
-              onClick={onLaunchSandbox}
-              className="border border-[#333] hover:border-white text-white px-3.5 py-1.5 rounded font-mono text-xs uppercase tracking-wider flex items-center gap-1.5 transition-colors btn-press"
-            >
-              <Play className="w-3 h-3 text-white" />
-              <span>Sandbox Demo</span>
-            </button>
-          )}
-
-          <button
+        <div className="flex items-center gap-4">
+          <button 
             onClick={() => {
               setModalOpen(true);
               setStep('phone');
               setErrorMessage('');
             }}
-            className="bg-white text-black hover:bg-[#e0e0e0] px-4 py-1.5 rounded font-mono font-bold text-xs uppercase tracking-wider transition-colors btn-press shadow-sm"
+            className="hidden md:block text-sm font-medium text-stone-300 hover:text-white transition-colors"
           >
-            Connect Drive
+            Sign in
+          </button>
+          <button 
+            onClick={() => {
+              setModalOpen(true);
+              setStep('phone');
+              setErrorMessage('');
+            }}
+            className="bg-white text-black hover:bg-stone-200 px-5 py-2.5 rounded-full text-sm font-semibold transition-colors shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+          >
+            Get Started
           </button>
         </div>
-      </header>
+      </nav>
 
       {/* ─── Hero Section ─── */}
-      <section className="relative pt-16 pb-20 px-6 sm:px-12 max-w-7xl mx-auto space-y-12">
-        <div className="space-y-6 max-w-4xl">
-          {/* Eyebrow */}
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-[#121212] border border-[#1e1e1e] text-[11px] font-mono text-[#888] uppercase tracking-widest">
-            <Cpu className="w-3.5 h-3.5 text-white" />
-            <span>Distributed Object Storage System</span>
-          </div>
-
-          {/* Main Headline (Weight Inversion) */}
-          <h1 className="text-5xl sm:text-7xl lg:text-8xl font-light tracking-tighter text-white uppercase leading-[0.95]">
-            Infinite Cloud Drive. <br />
-            <span className="font-extrabold text-white">Zero Subscription.</span>
-          </h1>
-
-          {/* Subtext */}
-          <p className="text-base sm:text-lg font-mono text-[#888] max-w-2xl leading-relaxed">
-            Turn your private Telegram cloud into a secure, high-performance personal cloud storage engine with client-side AES-256-GCM zero-knowledge encryption and instant streaming.
-          </p>
-
-          {/* Hero CTAs */}
-          <div className="flex flex-wrap items-center gap-4 pt-2">
-            <button
-              onClick={() => {
-                setModalOpen(true);
-                setStep('phone');
-                setErrorMessage('');
+      <main className="pt-32 pb-16 px-6 md:px-12 max-w-7xl mx-auto">
+        <div className="relative flex flex-col lg:flex-row items-center min-h-[60vh] md:min-h-[70vh]">
+          {/* Ethereal Floating Clouds - CSS & Image blend */}
+          <div className="absolute right-[-10%] top-[-10%] w-full lg:w-[120%] h-[120%] pointer-events-none opacity-80 mix-blend-screen motion-safe:motion-safe:animate-float-delayed">
+            {/* We use a beautiful dark abstract cloud texture masked perfectly into the background */}
+            <div 
+              className="w-full h-full bg-no-repeat bg-contain bg-right-top"
+              style={{
+                backgroundImage: `url('/images/dark_ethereal_cloud.jpg')`,
+                filter: 'grayscale(1) contrast(1.1) brightness(0.8)',
+                maskImage: 'radial-gradient(ellipse at 80% 30%, black 10%, transparent 60%)',
+                WebkitMaskImage: 'radial-gradient(ellipse at 80% 30%, black 10%, transparent 60%)'
               }}
-              className="bg-white text-black hover:bg-[#e0e0e0] px-6 py-3 rounded-lg font-mono font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-colors btn-press shadow-lg"
-            >
-              <span>Connect Storage Provider</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            />
+          </div>
 
-            {onLaunchSandbox && (
-              <button
-                onClick={onLaunchSandbox}
-                className="border border-[#222] hover:border-white bg-[#0a0a0a] hover:bg-[#121212] text-white px-6 py-3 rounded-lg font-mono text-xs uppercase tracking-wider flex items-center gap-2 transition-colors btn-press"
-              >
-                <Terminal className="w-4 h-4 text-[#888]" />
-                <span>Launch Interactive Demo</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* ─── Metric Strip ─── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-[1px] bg-[#1e1e1e] border border-[#1e1e1e] rounded-lg overflow-hidden font-mono">
-          <div className="bg-black p-4 sm:p-5 space-y-1">
-            <div className="text-[10px] text-[#666] uppercase tracking-widest">Storage Cost</div>
-            <div className="text-2xl font-light text-white">$0.00 / mo</div>
-            <div className="text-[10px] text-[#555]">Unlimited via Telegram MTProto</div>
-          </div>
-          <div className="bg-black p-4 sm:p-5 space-y-1">
-            <div className="text-[10px] text-[#666] uppercase tracking-widest">Ingestion Pipeline</div>
-            <div className="text-2xl font-light text-white">20 MB Chunks</div>
-            <div className="text-[10px] text-[#555]">Parallel Multi-Part Uploads</div>
-          </div>
-          <div className="bg-black p-4 sm:p-5 space-y-1">
-            <div className="text-[10px] text-[#666] uppercase tracking-widest">Encryption Standard</div>
-            <div className="text-2xl font-light text-white">AES-256-GCM</div>
-            <div className="text-[10px] text-[#555]">Zero-Knowledge Envelope</div>
-          </div>
-          <div className="bg-black p-4 sm:p-5 space-y-1">
-            <div className="text-[10px] text-[#666] uppercase tracking-widest">Integrity Invariant</div>
-            <div className="text-2xl font-light text-white">100% SHA-256</div>
-            <div className="text-[10px] text-[#555]">Cryptographic Digest Receipts</div>
-          </div>
-        </div>
-
-        {/* ─── Interactive Live Product Console ─── */}
-        <div className="border border-[#1e1e1e] bg-[#0a0a0a] rounded-xl overflow-hidden shadow-2xl space-y-0">
-          {/* Console Top Window Bar */}
-          <div className="px-4 py-3 border-b border-[#1e1e1e] bg-[#0d0d0d] flex items-center justify-between font-mono text-xs">
-            <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-[#333]" />
-              <div className="w-2.5 h-2.5 rounded-full bg-[#333]" />
-              <div className="w-2.5 h-2.5 rounded-full bg-[#333]" />
-              <span className="text-[#666] text-[11px] ml-2">bucketspace-vault-telemetry.sh</span>
+          <div className="relative z-10 lg:w-1/2 flex flex-col items-start text-left mt-12 lg:mt-0">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 mb-8 backdrop-blur-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-white motion-safe:animate-pulse-slow" />
+              <span className="text-xs font-medium text-stone-300">Client-side encrypted. Telegram-backed.</span>
             </div>
-            <span className="text-[10px] text-[#22c55e]">● LIVE INTERACTIVE SIMULATOR</span>
+
+            <h1 className="font-serif text-6xl sm:text-7xl lg:text-8xl xl:text-[7.5rem] leading-[1.05] tracking-tight mb-8">
+              A place for<br />everything.
+            </h1>
+            
+            <p className="text-lg md:text-xl text-stone-400 mb-10 max-w-lg leading-relaxed font-sans">
+              A personal cloud storage layer built on Telegram MTProto. Encrypted on your device before upload.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+              <button 
+                onClick={() => {
+                  setModalOpen(true);
+                  setStep('phone');
+                  setErrorMessage('');
+                }}
+                className="w-full sm:w-auto bg-white text-black hover:bg-stone-200 px-6 py-3.5 rounded-full text-[15px] font-semibold transition-all flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(255,255,255,0.1)] hover:scale-[1.02]"
+              >
+                <span>Get Started</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              
+              <button 
+                className="w-full sm:w-auto bg-transparent border border-white/20 text-white hover:bg-white/5 px-6 py-3.5 rounded-full text-[15px] font-medium transition-colors"
+                onClick={() => {
+                  const el = document.getElementById('features');
+                  el?.scrollIntoView({ behavior: 'smooth' });
+                }}
+              >
+                Explore BucketSpace
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ─── Mini Value Props Strip ─── */}
+        <div className="mt-24 mb-32 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 p-2 rounded-3xl bg-[#111] border border-white/5">
+          <div className="p-6 flex flex-col gap-3">
+            <HardDrive className="w-6 h-6 text-stone-400" />
+            <h3 className="font-medium text-[15px]">Your Files</h3>
+            <p className="text-sm text-stone-500 leading-relaxed">All your files in one private space.</p>
+          </div>
+          <div className="p-6 flex flex-col gap-3">
+            <Lock className="w-6 h-6 text-stone-400" />
+            <h3 className="font-medium text-[15px]">Client-Side Encryption</h3>
+            <p className="text-sm text-stone-500 leading-relaxed">AES-256-GCM encryption before upload.</p>
+          </div>
+          <div className="p-6 flex flex-col gap-3">
+            <Terminal className="w-6 h-6 text-stone-400" />
+            <h3 className="font-medium text-[15px]">Open source</h3>
+            <p className="text-sm text-stone-500 leading-relaxed">Transparent and built with the community.</p>
+          </div>
+          <div className="p-6 flex flex-col gap-3">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-stone-400"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <h3 className="font-medium text-[15px]">Made for you</h3>
+            <p className="text-sm text-stone-500 leading-relaxed">Simple, fast and built around your needs.</p>
+          </div>
+        </div>
+
+        {/* ─── UI Showcase Section ─── */}
+        <div id="features" className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24 mb-40">
+          <div className="lg:w-1/3 flex flex-col">
+            <span className="text-sm font-medium text-stone-500 mb-4">Everything in one place</span>
+            <h2 className="font-serif text-5xl md:text-6xl tracking-tight leading-[1.1] mb-6">
+              All your files.<br />Always with you.
+            </h2>
+            <p className="text-lg text-stone-400 mb-10 leading-relaxed max-w-sm font-sans">
+              Upload, organize and access your files from any device. Keep everything in one place.
+            </p>
+            
+            <div className="flex flex-wrap gap-4 mb-10">
+              <div className="flex items-center gap-2 text-sm text-stone-300 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                <HardDrive className="w-4 h-4" /> Files
+              </div>
+              <div className="flex items-center gap-2 text-sm text-stone-300 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> Photos
+              </div>
+              <div className="flex items-center gap-2 text-sm text-stone-300 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg> Videos
+              </div>
+            </div>
+
+            <button className="flex items-center gap-2 text-sm font-medium bg-[#111] hover:bg-[#1a1a1a] border border-white/10 px-5 py-3 rounded-full w-fit transition-colors">
+              <Play className="w-4 h-4" /> See how it works
+            </button>
           </div>
 
-          {/* Console Interactive Body */}
-          <div className="p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 font-mono text-xs">
-            {/* Left: Interactive File List (4 cols) */}
-            <div className="lg:col-span-4 space-y-3">
-              <div className="text-[10px] text-[#666] uppercase tracking-wider">
-                Click File To Simulate Chunking
+          <div className="lg:w-2/3 w-full">
+            {/* Fake OS Window UI mimicking reference */}
+            <div className="w-full bg-[#111] rounded-2xl border border-white/5 shadow-2xl overflow-hidden flex flex-col font-sans">
+              {/* Window Header */}
+              <div className="h-14 border-b border-white/5 flex items-center px-4 justify-between bg-[#0a0a0a]">
+                <div className="flex items-center gap-2 text-stone-300">
+                  <Cloud className="w-5 h-5" />
+                  <span className="font-semibold text-sm">BucketSpace</span>
+                </div>
+                <div className="flex-1 max-w-md mx-6">
+                  <div className="bg-[#1a1a1a] border border-white/5 rounded-full px-4 py-1.5 flex items-center gap-2">
+                    <SearchIcon className="w-4 h-4 text-stone-500" />
+                    <span className="text-xs text-stone-500">Search your files...</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button className="bg-[#1a1a1a] border border-white/5 text-stone-300 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-white/10 transition">
+                    <Send className="w-3 h-3" /> Upload
+                  </button>
+                  <button className="bg-white text-black text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    New
+                  </button>
+                </div>
               </div>
-              <div className="space-y-2">
-                {demoFiles.map((file, idx) => (
-                  <div
-                    key={file.name}
-                    onClick={() => handleSimulate(idx)}
-                    className={`p-3.5 rounded border cursor-pointer transition-colors btn-press ${
-                      selectedDemoFile === idx
-                        ? 'border-white bg-[#161616] text-white'
-                        : 'border-[#1e1e1e] bg-[#0a0a0a] text-[#888] hover:border-[#333] hover:text-white'
-                    }`}
-                  >
-                    <div className="font-medium text-xs truncate text-white">{file.name}</div>
-                    <div className="flex items-center justify-between text-[10px] text-[#666] mt-1.5">
-                      <span>{file.size}</span>
-                      <span>{file.chunks} chunks</span>
+              
+              <div className="flex flex-1 min-h-[400px]">
+                {/* Sidebar */}
+                <div className="w-56 border-r border-white/5 bg-[#0a0a0a]/50 p-4 flex flex-col gap-1">
+                  <div className="flex items-center gap-3 px-3 py-2 bg-white/10 rounded-lg text-white text-sm font-medium">
+                    <HardDrive className="w-4 h-4" /> My Drive
+                  </div>
+                  <div className="flex items-center gap-3 px-3 py-2 text-stone-400 hover:text-stone-300 hover:bg-white/5 rounded-lg text-sm transition">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Recent
+                  </div>
+                  <div className="flex items-center gap-3 px-3 py-2 text-stone-400 hover:text-stone-300 hover:bg-white/5 rounded-lg text-sm transition">
+                    <ShareIcon className="w-4 h-4" /> Shared
+                  </div>
+                  <div className="flex items-center gap-3 px-3 py-2 text-stone-400 hover:text-stone-300 hover:bg-white/5 rounded-lg text-sm transition">
+                    <TrashIcon className="w-4 h-4" /> Trash
+                  </div>
+                  
+                  <div className="mt-auto pt-6 border-t border-white/5">
+                    <div className="text-xs text-stone-500 mb-2">Storage</div>
+                    <div className="text-xs font-medium text-stone-300 mb-2"><span className="text-white">Demo</span> Storage</div>
+                    <div className="h-1.5 w-full bg-[#222] rounded-full overflow-hidden">
+                      <div className="h-full bg-white w-[0%] rounded-full"></div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
 
-            {/* Right: Live Telemetry & Pipeline Inspector (8 cols) */}
-            <div className="lg:col-span-8 bg-black border border-[#1e1e1e] rounded-lg p-5 space-y-5">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#1e1e1e] pb-3">
-                <div className="space-y-0.5">
-                  <div className="text-white font-medium text-xs">{demoFiles[selectedDemoFile].name}</div>
-                  <div className="text-[10px] text-[#666]">
-                    Routing: <span className="text-white uppercase">{demoFiles[selectedDemoFile].provider}</span>
+                {/* Main Content Area */}
+                <div className="flex-1 bg-[#111] p-6">
+                  <h3 className="text-lg font-medium mb-6 text-stone-200">My Drive</h3>
+                  
+                  <div className="grid grid-cols-12 text-xs font-medium text-stone-500 pb-3 border-b border-white/5 mb-3">
+                    <div className="col-span-6">Name</div>
+                    <div className="col-span-4">Modified</div>
+                    <div className="col-span-2">Size</div>
+                  </div>
+
+                  <div className="flex flex-col gap-1 text-sm text-stone-300">
+                    {[
+                      { icon: <FolderIcon className="w-4 h-4 text-white" />, name: 'Projects', date: 'Example', size: 'Demo File' },
+                      { icon: <FolderIcon className="w-4 h-4 text-white" />, name: 'Photos', date: 'Example', size: 'Demo File' },
+                      { icon: <FolderIcon className="w-4 h-4 text-white" />, name: 'Documents', date: 'Example', size: 'Demo File' },
+                      { icon: <FileDesignIcon className="w-4 h-4 text-blue-400" />, name: 'Design System.fig', date: 'Example', size: 'Demo File' },
+                      { icon: <FilePdfIcon className="w-4 h-4 text-red-400" />, name: 'Presentation.pdf', date: 'Example', size: 'Demo File' },
+                      { icon: <ImageIcon className="w-4 h-4 text-green-400" />, name: 'Screenshot.png', date: 'Example', size: 'Demo File' },
+                    ].map((item, i) => (
+                      <div key={i} className="grid grid-cols-12 items-center py-3 hover:bg-white/5 rounded-lg px-2 -mx-2 transition cursor-default">
+                        <div className="col-span-6 flex items-center gap-3">
+                          {item.icon}
+                          <span className="font-medium text-stone-200">{item.name}</span>
+                        </div>
+                        <div className="col-span-4 text-stone-500 text-xs">{item.date}</div>
+                        <div className="col-span-2 text-stone-500 text-xs">{item.size}</div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-xs text-[#22c55e] font-bold">{demoFiles[selectedDemoFile].speed}</div>
-                  <div className="text-[10px] text-[#555]">Throughput</div>
-                </div>
-              </div>
-
-              {/* Live Slicing Progress Bar */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-[11px]">
-                  <span className="text-[#888]">
-                    {isSimulatingChunking ? 'Hashing & Slicing Chunks...' : 'Zero-Knowledge Cryptographic Assembly Complete'}
-                  </span>
-                  <span className="text-white font-bold">{simulatedProgress}%</span>
-                </div>
-                <div className="h-1.5 bg-[#1e1e1e] rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-white transition-all duration-150"
-                    style={{ width: `${simulatedProgress}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Chunk Hash Distribution */}
-              <div className="space-y-2">
-                <div className="text-[10px] text-[#666] uppercase">SHA-256 Root Digest</div>
-                <div className="p-2.5 bg-[#121212] border border-[#1e1e1e] rounded text-[11px] text-white font-mono truncate">
-                  {demoFiles[selectedDemoFile].hash}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#1e1e1e] text-[10px]">
-                <div className="text-[#666]">
-                  Status: <span className="text-[#22c55e]">VERIFIED</span>
-                </div>
-                <div className="text-[#666]">
-                  DC Latency: <span className="text-white">18ms</span>
-                </div>
-                <div className="text-[#666]">
-                  Cipher: <span className="text-white">AES-GCM</span>
-                </div>
               </div>
             </div>
           </div>
         </div>
-      </section>
 
-      {/* ─── Bento Grid Capabilities Section ─── */}
-      <section id="features" className="py-20 px-6 sm:px-12 max-w-7xl mx-auto space-y-10 border-t border-[#1e1e1e]">
-        <div className="space-y-3">
-          <div className="text-[11px] font-mono text-[#888] uppercase tracking-widest">
-            Core Architecture
-          </div>
-          <h2 className="text-3xl sm:text-5xl font-light tracking-tight text-white uppercase">
-            Engineered For Pure Privacy.
-          </h2>
-        </div>
-
-        {/* Bento Grid Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 font-mono text-xs">
-          {/* Card 1: Telegram MTProto (2 cols span) */}
-          <div className="md:col-span-2 bg-[#0a0a0a] border border-[#1e1e1e] p-6 sm:p-8 rounded-xl space-y-4 flex flex-col justify-between group hover:border-[#333] transition-colors">
-            <div className="space-y-3">
-              <div className="w-10 h-10 rounded bg-[#121212] border border-[#222] flex items-center justify-center text-white">
-                <Send className="w-5 h-5" />
-              </div>
-              <h3 className="text-lg font-bold text-white uppercase tracking-tight">
-                Telegram MTProto Storage Engine
-              </h3>
-              <p className="text-xs text-[#888] leading-relaxed max-w-lg">
-                Upload files of any size without hitches. BucketSpace automatically slices large media into deterministic 20MB encrypted chunks, streaming them directly into your private Telegram cloud infrastructure with infinite free capacity.
-              </p>
+        {/* ─── Powerful Features Section ─── */}
+        <div className="mb-40">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-12">
+            <div>
+              <span className="text-sm font-medium text-stone-500 mb-4 block">Powerful features</span>
+              <h2 className="font-serif text-4xl md:text-5xl tracking-tight leading-[1.1] max-w-xl">
+                Everything you need.<br />Nothing you don't.
+              </h2>
             </div>
-            <div className="pt-4 border-t border-[#1e1e1e] flex items-center justify-between text-[11px] text-[#666]">
-              <span>Zero Account Limits</span>
-              <span className="text-white">Parallel Part Slicing</span>
-            </div>
+            <a href="#features" className="text-sm font-medium text-stone-300 hover:text-white flex items-center gap-1.5 transition-colors mt-6 md:mt-0 font-sans">
+              Explore all features <ArrowRight className="w-4 h-4" />
+            </a>
           </div>
 
-          {/* Card 2: Zero-Knowledge AES-256 */}
-          <div className="bg-[#0a0a0a] border border-[#1e1e1e] p-6 sm:p-8 rounded-xl space-y-4 flex flex-col justify-between group hover:border-[#333] transition-colors">
-            <div className="space-y-3">
-              <div className="w-10 h-10 rounded bg-[#121212] border border-[#222] flex items-center justify-center text-white">
-                <Lock className="w-5 h-5" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 font-sans">
+            <div className="bg-[#111] border border-white/5 rounded-3xl p-8 flex flex-col justify-between min-h-[280px]">
+              <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-12">
+                <SearchIcon className="w-5 h-5 text-stone-300" />
               </div>
-              <h3 className="text-lg font-bold text-white uppercase tracking-tight">
-                Zero-Knowledge Encryption
-              </h3>
-              <p className="text-xs text-[#888] leading-relaxed">
-                Files are encrypted locally in your browser using AES-256-GCM before transport. Not even Telegram or BucketSpace can see file names, contents, or metadata.
-              </p>
+              <div>
+                <h3 className="text-lg font-medium mb-3 text-stone-200">Local File Indexing</h3>
+                <p className="text-sm text-stone-400 leading-relaxed mb-6">Search your files instantly using the client-side IndexedDB index.</p>
+                <button className="text-xs font-semibold uppercase tracking-wider text-stone-300 hover:text-white flex items-center gap-1.5 transition">
+                  Learn more <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
             </div>
-            <div className="pt-4 border-t border-[#1e1e1e] text-[11px] text-[#22c55e]">
-              Client-Side WebCrypto API
-            </div>
-          </div>
 
-          {/* Card 3: Telegram Active Verification */}
-          <div className="bg-[#0a0a0a] border border-[#1e1e1e] p-6 sm:p-8 rounded-xl space-y-4 flex flex-col justify-between group hover:border-[#333] transition-colors">
-            <div className="space-y-3">
-              <div className="w-10 h-10 rounded bg-[#121212] border border-[#222] flex items-center justify-center text-white">
-                <Layers className="w-5 h-5" />
+            <div className="bg-[#111] border border-white/5 rounded-3xl p-8 flex flex-col justify-between min-h-[280px]">
+              <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-12">
+                <FolderIcon className="w-5 h-5 text-stone-300" />
               </div>
-              <h3 className="text-lg font-bold text-white uppercase tracking-tight">
-                Cryptographic Integrity
-              </h3>
-              <p className="text-xs text-[#888] leading-relaxed">
-                Every chunk stored on Telegram is validated against SHA-256 digests. Active verification engines ensure 100% byte-identical file reconstruction without bitrot.
-              </p>
+              <div>
+                <h3 className="text-lg font-medium mb-3 text-stone-200">Virtual File System</h3>
+                <p className="text-sm text-stone-400 leading-relaxed mb-6">Organize your files in a local virtual directory structure.</p>
+                <button className="text-xs font-semibold uppercase tracking-wider text-stone-300 hover:text-white flex items-center gap-1.5 transition">
+                  Learn more <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
             </div>
-            <div className="pt-4 border-t border-[#1e1e1e] text-[11px] text-[#666]">
-              Deterministic Checksums
-            </div>
-          </div>
 
-          {/* Card 4: Streaming & Chunking Engine (2 cols span) */}
-          <div className="md:col-span-2 bg-[#0a0a0a] border border-[#1e1e1e] p-6 sm:p-8 rounded-xl space-y-4 flex flex-col justify-between group hover:border-[#333] transition-colors">
-            <div className="space-y-3">
-              <div className="w-10 h-10 rounded bg-[#121212] border border-[#222] flex items-center justify-center text-white">
-                <Sliders className="w-5 h-5" />
+            <div className="bg-[#111] border border-white/5 rounded-3xl p-8 flex flex-col justify-between min-h-[280px]">
+              <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-12">
+                <ShareIcon className="w-5 h-5 text-stone-300" />
               </div>
-              <h3 className="text-lg font-bold text-white uppercase tracking-tight">
-                Adaptive MTProto Chunking
-              </h3>
-              <p className="text-xs text-[#888] leading-relaxed max-w-lg">
-                Files are dynamically sliced into bounded chunks and streamed to Telegram Saved Messages via MTProto 2.0 with bounded RAM consumption, multi-part concurrency, and resumable transfers.
-              </p>
+              <div>
+                <h3 className="text-lg font-medium mb-3 text-stone-200">Export Configurations</h3>
+                <p className="text-sm text-stone-400 leading-relaxed mb-6">Export a shareable configuration token for others to download files.</p>
+                <button className="text-xs font-semibold uppercase tracking-wider text-stone-300 hover:text-white flex items-center gap-1.5 transition">
+                  Learn more <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
             </div>
-            <div className="pt-4 border-t border-[#1e1e1e] flex items-center justify-between text-[11px] text-[#666]">
-              <span>MTProto 2.0 Streaming</span>
-              <span className="text-white">Bounded RAM Footprint</span>
+
+            <div className="bg-[#111] border border-white/5 rounded-3xl p-8 flex flex-col justify-between min-h-[280px]">
+              <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-12">
+                <Terminal className="w-5 h-5 text-stone-300" />
+              </div>
+              <div>
+                <h3 className="text-lg font-medium mb-3 text-stone-200">Open source</h3>
+                <p className="text-sm text-stone-400 leading-relaxed mb-6">Inspect the code and contribute on GitHub. Fully transparent architecture.</p>
+                <button className="text-xs font-semibold uppercase tracking-wider text-stone-300 hover:text-white flex items-center gap-1.5 transition">
+                  Learn more <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </section>
 
-      {/* ─── Comparison Matrix Section ─── */}
-      <section id="benchmarks" className="py-20 px-6 sm:px-12 max-w-7xl mx-auto space-y-10 border-t border-[#1e1e1e]">
-        <div className="space-y-3">
-          <div className="text-[11px] font-mono text-[#888] uppercase tracking-widest">
-            Comparison
+        {/* ─── Bottom CTA Banner ─── */}
+        <div className="relative rounded-3xl overflow-hidden bg-[#111] border border-white/5 min-h-[300px] flex items-center">
+          <div className="absolute right-0 bottom-[-50%] w-full h-[200%] pointer-events-none opacity-50 mix-blend-screen motion-safe:animate-float">
+            <div 
+              className="w-full h-full bg-no-repeat bg-cover bg-bottom"
+              style={{
+                backgroundImage: `url('/images/dark_ethereal_cloud.jpg')`,
+                filter: 'grayscale(1) contrast(1.1) brightness(0.7)',
+                maskImage: 'linear-gradient(to top, black 30%, transparent 70%)',
+                WebkitMaskImage: 'linear-gradient(to top, black 30%, transparent 70%)'
+              }}
+            />
           </div>
-          <h2 className="text-3xl sm:text-5xl font-light tracking-tight text-white uppercase">
-            Legacy Cloud vs BucketSpace.
-          </h2>
+          
+          <div className="relative z-10 p-12 md:p-16 max-w-xl">
+            <span className="text-xs font-semibold uppercase tracking-wider text-stone-400 mb-4 block font-sans">Simple. Private. Yours.</span>
+            <h2 className="font-serif text-4xl md:text-5xl tracking-tight leading-[1.1] mb-6">
+              Your data stays yours.
+            </h2>
+            <p className="text-stone-400 leading-relaxed mb-8 font-sans">
+              Open-source client architecture. Keys never leave your browser.
+            </p>
+            <button className="text-xs font-semibold uppercase tracking-wider text-white border border-white/20 hover:bg-white/10 px-5 py-2.5 rounded-full transition-colors flex items-center gap-2 w-fit">
+              Learn about privacy <ArrowRight className="w-3 h-3" />
+            </button>
+          </div>
         </div>
 
-        <div className="border border-[#1e1e1e] bg-[#0a0a0a] rounded-xl overflow-hidden font-mono text-xs">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-[#1e1e1e] bg-[#121212] text-[10px] text-[#666] uppercase">
-                <th className="p-4 sm:p-5">Feature</th>
-                <th className="p-4 sm:p-5 text-[#888]">Google Drive / Dropbox</th>
-                <th className="p-4 sm:p-5 text-white">BucketSpace Vault</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#1e1e1e]">
-              <tr>
-                <td className="p-4 sm:p-5 font-bold text-white uppercase">Storage Quota Cost</td>
-                <td className="p-4 sm:p-5 text-[#888]">$120 to $240 / year</td>
-                <td className="p-4 sm:p-5 text-[#22c55e] font-bold">$0.00 Forever</td>
-              </tr>
-              <tr>
-                <td className="p-4 sm:p-5 font-bold text-white uppercase">Max File Upload Boundary</td>
-                <td className="p-4 sm:p-5 text-[#888]">Subject to 2TB Tier Cap</td>
-                <td className="p-4 sm:p-5 text-white">Unlimited Multi-Chunk Ingestion</td>
-              </tr>
-              <tr>
-                <td className="p-4 sm:p-5 font-bold text-white uppercase">Encryption Keys Ownership</td>
-                <td className="p-4 sm:p-5 text-[#888]">Provider Holds Keys (Plaintext Scans)</td>
-                <td className="p-4 sm:p-5 text-[#22c55e] font-bold">100% Client-Side AES-256-GCM</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+      </main>
 
       {/* ─── Footer ─── */}
-      <footer className="border-t border-[#1e1e1e] py-8 px-6 sm:px-12 font-mono text-xs text-[#666] flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 bg-white text-black font-bold text-[10px] flex items-center justify-center rounded">
-            B
+      <footer className="border-t border-white/5 bg-black py-16 px-6 md:px-12 font-sans">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-12">
+          <div className="max-w-xs">
+            <div className="flex items-center gap-2 mb-6">
+              <div className="w-7 h-7 rounded bg-white/10 flex items-center justify-center border border-white/20">
+                <Cloud className="w-4 h-4 text-white" />
+              </div>
+              <span className="font-semibold tracking-tight text-lg">BucketSpace</span>
+            </div>
+            <p className="text-xs text-stone-500 mb-8 leading-relaxed">
+              Private cloud storage that puts you in control. Built for privacy. Built for you.
+            </p>
+            <div className="flex gap-4 mb-8">
+              <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-stone-400 hover:text-white transition"><Terminal className="w-4 h-4" /></div>
+              <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-stone-400 hover:text-white transition"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.416 22 12c0-5.523-4.477-10-10-10z"/></svg></div>
+            </div>
+            <div className="text-[10px] text-stone-600 uppercase tracking-wider">&copy; 2026 BucketSpace. All rights reserved.</div>
           </div>
-          <span>BucketSpace Personal Cloud Storage</span>
-        </div>
-        <div className="flex items-center gap-6 text-[11px]">
-          <span>AES-256-GCM Envelope Encryption</span>
-          <span>SHA-256 Integrity Verified</span>
-          <span>MIT License</span>
+          
+          <div className="flex gap-16 lg:gap-24">
+            <div className="flex flex-col gap-4 text-sm">
+              <span className="font-medium mb-2 text-stone-200">Product</span>
+              <a href="https://github.com/vanrajsinh650/BucketSpace" className="text-stone-500 hover:text-stone-300">Features</a>
+              
+              
+              <a href="https://github.com/vanrajsinh650/BucketSpace" className="text-stone-500 hover:text-stone-300">Docs</a>
+            </div>
+            <div className="flex flex-col gap-4 text-sm">
+              <span className="font-medium mb-2 text-stone-200">Project</span>
+              <a href="https://github.com/vanrajsinh650/BucketSpace" className="text-stone-500 hover:text-stone-300">Open Source</a>
+              <a href="https://github.com/vanrajsinh650/BucketSpace" className="text-stone-500 hover:text-stone-300">GitHub</a>
+            </div>
+            <div className="flex flex-col gap-4 text-sm">
+              <span className="font-medium mb-2 text-stone-200">Legal</span>
+              
+              
+            </div>
+          </div>
         </div>
       </footer>
 
-      {/* ─── Provider Connection Modal ─── */}
+      {/* ─── Modal Overlay (Kept from original) ─── */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md font-mono text-xs">
-          <div className="bg-[#0a0a0a] border border-[#1e1e1e] rounded-xl w-full max-w-md p-6 space-y-5 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[#1e1e1e] pb-3">
-              <span className="font-bold uppercase tracking-wider text-white text-sm">
-                Connect Telegram Storage
-              </span>
-              <button
-                onClick={() => setModalOpen(false)}
-                className="p-1 text-[#666] hover:text-white rounded"
-              >
-                <X className="w-4 h-4" />
-              </button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm font-sans">
+          <div className="relative w-full max-w-md bg-[#161616] border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <button
+              onClick={() => setModalOpen(false)}
+              className="absolute top-4 right-4 text-stone-500 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="mb-6 flex flex-col items-center">
+              <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 mb-4">
+                <Cloud className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold">Connect to Telegram</h3>
+              <p className="text-stone-400 text-sm mt-1 text-center">
+                BucketSpace uses your Telegram cloud storage for encrypted private syncing.
+              </p>
             </div>
 
-            {/* Error Message Box */}
             {errorMessage && (
-              <div className="p-3 bg-red-950/30 border border-red-800/50 rounded-lg text-xs space-y-2">
-                <div className="flex items-start gap-2 text-red-300">
-                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                  <span className="leading-tight">{errorMessage}</span>
-                </div>
-                {onLaunchSandbox && (
-                  <div className="pt-1 border-t border-red-900/40 flex items-center justify-between">
-                    <span className="text-[11px] text-zinc-400">Want to test without credentials?</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setModalOpen(false);
-                        onLaunchSandbox();
-                      }}
-                      className="text-[11px] font-bold text-white bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded transition-colors flex items-center gap-1 btn-press"
-                    >
-                      <Sparkles className="w-3 h-3 text-amber-400" />
-                      <span>Launch Sandbox</span>
-                    </button>
-                  </div>
-                )}
+              <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <span>{errorMessage}</span>
               </div>
             )}
 
-            {/* Provider Forms */}
-            {step === 'phone' ? (
-              <form onSubmit={handleTelegramPhone} className="space-y-3.5">
-                  <p className="text-zinc-300 text-xs leading-relaxed">
-                    Connect your private Telegram account. A real 5-digit verification code will be sent to your Telegram app.
+            {step === 'phone' && (
+              <form onSubmit={handleTelegramPhone} className="flex flex-col gap-5">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-stone-300">Phone Number</label>
+                  <PhoneInputWithCountry value={phone} onChange={setPhone} />
+                  <p className="text-[11px] text-stone-500">
+                    Must include country code (e.g. +1). Never shared.
                   </p>
-                  <PhoneInputWithCountry value={phone} onChange={setPhone} label="International Phone Number" />
+                </div>
+                
+                <button
+                  type="button"
+                  onClick={() => setShowApiCreds(!showApiCreds)}
+                  className="flex items-center justify-between w-full py-2 px-3 rounded-lg border border-white/10 bg-white/5 text-xs text-stone-300 hover:bg-white/10"
+                >
+                  <span className="flex items-center gap-2"><SettingsIcon className="w-4 h-4"/> Advanced Configuration</span>
+                  {showApiCreds ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
 
-                  {/* Optional / Expandable MTProto API Credentials */}
-                  <div className="border border-[#1e1e1e] bg-[#111] rounded-lg p-2.5 space-y-2.5">
-                    <button
-                      type="button"
-                      onClick={() => setShowApiCreds((prev) => !prev)}
-                      className="w-full flex items-center justify-between text-[11px] text-zinc-400 hover:text-zinc-200 transition-colors"
-                    >
-                      <span className="flex items-center gap-1.5 font-medium">
-                        <Key className="w-3.5 h-3.5 text-zinc-400" />
-                        <span>Telegram API Credentials {apiId ? '(Set)' : '(Custom / Optional)'}</span>
-                      </span>
-                      {showApiCreds ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                    </button>
-
-                    {showApiCreds && (
-                      <div className="pt-2 border-t border-[#222] space-y-2 text-[11px]">
-                        <p className="text-zinc-400 text-[10px]">
-                          Obtain your credentials for free from{' '}
-                          <a
-                            href="https://my.telegram.org"
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-white underline hover:text-blue-400 inline-flex items-center gap-0.5"
-                          >
-                            my.telegram.org <ExternalLink className="w-2.5 h-2.5" />
-                          </a>{' '}
-                          under API development tools.
-                        </p>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="text-[10px] text-[#666] uppercase block mb-1">API ID</label>
-                            <input
-                              type="text"
-                              placeholder="e.g. 29481920"
-                              value={apiId}
-                              onChange={(e) => setApiId(e.target.value)}
-                              className="w-full bg-[#181818] border border-[#2a2a2a] rounded px-2 py-1.5 text-white font-mono text-xs focus:outline-none focus:border-zinc-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-[10px] text-[#666] uppercase block mb-1">API Hash</label>
-                            <input
-                              type="text"
-                              placeholder="e.g. 9fa8b7c6..."
-                              value={apiHash}
-                              onChange={(e) => setApiHash(e.target.value)}
-                              className="w-full bg-[#181818] border border-[#2a2a2a] rounded px-2 py-1.5 text-white font-mono text-xs focus:outline-none focus:border-zinc-500"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={!phone || isSubmitting}
-                    className="w-full bg-white text-black hover:bg-[#e0e0e0] py-2.5 rounded font-bold uppercase tracking-wider text-xs transition-colors btn-press disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin text-black" />
-                        <span>Sending Real Code via MTProto...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Send Telegram Code</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </>
-                    )}
-                  </button>
-
-                  {onLaunchSandbox && (
-                    <div className="pt-2 text-center">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setModalOpen(false);
-                          onLaunchSandbox();
-                        }}
-                        className="text-[11px] text-zinc-400 hover:text-white transition-colors underline inline-flex items-center gap-1"
-                      >
-                        <Sparkles className="w-3 h-3 text-amber-400" />
-                        <span>Or enter Instant Local Sandbox Mode (No setup required)</span>
-                      </button>
-                    </div>
-                  )}
-                </form>
-              ) : step === 'code' ? (
-                <form onSubmit={handleTelegramCode} className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-white text-xs leading-relaxed">
-                      Enter the 5-digit code sent to your Telegram app for <span className="font-bold text-white">{phone}</span>.
+                {showApiCreds && (
+                  <div className="space-y-4 p-4 rounded-xl bg-black/50 border border-white/5">
+                    <p className="text-xs text-stone-400">
+                      If your environment doesn't have API keys set, you can provide them here.
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => setStep('phone')}
-                      className="text-[10px] text-[#888] hover:text-white underline shrink-0 ml-2"
-                    >
-                      Change
-                    </button>
-                  </div>
-                  {sessionToken.startsWith('tgsess_dev_') && (
-                    <div className="p-2.5 bg-emerald-950/30 border border-emerald-800/40 rounded-lg text-emerald-300 text-[11px] flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span>Ready! Quick verify code:</span>
-                      </div>
-                      <span className="bg-emerald-900/60 text-white font-mono font-bold px-2 py-0.5 rounded text-xs border border-emerald-700/50 tracking-widest">
-                        12345
-                      </span>
+                    <div className="space-y-2">
+                      <label className="text-xs text-stone-400">API ID</label>
+                      <input
+                        type="text"
+                        value={apiId}
+                        onChange={(e) => setApiId(e.target.value)}
+                        placeholder="Optional"
+                        className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30"
+                      />
                     </div>
-                  )}
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-[#666] uppercase block">5-Digit Telegram Code</label>
-                    <input
-                      type="text"
-                      placeholder="12345"
-                      value={code}
-                      onChange={(e) => setCode(e.target.value)}
-                      className="w-full bg-[#121212] border border-[#1e1e1e] rounded p-2.5 text-white font-mono text-center tracking-widest text-lg focus:outline-none focus:border-[#444]"
-                      autoFocus
-                    />
+                    <div className="space-y-2">
+                      <label className="text-xs text-stone-400">API Hash</label>
+                      <input
+                        type="password"
+                        value={apiHash}
+                        onChange={(e) => setApiHash(e.target.value)}
+                        placeholder="Optional"
+                        className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30"
+                      />
+                    </div>
                   </div>
-                  <button
-                    type="submit"
-                    disabled={!code || isSubmitting}
-                    className="w-full bg-white text-black hover:bg-[#e0e0e0] py-2.5 rounded font-bold uppercase tracking-wider text-xs transition-colors btn-press disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin text-black" />
-                        <span>Authenticating Session...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Verify & Enter Drive</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </>
-                    )}
-                  </button>
-                </form>
-              ) : (
-                <form onSubmit={handleTelegram2FA} className="space-y-4">
-                  <p className="text-white text-xs leading-relaxed">
-                    Your Telegram account is protected with 2FA. Please enter your Cloud Password.
+                )}
+
+                <button
+                  type="submit"
+                  disabled={!phone || isSubmitting}
+                  className="w-full bg-white text-black font-semibold rounded-xl py-3 hover:bg-stone-200 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Send Code'}
+                </button>
+              </form>
+            )}
+
+            {step === 'code' && (
+              <form onSubmit={handleTelegramCode} className="flex flex-col gap-5">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-stone-300">Verification Code</label>
+                  <input
+                    type="text"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    className="w-full bg-black border border-white/10 rounded-lg px-4 py-3 text-lg tracking-widest text-white focus:outline-none focus:border-white/30"
+                    placeholder="12345"
+                    autoFocus
+                  />
+                  <p className="text-xs text-stone-500">
+                    We sent a code to your Telegram app.
                   </p>
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-[#666] uppercase block">Telegram 2FA Password</label>
+                </div>
+                <button
+                  type="submit"
+                  disabled={!code || isSubmitting}
+                  className="w-full bg-white text-black font-semibold rounded-xl py-3 hover:bg-stone-200 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Verify Code'}
+                </button>
+              </form>
+            )}
+
+            {step === '2fa' && (
+              <form onSubmit={handleTelegram2FA} className="flex flex-col gap-5">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-stone-300">Two-Step Verification Password</label>
+                  <div className="relative">
+                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500" />
                     <input
                       type="password"
-                      placeholder="••••••••"
                       value={password2FA}
                       onChange={(e) => setPassword2FA(e.target.value)}
-                      className="w-full bg-[#121212] border border-[#1e1e1e] rounded p-2.5 text-white font-mono text-center text-sm focus:outline-none focus:border-[#444]"
+                      className="w-full bg-black border border-white/10 rounded-lg pl-10 pr-4 py-3 text-sm text-white focus:outline-none focus:border-white/30"
+                      placeholder="Enter your 2FA password"
                       autoFocus
                     />
                   </div>
-                  <button
-                    type="submit"
-                    disabled={!password2FA || isSubmitting}
-                    className="w-full bg-white text-black hover:bg-[#e0e0e0] py-2.5 rounded font-bold uppercase tracking-wider text-xs transition-colors btn-press disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin text-black" />
-                        <span>Verifying 2FA Password...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Unlock Vault</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </>
-                    )}
-                  </button>
-                </form>
-              )}
+                </div>
+                <button
+                  type="submit"
+                  disabled={!password2FA || isSubmitting}
+                  className="w-full bg-white text-black font-semibold rounded-xl py-3 hover:bg-stone-200 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Complete Sign In'}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}
     </div>
   );
+}
+
+// Icon Components
+function SearchIcon(props: React.SVGProps<SVGSVGElement>) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>;
+}
+function FolderIcon(props: React.SVGProps<SVGSVGElement>) {
+  return <svg viewBox="0 0 24 24" fill="currentColor" {...props}><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>;
+}
+function FileDesignIcon(props: React.SVGProps<SVGSVGElement>) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><circle cx="10" cy="13" r="2"/><path d="M10 17v-8"/></svg>;
+}
+function FilePdfIcon(props: React.SVGProps<SVGSVGElement>) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M10 12v6"/><path d="M10 15h2"/><path d="M14 12v6"/><path d="M14 12h2a2 2 0 0 1 0 4h-2"/></svg>;
+}
+function ImageIcon(props: React.SVGProps<SVGSVGElement>) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>;
+}
+function ShareIcon(props: React.SVGProps<SVGSVGElement>) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>;
+}
+function TrashIcon(props: React.SVGProps<SVGSVGElement>) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>;
+}
+function SettingsIcon(props: React.SVGProps<SVGSVGElement>) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>;
 }

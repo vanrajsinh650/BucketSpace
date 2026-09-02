@@ -10,7 +10,7 @@ module.exports = {
     extend: {
       fontFamily: {
         sans: ['var(--font-jakarta)', 'var(--font-geist-sans)', 'system-ui', 'sans-serif'],
-        serif: ['var(--font-playfair)', 'Georgia', 'serif'],
+        serif: ['var(--font-newsreader)', 'Times New Roman', 'serif'],
         mono: ['var(--font-geist-mono)', 'ui-monospace', 'monospace'],
       },
       keyframes: {

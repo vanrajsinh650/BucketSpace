@@ -2,7 +2,7 @@ import React from 'react';
 import type { Metadata, Viewport } from 'next';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
-import { Plus_Jakarta_Sans, Playfair_Display } from 'next/font/google';
+import { Plus_Jakarta_Sans, Newsreader } from 'next/font/google';
 import './globals.css';
 
 const jakarta = Plus_Jakarta_Sans({
@@ -10,9 +10,9 @@ const jakarta = Plus_Jakarta_Sans({
   variable: '--font-jakarta',
 });
 
-const playfair = Playfair_Display({
+const newsreader = Newsreader({
   subsets: ['latin'],
-  variable: '--font-playfair',
+  variable: '--font-newsreader',
 });
 
 export const metadata: Metadata = {
@@ -35,7 +35,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className={`${jakarta.variable} ${playfair.variable} ${GeistSans.variable} ${GeistMono.variable} min-h-[100dvh] bg-[#0a0a0a] text-stone-50 font-sans antialiased selection:bg-stone-50 selection:text-black`}>
+      <body className={`${jakarta.variable} ${newsreader.variable} ${GeistSans.variable} ${GeistMono.variable} min-h-[100dvh] bg-[#0a0a0a] text-stone-50 font-sans antialiased selection:bg-stone-50 selection:text-black`}>
         {children}
       </body>
     </html>
