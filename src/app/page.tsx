@@ -405,18 +405,7 @@ export default function BucketSpaceApp() {
     }
   };
 
-  /* ─── Hydration Guard & Onboarding Landing Gate ─── */
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center font-mono text-xs text-zinc-500">
-        <div className="flex items-center gap-2">
-          <div className="w-3.5 h-3.5 border-2 border-zinc-700 border-t-zinc-200 rounded-full animate-spin" />
-          <span>Initializing BucketSpace...</span>
-        </div>
-      </div>
-    );
-  }
-
+  /* ─── Onboarding Landing Gate & Hydration Guard ─── */
   const isFirstRun = !store.hasUserProvider();
   if (isFirstRun) {
     return (
@@ -424,6 +413,20 @@ export default function BucketSpaceApp() {
         onConnectProvider={handleConnectProvider}
         onFinishOnboarding={() => setRefreshTrigger((prev) => prev + 1)}
       />
+    );
+  }
+
+  if (!mounted) {
+    return (
+      <div
+        style={{ backgroundColor: '#0a0a0a', color: '#71717a' }}
+        className="min-h-screen bg-[#0a0a0a] flex items-center justify-center font-mono text-xs text-zinc-500"
+      >
+        <div className="flex items-center gap-2">
+          <div className="w-3.5 h-3.5 border-2 border-zinc-700 border-t-zinc-200 rounded-full animate-spin" />
+          <span>Opening BucketSpace Vault...</span>
+        </div>
+      </div>
     );
   }
 

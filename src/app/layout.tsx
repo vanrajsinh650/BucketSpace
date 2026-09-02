@@ -34,8 +34,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${jakarta.variable} ${newsreader.variable} ${GeistSans.variable} ${GeistMono.variable} min-h-[100dvh] bg-[#0a0a0a] text-stone-50 font-sans antialiased selection:bg-stone-50 selection:text-black`}>
+    <html lang="en" className="dark" style={{ backgroundColor: '#0a0a0a', colorScheme: 'dark' }}>
+      <body
+        style={{ backgroundColor: '#0a0a0a', color: '#f5f5f4', margin: 0 }}
+        className={`${jakarta.variable} ${newsreader.variable} ${GeistSans.variable} ${GeistMono.variable} min-h-[100dvh] bg-[#0a0a0a] text-stone-50 font-sans antialiased selection:bg-stone-50 selection:text-black`}
+      >
         {children}
       </body>
     </html>
