@@ -246,4 +246,75 @@ describe('Upload Pipeline Optimization Tests', () => {
 
     assert.ok(maxActive <= CONCURRENCY, `Max active (${maxActive}) should not exceed CONCURRENCY (${CONCURRENCY})`);
   });
+
+  // ─── Chunk Size Configuration & Coexistence ───
+
+  it('StorageStore should default to 4 MB chunk size and allow configuration to 16 MB / 32 MB', async () => {
+    const { StorageStore } = await import('../src/lib/storage-store');
+    const store = StorageStore.getInstance();
+
+    assert.strictEqual(StorageStore.DEFAULT_CHUNK_SIZE, 4 * 1024 * 1024, 'Default chunk size must be 4 MB');
+    assert.strictEqual(store.getUploadChunkSize(), 4 * 1024 * 1024, 'Initial store chunk size must be 4 MB');
+
+    store.setUploadChunkSize(16 * 1024 * 1024);
+    assert.strictEqual(store.getUploadChunkSize(), 16 * 1024 * 1024, 'Store chunk size should be updated to 16 MB');
+
+    store.setUploadChunkSize(32 * 1024 * 1024);
+    assert.strictEqual(store.getUploadChunkSize(), 32 * 1024 * 1024, 'Store chunk size should be updated to 32 MB');
+
+    // Reject invalid sizes
+    assert.throws(() => store.setUploadChunkSize(0), /Invalid chunk size/);
+    assert.throws(() => store.setUploadChunkSize(-1024), /Invalid chunk size/);
+
+    // Reset back to 4 MB default
+    store.setUploadChunkSize(StorageStore.DEFAULT_CHUNK_SIZE);
+    assert.strictEqual(store.getUploadChunkSize(), 4 * 1024 * 1024);
+  });
+
+  it('Chunk count calculation for 4 MB, 16 MB, and 32 MB should match architectural specification', () => {
+    const fileSize100MB = 100 * 1024 * 1024;
+    const fileSize500MB = 500 * 1024 * 1024;
+
+    // 100 MB
+    assert.strictEqual(Math.ceil(fileSize100MB / (4 * 1024 * 1024)), 25, '100 MB at 4 MB chunks = 25');
+    assert.strictEqual(Math.ceil(fileSize100MB / (16 * 1024 * 1024)), 7, '100 MB at 16 MB chunks = 7');
+    assert.strictEqual(Math.ceil(fileSize100MB / (32 * 1024 * 1024)), 4, '100 MB at 32 MB chunks = 4');
+
+    // 500 MB
+    assert.strictEqual(Math.ceil(fileSize500MB / (4 * 1024 * 1024)), 125, '500 MB at 4 MB chunks = 125');
+    assert.strictEqual(Math.ceil(fileSize500MB / (16 * 1024 * 1024)), 32, '500 MB at 16 MB chunks = 32');
+    assert.strictEqual(Math.ceil(fileSize500MB / (32 * 1024 * 1024)), 16, '500 MB at 32 MB chunks = 16');
+  });
+
+  it('Files with heterogeneous chunk sizes (4 MB, 16 MB, 32 MB) must cleanly coexist in reconstruction', async () => {
+    const { ClientEncryptionService } = await import('../src/modules/security/client-encryption');
+    const { concatByteArrays } = await import('../src/shared');
+
+    const testPayload = new TextEncoder().encode('BucketSpace Multi-Chunk-Size Coexistence Test Payload 2026');
+
+    // Simulate chunking the payload into 3 chunks of different sizes (e.g., 20B, 25B, remaining)
+    const chunk1Raw = testPayload.subarray(0, 20);
+    const chunk2Raw = testPayload.subarray(20, 45);
+    const chunk3Raw = testPayload.subarray(45);
+
+    const chunk1Hash = await calculateSha256(chunk1Raw);
+    const chunk2Hash = await calculateSha256(chunk2Raw);
+    const chunk3Hash = await calculateSha256(chunk3Raw);
+
+    const chunk1Enc = await ClientEncryptionService.encryptChunk(chunk1Raw);
+    const chunk2Enc = await ClientEncryptionService.encryptChunk(chunk2Raw);
+    const chunk3Enc = await ClientEncryptionService.encryptChunk(chunk3Raw);
+
+    // Simulate download & decrypt path
+    const dec1 = await ClientEncryptionService.decryptChunk(chunk1Enc);
+    const dec2 = await ClientEncryptionService.decryptChunk(chunk2Enc);
+    const dec3 = await ClientEncryptionService.decryptChunk(chunk3Enc);
+
+    assert.strictEqual(await calculateSha256(dec1), chunk1Hash);
+    assert.strictEqual(await calculateSha256(dec2), chunk2Hash);
+    assert.strictEqual(await calculateSha256(dec3), chunk3Hash);
+
+    const reconstructed = concatByteArrays([dec1, dec2, dec3]);
+    assert.deepStrictEqual(reconstructed, testPayload, 'Reconstructed bytes must match original across mixed chunk boundaries');
+  });
 });

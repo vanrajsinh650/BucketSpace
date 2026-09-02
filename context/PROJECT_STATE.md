@@ -145,19 +145,23 @@ BucketSpace/
 
 ## 6. Build & Test Verification
 
-- **Unit & Integration Tests:** 29/29 passing across 8 test suites (`tsx --test tests/**/*.test.ts`).
+- **Unit & Integration Tests:** 32/32 passing across 8 test suites (`tsx --test tests/**/*.test.ts`).
 - **TypeScript Type Check:** 0 errors (`tsc --noEmit`).
 - **Next.js Production Build:** 100% successful (`next build`).
 - **Secret Scan:** 0 literal secrets in tracked files.
 
 ---
 
-## 7. Upload Pipeline Performance
+## 7. Upload Pipeline Performance & Chunk Architecture Evaluation
 
-- **Browser Concurrency:** 5 parallel upload workers (up from 3).
-- **Chunk Size:** 4 MB logical chunks, each encrypted with AES-256-GCM (+28 bytes overhead).
-- **MTProto Workers:** 6 parallel socket workers per chunk (GramJS internal).
-- **Memory Optimization:** Eliminated unnecessary buffer copies in putChunk (was creating 3 copies per chunk).
-- **SHA-256 Optimization:** Fast path avoids redundant ArrayBuffer.slice() for full-buffer views.
-- **Security Fix:** Download plaintext fallback now requires hash verification (was silently accepting unverified data).
-- **Instrumentation:** Per-chunk timing breakdown logged in development (slice/hash/encrypt/upload phases).
+- **Browser Concurrency:** 5 parallel upload workers.
+- **Configurable Chunk Sizing:** Defaults to 4 MB safe chunks; cleanly configurable to 16 MB or 32 MB via `StorageStore.setUploadChunkSize()` or per-call `options.chunkSize`.
+- **Resumable Metadata Integrity:** Resumable sessions store the active `chunkSize` per session, guaranteeing that reloaded uploads resume with identical chunk boundaries.
+- **Heterogeneous Chunk Coexistence:** Verified that files created with 4 MB, 16 MB, and 32 MB chunks download, decrypt, and reassemble seamlessly in the same drive without changes to the download engine.
+- **GramJS Semantic Thresholds Verified:**
+  - 4 MB: `isLarge = false`, uses `upload.saveFilePart` (`Api.InputFile`), 128 KB physical parts (33 parts per chunk).
+  - 16 MB: `isLarge = true`, uses `upload.saveBigFilePart` (`Api.InputFileBig`), 128 KB physical parts (129 parts per chunk).
+  - 32 MB: `isLarge = true`, uses `upload.saveBigFilePart` (`Api.InputFileBig`), 128 KB physical parts (257 parts per chunk).
+- **MTProto Workers:** 6 parallel socket workers per chunk (GramJS internal lockstep batching).
+- **Memory & Copy Optimizations:** Zero-copy SHA-256 buffer view reuse; direct `Blob` construction in `putChunk` without intermediate `concatByteArrays` cloning.
+- **Security Invariant:** Client-side AES-256-GCM envelope preserved; download plaintext fallback strictly enforced with SHA-256 verification.

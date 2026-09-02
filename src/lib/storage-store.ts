@@ -68,22 +68,31 @@ export class HttpTelegramStorageAdapter implements IStorageProvider {
 
   private sessionString: string;
   private apiBaseUrl: string;
+  private optimalChunkSizeBytes: number;
 
   constructor(
     sessionString: string,
     apiBaseUrl = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
       ? process.env.NEXT_PUBLIC_API_URL
-      : ''
+      : '',
+    optimalChunkSizeBytes = 4 * 1024 * 1024
   ) {
     this.sessionString = sessionString;
     this.apiBaseUrl = apiBaseUrl;
+    this.optimalChunkSizeBytes = optimalChunkSizeBytes;
+  }
+
+  public setOptimalChunkSizeBytes(bytes: number): void {
+    if (bytes > 0) {
+      this.optimalChunkSizeBytes = bytes;
+    }
   }
 
   public getCapabilities(): import('@/shared').StorageProviderCapabilities {
     return {
       providerId: this.providerId,
       maxObjectSizeBytes: 2000000000, // 2 GB per chunk
-      optimalChunkSizeBytes: 4 * 1024 * 1024, // 4 MB safe chunks for HTTP transport
+      optimalChunkSizeBytes: this.optimalChunkSizeBytes,
       supportsStreamingRead: true,
       supportsStreamingWrite: true,
       supportsByteRangeRead: false,
@@ -240,6 +249,23 @@ export class StorageStore {
     return StorageStore.instance;
   }
 
+  public static readonly DEFAULT_CHUNK_SIZE = 4 * 1024 * 1024; // 4 MB default
+  private uploadChunkSize: number = StorageStore.DEFAULT_CHUNK_SIZE;
+
+  public setUploadChunkSize(sizeBytes: number): void {
+    if (sizeBytes <= 0) {
+      throw new Error(`Invalid chunk size: ${sizeBytes}`);
+    }
+    this.uploadChunkSize = sizeBytes;
+    if (this.activeProvider instanceof HttpTelegramStorageAdapter) {
+      this.activeProvider.setOptimalChunkSizeBytes(sizeBytes);
+    }
+  }
+
+  public getUploadChunkSize(): number {
+    return this.uploadChunkSize;
+  }
+
   public getActiveProviderName(): string {
     if (this.activeProviderId === 'telegram') return 'Telegram Cloud';
     if (this.activeProviderId === 'demo-sandbox') return 'Sandbox (In-Memory)';
@@ -347,7 +373,7 @@ export class StorageStore {
         typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
           ? process.env.NEXT_PUBLIC_API_URL
           : '';
-      const telegramProvider = new HttpTelegramStorageAdapter(sessionString, apiBase);
+      const telegramProvider = new HttpTelegramStorageAdapter(sessionString, apiBase, this.uploadChunkSize);
       ProviderRegistry.register(telegramProvider);
       this.activeProvider = telegramProvider;
       this.activeProviderId = 'telegram';
@@ -464,7 +490,7 @@ export class StorageStore {
     return this.files.filter((f) => f.status === 'ACTIVE').reduce((sum, f) => sum + f.size, 0);
   }
 
-  private getResumableSession(key: string): { fileId: string; chunks: ChunkMetadata[] } | null {
+  private getResumableSession(key: string): { fileId: string; chunks: ChunkMetadata[]; chunkSize?: number } | null {
     if (typeof window === 'undefined') return null;
     try {
       const raw = localStorage.getItem(`bucketspace_resumable_${key}`);
@@ -474,7 +500,7 @@ export class StorageStore {
     }
   }
 
-  private saveResumableSession(key: string, session: { fileId: string; chunks: ChunkMetadata[] }): void {
+  private saveResumableSession(key: string, session: { fileId: string; chunks: ChunkMetadata[]; chunkSize?: number }): void {
     if (typeof window === 'undefined') return;
     try {
       localStorage.setItem(`bucketspace_resumable_${key}`, JSON.stringify(session));
@@ -498,9 +524,12 @@ export class StorageStore {
    */
   public async uploadFile(
     file: File,
-    onProgress?: (progress: UploadProgressState) => void
+    onProgress?: (progress: UploadProgressState) => void,
+    options?: { chunkSize?: number }
   ): Promise<FileMetadata> {
-    const CHUNK_SIZE = 4 * 1024 * 1024; // 4 MB chunks for HTTP transport
+    const sessionKey = `${file.name}_${file.size}`;
+    const savedSession = this.getResumableSession(sessionKey);
+    const CHUNK_SIZE = savedSession?.chunkSize ?? options?.chunkSize ?? this.uploadChunkSize ?? StorageStore.DEFAULT_CHUNK_SIZE;
     const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
     const CONCURRENCY = 5; // 5 parallel upload workers (overlaps CPU hash/encrypt with network)
 
@@ -518,8 +547,6 @@ export class StorageStore {
     let totalEncryptMs = 0;
     let totalHttpUploadMs = 0;
 
-    const sessionKey = `${file.name}_${file.size}`;
-    const savedSession = this.getResumableSession(sessionKey);
     const fileId = savedSession?.fileId
       ? createFileId(savedSession.fileId)
       : createFileId(`file-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`);
@@ -622,7 +649,7 @@ export class StorageStore {
           });
 
           completedCount++;
-          this.saveResumableSession(sessionKey, { fileId, chunks: uploadedChunks });
+          this.saveResumableSession(sessionKey, { fileId, chunks: uploadedChunks, chunkSize: CHUNK_SIZE });
 
           onProgress?.({
             fileName: file.name,
@@ -727,10 +754,11 @@ export class StorageStore {
   public async uploadFileWithCustomName(
     file: File,
     customName: string,
-    onProgress?: (progress: UploadProgressState) => void
+    onProgress?: (progress: UploadProgressState) => void,
+    options?: { chunkSize?: number }
   ): Promise<FileMetadata> {
     const renamedFile = new (window as any).File([file], customName, { type: file.type });
-    return this.uploadFile(renamedFile, onProgress);
+    return this.uploadFile(renamedFile, onProgress, options);
   }
 
   /**
@@ -739,14 +767,15 @@ export class StorageStore {
   public async uploadNewVersion(
     existingFileId: string,
     file: File,
-    onProgress?: (progress: UploadProgressState) => void
+    onProgress?: (progress: UploadProgressState) => void,
+    options?: { chunkSize?: number }
   ): Promise<FileMetadata> {
     const existing = this.files.find((f) => f.id === existingFileId);
     if (!existing) {
       throw new Error(`File '${existingFileId}' not found for replacement`);
     }
 
-    const CHUNK_SIZE = 4 * 1024 * 1024;
+    const CHUNK_SIZE = options?.chunkSize ?? this.uploadChunkSize ?? StorageStore.DEFAULT_CHUNK_SIZE;
     const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
     const CONCURRENCY = 5;
 
