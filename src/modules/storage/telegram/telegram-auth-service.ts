@@ -5,6 +5,32 @@ import type { TelegramRefData } from './telegram-storage-provider';
 
 export const DEFAULT_TELEGRAM_API_ID = 37608030;
 export const DEFAULT_TELEGRAM_API_HASH = '51ebcc8fbaa1b9ac93d5f410dfb53aa7';
+export interface TelegramCredentials {
+  apiId: number;
+  apiHash: string;
+}
+
+/**
+ * Resolves Telegram MTProto credentials strictly from environment variables or runtime parameters.
+ * Throws an explicit configuration error if credentials are not configured.
+ */
+export function resolveTelegramCredentials(override?: { apiId?: number; apiHash?: string }): TelegramCredentials {
+  const apiIdRaw = override?.apiId || (typeof process !== 'undefined' ? process.env.TELEGRAM_API_ID : undefined);
+  const apiHashRaw = override?.apiHash || (typeof process !== 'undefined' ? process.env.TELEGRAM_API_HASH : undefined);
+
+  const apiId = Number(apiIdRaw);
+  const apiHash = typeof apiHashRaw === 'string' ? apiHashRaw.trim() : '';
+
+  if (!apiId || isNaN(apiId) || apiId <= 0) {
+    throw new Error('TELEGRAM_API_ID is not configured. Please set TELEGRAM_API_ID in environment variables.');
+  }
+
+  if (!apiHash || apiHash === 'your-telegram-api-hash') {
+    throw new Error('TELEGRAM_API_HASH is not configured. Please set TELEGRAM_API_HASH in environment variables.');
+  }
+
+  return { apiId, apiHash };
+}
 
 interface ActiveLoginSession {
   client: TelegramClient;
@@ -81,6 +107,7 @@ export class TelegramAuthService {
     const session = new StringSession(sessionString);
     const apiId = Number(process.env.TELEGRAM_API_ID) || DEFAULT_TELEGRAM_API_ID;
     const apiHash = process.env.TELEGRAM_API_HASH || DEFAULT_TELEGRAM_API_HASH;
+    const { apiId, apiHash } = resolveTelegramCredentials();
 
     const client = new TelegramClient(session, apiId, apiHash, {
       connectionRetries: 5,
@@ -142,6 +169,11 @@ export class TelegramAuthService {
         : process.env.TELEGRAM_API_ID && !isNaN(Number(process.env.TELEGRAM_API_ID)) && Number(process.env.TELEGRAM_API_ID) > 0
         ? Number(process.env.TELEGRAM_API_ID)
         : DEFAULT_TELEGRAM_API_ID;
+    // 2. Resolve credentials (custom override or environment variables)
+    const { apiId, apiHash } = resolveTelegramCredentials({
+      apiId: params.apiId,
+      apiHash: params.apiHash,
+    });
 
     const apiHash =
       params.apiHash && params.apiHash.trim() && params.apiHash !== 'your-telegram-api-hash'

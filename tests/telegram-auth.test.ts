@@ -26,4 +26,19 @@ describe('TelegramAuthService - MTProto 2.0 Authentication', () => {
       /expired|not found/i
     );
   });
+
+  it('should validate and enforce configured credentials in resolveTelegramCredentials', () => {
+    const { resolveTelegramCredentials } = require('../src/modules/storage/telegram/telegram-auth-service');
+    assert.throws(
+      () => resolveTelegramCredentials({ apiId: 0, apiHash: 'valid_hash' }),
+      /TELEGRAM_API_ID is not configured/i
+    );
+    assert.throws(
+      () => resolveTelegramCredentials({ apiId: 12345, apiHash: '' }),
+      /TELEGRAM_API_HASH is not configured/i
+    );
+    const resolved = resolveTelegramCredentials({ apiId: 12345, apiHash: 'abc123hash' });
+    assert.strictEqual(resolved.apiId, 12345);
+    assert.strictEqual(resolved.apiHash, 'abc123hash');
+  });
 });
