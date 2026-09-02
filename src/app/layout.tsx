@@ -2,15 +2,26 @@ import React from 'react';
 import type { Metadata, Viewport } from 'next';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
+import { Plus_Jakarta_Sans, Playfair_Display } from 'next/font/google';
 import './globals.css';
 
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-jakarta',
+});
+
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  variable: '--font-playfair',
+});
+
 export const metadata: Metadata = {
-  title: 'BucketSpace - Personal Cloud Storage',
-  description: 'High-performance personal cloud storage powered by Telegram MTProto and multi-provider backends.',
+  title: 'BucketSpace - A place for everything',
+  description: 'Beautifully simple cloud storage for your digital life.',
 };
 
 export const viewport: Viewport = {
-  themeColor: '#000000',
+  themeColor: '#0a0a0a',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
@@ -24,7 +35,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className={`${GeistSans.variable} ${GeistMono.variable} min-h-[100dvh] bg-black text-white font-sans antialiased selection:bg-white selection:text-black`}>
+      <body className={`${jakarta.variable} ${playfair.variable} ${GeistSans.variable} ${GeistMono.variable} min-h-[100dvh] bg-[#0a0a0a] text-stone-50 font-sans antialiased selection:bg-stone-50 selection:text-black`}>
         {children}
       </body>
     </html>

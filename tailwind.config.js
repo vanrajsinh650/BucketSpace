@@ -9,8 +9,28 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-jakarta)', 'var(--font-geist-sans)', 'system-ui', 'sans-serif'],
+        serif: ['var(--font-playfair)', 'Georgia', 'serif'],
         mono: ['var(--font-geist-mono)', 'ui-monospace', 'monospace'],
+      },
+      keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0px) scale(1)' },
+          '50%': { transform: 'translateY(-20px) scale(1.02)' },
+        },
+        'float-delayed': {
+          '0%, 100%': { transform: 'translateY(0px) scale(1)' },
+          '50%': { transform: 'translateY(15px) scale(1.01)' },
+        },
+        'pulse-slow': {
+          '0%, 100%': { opacity: '0.4' },
+          '50%': { opacity: '0.7' },
+        }
+      },
+      animation: {
+        'float': 'float 15s ease-in-out infinite',
+        'float-delayed': 'float-delayed 18s ease-in-out infinite',
+        'pulse-slow': 'pulse-slow 8s ease-in-out infinite',
       },
       transitionTimingFunction: {
         'out-strong': 'cubic-bezier(0.23, 1, 0.32, 1)',

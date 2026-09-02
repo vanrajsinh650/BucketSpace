@@ -19,7 +19,7 @@ export function Header({
   onOpenMobileMenu,
 }: HeaderProps) {
   return (
-    <header className="h-14 border-b border-[#1e1e1e] bg-black/90 sticky top-0 z-30 px-4 sm:px-6 flex items-center justify-between gap-3 backdrop-blur-md">
+    <header className="h-14 border-b border-[#1e1e1e] bg-[#0a0a0a]/90 sticky top-0 z-30 px-4 sm:px-6 flex items-center justify-between gap-3 backdrop-blur-md">
       {/* Search Input */}
       <div className="flex items-center gap-2.5 flex-1 max-w-md">
         {onOpenMobileMenu && (

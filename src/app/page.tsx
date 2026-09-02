@@ -408,7 +408,7 @@ export default function BucketSpaceApp() {
   /* ─── Hydration Guard & Onboarding Landing Gate ─── */
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center font-mono text-xs text-zinc-500">
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center font-mono text-xs text-zinc-500">
         <div className="flex items-center gap-2">
           <div className="w-3.5 h-3.5 border-2 border-zinc-700 border-t-zinc-200 rounded-full animate-spin" />
           <span>Initializing BucketSpace...</span>
@@ -432,7 +432,7 @@ export default function BucketSpaceApp() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-zinc-100 flex">
+    <div className="min-h-screen bg-[#0a0a0a] text-zinc-100 flex font-sans selection:bg-stone-50 selection:text-black">
       {/* Sidebar (Responsive desktop & mobile drawer) */}
       <Sidebar
         activeCategory={activeCategory}
@@ -447,7 +447,7 @@ export default function BucketSpaceApp() {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-black">
+      <div className="flex-1 flex flex-col min-w-0 bg-[#0a0a0a]">
         <Header
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
