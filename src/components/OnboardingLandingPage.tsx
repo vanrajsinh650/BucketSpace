@@ -76,28 +76,28 @@ export function OnboardingLandingPage({
 
   const demoFiles = [
     {
-      name: 'cinema_raw_footage_4k.mov',
+      name: 'family_vacation_4k.mp4',
       size: '1.42 GB',
-      chunks: 71,
+      chunks: 355,
       hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-      provider: 'Telegram DC4 (Europe)',
+      provider: 'Telegram Cloud Vault',
       speed: '48.2 MB/s',
     },
     {
-      name: 'financial_ledger_2026.sqlite',
-      size: '84.5 MB',
-      chunks: 5,
+      name: 'tax_documents_2026.pdf',
+      size: '24.5 MB',
+      chunks: 6,
       hash: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
-      provider: 'Local NVMe Vault',
-      speed: '1.2 GB/s',
+      provider: 'Telegram Cloud Vault',
+      speed: '35.0 MB/s',
     },
     {
-      name: 'ai_weights_quantized.gguf',
-      size: '3.80 GB',
-      chunks: 190,
+      name: 'project_assets.zip',
+      size: '640 MB',
+      chunks: 160,
       hash: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
-      provider: 'Cloudflare R2 + Telegram Replica',
-      speed: '92.4 MB/s',
+      provider: 'Telegram Cloud Vault',
+      speed: '42.4 MB/s',
     },
   ];
 

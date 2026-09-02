@@ -11,17 +11,12 @@ import {
   Settings,
   Sliders,
   Trash2,
-  Activity,
-  X,
   HardDrive,
+  X,
 } from 'lucide-react';
 import { CategoryFilter } from '../lib/storage-store';
 
-export type MainTab = 'files' | 'analysis';
-
 interface SidebarProps {
-  activeTab: MainTab;
-  onSelectTab: (tab: MainTab) => void;
   activeCategory: CategoryFilter;
   onSelectCategory: (cat: CategoryFilter) => void;
   onOpenSettings: () => void;
@@ -34,8 +29,6 @@ interface SidebarProps {
 }
 
 export function Sidebar({
-  activeTab,
-  onSelectTab,
   activeCategory,
   onSelectCategory,
   onOpenSettings,
@@ -99,40 +92,11 @@ export function Sidebar({
             )}
           </div>
 
-          {/* Mode Switcher: Files vs Architecture */}
-          <div className="p-3 border-b border-[#1e1e1e]">
-            <div className="grid grid-cols-2 gap-1 bg-[#121212] p-0.5 border border-[#1e1e1e] rounded">
-              <button
-                onClick={() => onSelectTab('files')}
-                className={`py-1.5 px-2 text-[11px] font-mono uppercase tracking-wider rounded transition-colors flex items-center justify-center gap-1.5 ${
-                  activeTab === 'files'
-                    ? 'bg-white text-black font-semibold'
-                    : 'text-[#888] hover:text-white'
-                }`}
-              >
-                <Layers className="w-3 h-3" />
-                Files
-              </button>
-              <button
-                onClick={() => onSelectTab('analysis')}
-                className={`py-1.5 px-2 text-[11px] font-mono uppercase tracking-wider rounded transition-colors flex items-center justify-center gap-1.5 ${
-                  activeTab === 'analysis'
-                    ? 'bg-white text-black font-semibold'
-                    : 'text-[#888] hover:text-white'
-                }`}
-              >
-                <Activity className="w-3 h-3" />
-                Inspect
-              </button>
+          {/* Category Navigation */}
+          <div className="p-3 space-y-0.5 flex-1">
+            <div className="px-2 py-1.5 text-[10px] font-mono uppercase tracking-widest text-[#555]">
+              Categories
             </div>
-          </div>
-
-          {/* Category Navigation (Shown when activeTab === 'files') */}
-          {activeTab === 'files' ? (
-            <div className="p-3 space-y-0.5 flex-1">
-              <div className="px-2 py-1.5 text-[10px] font-mono uppercase tracking-widest text-[#555]">
-                Categories
-              </div>
               {categories.map((cat) => {
                 const Icon = cat.icon;
                 const isActive = activeCategory === cat.id;
@@ -165,17 +129,7 @@ export function Sidebar({
                 );
               })}
             </div>
-          ) : (
-            <div className="p-4 text-xs font-mono text-[#888] space-y-2 flex-1">
-              <div className="text-[10px] uppercase tracking-widest text-[#555]">
-                System Architecture
-              </div>
-              <p className="text-[11px] leading-relaxed text-[#777]">
-                Live telemetry, chunk verification graphs, and multi-provider data routing workbench.
-              </p>
-            </div>
-          )}
-        </div>
+          </div>
 
         {/* Footer: Storage Quota & Settings */}
         <div className="p-3 border-t border-[#1e1e1e] space-y-3 bg-[#0a0a0a]">

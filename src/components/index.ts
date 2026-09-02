@@ -1,4 +1,3 @@
-export * from './AnalysisTab';
 export * from './BulkActionBar';
 export * from './DuplicateConflictModal';
 export * from './FileCard';

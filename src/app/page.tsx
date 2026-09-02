@@ -3,14 +3,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { DuplicateCheckResult, FileMetadata, StorageRule } from '@/shared';
 import {
-  AnalysisTab,
   BulkActionBar,
   DuplicateConflictModal,
   FileGrid,
   FileInfoModal,
   FilePreviewModal,
   Header,
-  MainTab,
   MoveFileModal,
   OnboardingLandingPage,
   ProviderDisplayInfo,
@@ -33,7 +31,6 @@ import { createZipArchive } from '../lib/zip-builder';
 
 export default function BucketSpaceApp() {
   const [store, setStore] = useState<StorageStore>(() => StorageStore.getInstance());
-  const [activeTab, setActiveTab] = useState<MainTab>('files');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -438,8 +435,6 @@ export default function BucketSpaceApp() {
     <div className="min-h-screen bg-black text-zinc-100 flex">
       {/* Sidebar (Responsive desktop & mobile drawer) */}
       <Sidebar
-        activeTab={activeTab}
-        onSelectTab={setActiveTab}
         activeCategory={activeCategory}
         onSelectCategory={setActiveCategory}
         onOpenSettings={handleOpenSettings}
@@ -463,44 +458,38 @@ export default function BucketSpaceApp() {
         />
 
         <main className="p-4 sm:p-8 flex-1">
-          {activeTab === 'analysis' ? (
-            <AnalysisTab files={files} activeProviderName={providerName} />
-          ) : (
-            <>
-              <div className="mb-6 flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-semibold text-white capitalize tracking-tight">
-                    {activeCategory === 'ALL' ? 'My Files' : activeCategory.toLowerCase()}
-                  </h2>
-                  <p className="text-xs text-zinc-500 mt-0.5 font-mono">
-                    Showing {files.length} {files.length === 1 ? 'file' : 'files'}
-                  </p>
-                </div>
-              </div>
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-semibold text-white capitalize tracking-tight">
+                {activeCategory === 'ALL' ? 'My Files' : activeCategory.toLowerCase()}
+              </h2>
+              <p className="text-xs text-zinc-500 mt-0.5 font-mono">
+                Showing {files.length} {files.length === 1 ? 'file' : 'files'}
+              </p>
+            </div>
+          </div>
 
-              <FileGrid
-                files={files}
-                viewMode={viewMode}
-                onToggleViewMode={setViewMode}
-                sortField={sortField}
-                sortDirection={sortDirection}
-                onSortChange={handleSortChange}
-                selectedFileIds={selectedFileIds}
-                onToggleSelectFile={handleToggleSelectFile}
-                onDownload={handleDownload}
-                onInfo={setSelectedFileForInfo}
-                onPreview={setSelectedFileForPreview}
-                onShare={setSelectedFileForShare}
-                onMove={setSelectedFileForMove}
-                onRedundancy={(file) => setSelectedFileForRedundancy(file)}
-                onDelete={handleDelete}
-                onRestore={handleRestore}
-                onPurge={handlePurge}
-                onOpenUpload={() => setUploadModalOpen(true)}
-                onOpenOnboarding={() => setOnboardingOpen(true)}
-              />
-            </>
-          )}
+          <FileGrid
+            files={files}
+            viewMode={viewMode}
+            onToggleViewMode={setViewMode}
+            sortField={sortField}
+            sortDirection={sortDirection}
+            onSortChange={handleSortChange}
+            selectedFileIds={selectedFileIds}
+            onToggleSelectFile={handleToggleSelectFile}
+            onDownload={handleDownload}
+            onInfo={setSelectedFileForInfo}
+            onPreview={setSelectedFileForPreview}
+            onShare={setSelectedFileForShare}
+            onMove={setSelectedFileForMove}
+            onRedundancy={(file) => setSelectedFileForRedundancy(file)}
+            onDelete={handleDelete}
+            onRestore={handleRestore}
+            onPurge={handlePurge}
+            onOpenUpload={() => setUploadModalOpen(true)}
+            onOpenOnboarding={() => setOnboardingOpen(true)}
+          />
         </main>
       </div>
 
