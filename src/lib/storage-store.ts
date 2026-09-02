@@ -512,6 +512,12 @@ export class StorageStore {
       status: 'HASHING',
     });
 
+    const uploadStartTime = performance.now();
+    let totalSliceMs = 0;
+    let totalHashMs = 0;
+    let totalEncryptMs = 0;
+    let totalHttpUploadMs = 0;
+
     const sessionKey = `${file.name}_${file.size}`;
     const savedSession = this.getResumableSession(sessionKey);
     const fileId = savedSession?.fileId
@@ -594,6 +600,11 @@ export class StorageStore {
           const tUpload = performance.now();
 
           // Development diagnostics — timing breakdown per chunk
+          totalSliceMs += (tSlice - t0);
+          totalHashMs += (tHash - tSlice);
+          totalEncryptMs += (tEncrypt - tHash);
+          totalHttpUploadMs += (tUpload - tEncrypt);
+
           console.debug(
             `[upload] chunk ${index}/${totalChunks} | ` +
             `slice=${(tSlice - t0).toFixed(0)}ms hash=${(tHash - tSlice).toFixed(0)}ms ` +
@@ -673,6 +684,13 @@ export class StorageStore {
       percent: 100,
       status: 'COMPLETE',
     });
+
+    const totalFileElapsed = performance.now() - uploadStartTime;
+    console.info(
+      `[upload-benchmark] file="${file.name}" size=${(file.size / 1024 / 1024).toFixed(2)}MB chunks=${totalChunks} | ` +
+      `totalTime=${totalFileElapsed.toFixed(0)}ms effectiveSpeed=${((file.size / 1024 / 1024) / (totalFileElapsed / 1000)).toFixed(2)}MB/s | ` +
+      `sumSliceTime=${totalSliceMs.toFixed(0)}ms sumHashTime=${totalHashMs.toFixed(0)}ms sumEncryptTime=${totalEncryptMs.toFixed(0)}ms sumHttpTime=${totalHttpUploadMs.toFixed(0)}ms`
+    );
 
     return fileMetadata;
   }
