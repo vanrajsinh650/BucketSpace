@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import {
   Send,
   HardDrive,
@@ -147,6 +148,7 @@ export function OnboardingLandingPage({
         
         <div className="hidden lg:flex items-center gap-8 text-sm text-stone-400">
           <a href="#features" className="hover:text-stone-50 transition-colors">Features</a>
+          <Link href="/privacy" className="hover:text-stone-50 transition-colors">Privacy Policy</Link>
           <a href="https://github.com/vanrajsinh650/BucketSpace" target="_blank" rel="noreferrer" className="hover:text-stone-50 transition-colors">GitHub</a>
         </div>
 
@@ -457,10 +459,14 @@ export function OnboardingLandingPage({
             <div className="text-[10px] text-stone-600 uppercase tracking-wider">&copy; 2026 BucketSpace. All rights reserved.</div>
           </div>
           
-          <div className="flex gap-16 lg:gap-24">
+          <div className="flex gap-12 lg:gap-20">
             <div className="flex flex-col gap-4 text-sm">
               <span className="font-medium mb-2 text-stone-200">Product</span>
               <a href="#features" className="text-stone-500 hover:text-stone-300">Features</a>
+            </div>
+            <div className="flex flex-col gap-4 text-sm">
+              <span className="font-medium mb-2 text-stone-200">Legal</span>
+              <Link href="/privacy" className="text-stone-500 hover:text-stone-300">Privacy Policy</Link>
             </div>
             <div className="flex flex-col gap-4 text-sm">
               <span className="font-medium mb-2 text-stone-200">Project</span>

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { formatBytes } from '../lib/utils';
 import {
   FileText,
@@ -175,6 +176,14 @@ export function Sidebar({
               <Settings className="w-3.5 h-3.5 text-zinc-400" />
               <span>Settings</span>
             </button>
+          </div>
+
+          {/* Privacy & App Version */}
+          <div className="flex items-center justify-between px-1 pt-0.5 text-[10px] text-zinc-500 font-sans">
+            <Link href="/privacy" className="hover:text-zinc-300 transition-colors">
+              Privacy Policy
+            </Link>
+            <span className="font-mono">v1.0.0</span>
           </div>
         </div>
       </aside>

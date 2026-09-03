@@ -205,3 +205,11 @@ BucketSpace/
   - Fully responsive via `ResizeObserver`, retina DPR scaled, and includes static fallback for `prefers-reduced-motion`.
 - **Validation:** 38 unit tests passing (100%), TypeScript typecheck clean, and production build fully verified.
 
+## 10. Legal Disclosures & Open-Source Licensing
+
+- **Apache License 2.0 (`LICENSE`):** Official, unabridged Apache License 2.0 text applied to original source code with Copyright 2026 Vanraj Solanki.
+- **Privacy Policy (`PRIVACY.md`):** Comprehensive technical privacy disclosures accurately describing client-side AES-256-GCM encryption, ephemeral server memory management, absence of backend database persistence, browser `localStorage` usage, absence of third-party cookies/analytics, and third-party hosting/infrastructure boundaries (Telegram, Vercel, Render).
+- **Interactive `/privacy` Route (`src/app/privacy/page.tsx`):** Prerendered static privacy page with dark charcoal design system, clear headings, visible effective date, and back-to-home navigation.
+- **UI Navigation Links:** Integrated accessible Privacy Policy links into landing page navbar, landing page footer (`Legal` column), and dashboard sidebar footer.
+
+
