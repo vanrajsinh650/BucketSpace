@@ -212,5 +212,6 @@ BucketSpace/
 - **Interactive `/privacy` Route (`src/app/privacy/page.tsx`):** Prerendered static privacy page with dark charcoal design system, clear headings, visible effective date, and back-to-home navigation.
 - **UI Navigation Links:** Integrated accessible Privacy Policy links into landing page navbar, landing page footer (`Legal` column), and dashboard sidebar footer.
 - **Documentation & Repository Polish (`README.md` & `package.json`):** High-visibility architecture flow diagrams, cross-platform installation guides for Linux, Apple macOS, and Windows (PowerShell/WSL2), curated discovery keywords, and production runbooks for Vercel + Render.
+- **Next.js Security Upgrade & Zero-Config Vercel:** Upgraded Next.js from vulnerable `15.0.0` to secure patched `15.5.25`, purged redundant `vercel.json` for native zero-config deployment, and verified 38/38 unit tests and production build.
 
 
