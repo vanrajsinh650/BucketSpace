@@ -18,8 +18,9 @@ export function resolveTelegramCredentials(): TelegramCredentials {
     : undefined;
   const apiHashRaw = typeof process !== 'undefined' ? process.env.TELEGRAM_API_HASH : undefined;
 
-  const apiId = Number(apiIdRaw);
-  const apiHash = typeof apiHashRaw === 'string' ? apiHashRaw.trim() : '';
+  const rawIdStr = typeof apiIdRaw === 'string' ? apiIdRaw.trim().replace(/^['"]|['"]$/g, '') : String(apiIdRaw || '');
+  const apiId = Number(rawIdStr);
+  const apiHash = typeof apiHashRaw === 'string' ? apiHashRaw.trim().replace(/^['"]|['"]$/g, '') : '';
 
   if (!apiId || isNaN(apiId) || apiId <= 0) {
     throw new Error('TELEGRAM_API_ID is not configured. Please set TELEGRAM_API_ID in environment variables.');

@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    console.error('[send-code] Error during sendCode:', err);
     return NextResponse.json(
       {
         success: false,

@@ -216,5 +216,6 @@ BucketSpace/
 - **Automated CI/CD Quality Pipeline (`.github/workflows/ci.yml`):** GitHub Actions workflow running on Node 22 with automatic dependency caching. Automatically validates every commit and pull request across strict TypeScript static typing, 38 automated unit test suites, and production Next.js build compilation.
 - **Production Dockerfile & Container Cloud Support (`Dockerfile`, `.dockerignore`, `pnpm-workspace.yaml`):** Production container based on `node:22-slim` and `pnpm`. Configured explicit build script allowlisting (`allowBuilds` for `esbuild` and `sharp`; disallowing optional native C++ add-ons `bufferutil`, `utf-8-validate`, and ad script `es5-ext`) for zero-prompt, non-interactive builds on Railway, Northflank, and Render.
 - **Environment Configuration Resilience:** Added graceful variable resolution fallback in `resolveTelegramCredentials()` to support both `TELEGRAM_API_ID` and typo variant `TELEGRAM_APT_ID`.
+- **Diagnostic Server Logging & Credential Sanitization:** Added server-side error logging in authentication API routes and quote/whitespace stripping in credential parser to diagnose and prevent environment misconfigurations.
 
 

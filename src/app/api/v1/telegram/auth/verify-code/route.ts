@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
       requires2FA: result.requires2FA,
     });
   } catch (err: any) {
+    console.error('[verify-code] Error during verifyCode:', err);
     return NextResponse.json(
       {
         success: false,
