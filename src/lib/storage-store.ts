@@ -391,6 +391,29 @@ export class StorageStore {
     }
   }
 
+  /**
+   * Returns active Telegram MTProto session string if connected.
+   */
+  public getActiveTelegramSession(): string | null {
+    if (this.activeProviderId === 'telegram' && (this.activeProvider as any).sessionString) {
+      return (this.activeProvider as any).sessionString;
+    }
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const saved = localStorage.getItem('bucketspace_active_provider');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.providerId === 'telegram' && parsed.config?.sessionString) {
+            return parsed.config.sessionString;
+          }
+        }
+      } catch {
+        // ignore storage parse error
+      }
+    }
+    return null;
+  }
+
   public getFiles(
     category: CategoryFilter = 'ALL',
     searchQuery: string = '',
@@ -945,31 +968,61 @@ export class StorageStore {
   /**
    * Reassemble byte array directly from an array of chunk metadata (for public shared links).
    */
-  public async getChunksBytes(chunks: ChunkMetadata[]): Promise<Uint8Array> {
+  public async getChunksBytes(
+    chunks: ChunkMetadata[],
+    options?: { token?: string; passcode?: string; key?: CryptoKey }
+  ): Promise<Uint8Array> {
     const downloadedPieces: Uint8Array[] = [];
 
     for (const chunk of chunks) {
-      if (!chunk.providerRef) {
-        throw new Error(`Chunk ${chunk.index} missing provider reference`);
+      let chunkCombined: Uint8Array;
+
+      // When downloading via public share token from remote backend:
+      if (options?.token) {
+        const queryPasscode = options.passcode ? `?passcode=${encodeURIComponent(options.passcode)}` : '';
+        const res = await fetch(
+          `${this.apiBaseUrl}/api/v1/shares/${options.token}/chunks/${chunk.index}${queryPasscode}`,
+          {
+            headers: options.passcode ? { 'x-share-passcode': options.passcode } : {},
+          }
+        );
+
+        if (!res.ok) {
+          const errJson = await res.json().catch(() => ({}));
+          throw new Error(errJson.message || `Failed to fetch chunk ${chunk.index} (HTTP ${res.status})`);
+        }
+
+        const arrayBuffer = await res.arrayBuffer();
+        chunkCombined = new Uint8Array(arrayBuffer);
+      } else {
+        if (!chunk.providerRef) {
+          throw new Error(`Chunk ${chunk.index} missing provider reference`);
+        }
+
+        if (chunk.providerRef.providerId === 'telegram' && !ProviderRegistry.has('telegram')) {
+          throw new Error(
+            `Cannot download Telegram chunk ${chunk.index}: No active Telegram connection and no share token provided.`
+          );
+        }
+
+        const provider = ProviderRegistry.has(chunk.providerRef.providerId)
+          ? ProviderRegistry.get(chunk.providerRef.providerId)
+          : this.activeProvider;
+
+        const stream = await provider.getChunk(chunk.providerRef);
+        const pieces: Uint8Array[] = [];
+
+        for await (const piece of stream) {
+          pieces.push(piece);
+        }
+
+        chunkCombined = concatByteArrays(pieces);
       }
 
-      const provider = ProviderRegistry.has(chunk.providerRef.providerId)
-        ? ProviderRegistry.get(chunk.providerRef.providerId)
-        : this.activeProvider;
-
-      const stream = await provider.getChunk(chunk.providerRef);
-      const pieces: Uint8Array[] = [];
-
-      for await (const piece of stream) {
-        pieces.push(piece);
-      }
-
-      const chunkCombined = concatByteArrays(pieces);
-
-      // Decrypt chunk with Client-Side AES-256-GCM (with fallback for legacy unencrypted chunks)
+      // Decrypt chunk with Client-Side AES-256-GCM using custom key or vault key
       let decryptedChunk: Uint8Array;
       try {
-        decryptedChunk = await ClientEncryptionService.decryptChunk(chunkCombined);
+        decryptedChunk = await ClientEncryptionService.decryptChunk(chunkCombined, options?.key);
       } catch (decryptErr) {
         // Only accept raw data if hash matches — prevents accepting tampered plaintext
         const rawHash = await calculateSha256(chunkCombined);
@@ -978,6 +1031,14 @@ export class StorageStore {
         } else {
           throw decryptErr;
         }
+      }
+
+      // Verify decrypted chunk SHA-256 integrity
+      const chunkHash = await calculateSha256(decryptedChunk);
+      if (chunkHash !== chunk.hash) {
+        throw new Error(
+          `Chunk ${chunk.index} integrity verification failed. Expected SHA-256 '${chunk.hash}', got '${chunkHash}'`
+        );
       }
 
       downloadedPieces.push(decryptedChunk);
@@ -1194,6 +1255,9 @@ export class StorageStore {
       ? new Date(Date.now() + options.expiresInHours * 3600 * 1000).toISOString()
       : undefined;
 
+    const telegramSession = this.getActiveTelegramSession();
+    const masterKeyHex = ClientEncryptionService.getMasterKeyHex();
+
     const shareRecord = {
       token,
       fileId: file.id,
@@ -1205,6 +1269,7 @@ export class StorageStore {
       createdAt: new Date().toISOString(),
       expiresAt,
       passcode: options?.passcode,
+      ownerSessionString: telegramSession || undefined,
     };
 
     if (typeof window !== 'undefined') {
@@ -1227,9 +1292,10 @@ export class StorageStore {
     }
 
     const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    const fragment = masterKeyHex ? `#key=${masterKeyHex}` : '';
     return {
       token,
-      url: `${origin}/s/${token}`,
+      url: `${origin}/s/${token}${fragment}`,
       expiresAt,
     };
   }

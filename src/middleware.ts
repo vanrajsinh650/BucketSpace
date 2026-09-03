@@ -24,6 +24,7 @@ export function middleware(req: NextRequest) {
 
   const isOriginAllowed =
     !origin ||
+    allowedOrigins.includes('*') ||
     allowedOrigins.includes(origin) ||
     allowedOrigins.some((allowed) => {
       // Support subdomain wildcards like `*.vercel.app`
@@ -47,13 +48,15 @@ export function middleware(req: NextRequest) {
 
     const headers = new Headers();
     if (origin && isOriginAllowed) {
-      headers.set('Access-Control-Allow-Origin', origin);
-      headers.set('Access-Control-Allow-Credentials', 'true');
+      headers.set('Access-Control-Allow-Origin', allowedOrigins.includes('*') ? '*' : origin);
+      if (!allowedOrigins.includes('*')) {
+        headers.set('Access-Control-Allow-Credentials', 'true');
+      }
     }
     headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     headers.set(
       'Access-Control-Allow-Headers',
-      'Content-Type, Authorization, x-telegram-session, Accept, Origin'
+      'Content-Type, Authorization, x-telegram-session, x-share-passcode, Accept, Origin'
     );
     headers.set('Access-Control-Max-Age', '86400');
 
@@ -63,12 +66,14 @@ export function middleware(req: NextRequest) {
   // Normal request pass-through with CORS response headers
   const res = NextResponse.next();
   if (origin && isOriginAllowed) {
-    res.headers.set('Access-Control-Allow-Origin', origin);
-    res.headers.set('Access-Control-Allow-Credentials', 'true');
+    res.headers.set('Access-Control-Allow-Origin', allowedOrigins.includes('*') ? '*' : origin);
+    if (!allowedOrigins.includes('*')) {
+      res.headers.set('Access-Control-Allow-Credentials', 'true');
+    }
     res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.headers.set(
       'Access-Control-Allow-Headers',
-      'Content-Type, Authorization, x-telegram-session, Accept, Origin'
+      'Content-Type, Authorization, x-telegram-session, x-share-passcode, Accept, Origin'
     );
   }
 

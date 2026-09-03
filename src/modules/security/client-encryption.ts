@@ -164,6 +164,20 @@ export class ClientEncryptionService {
   }
 
   /**
+   * Retrieves the raw hex string of the client device master vault key from localStorage.
+   * Used for generating client-side zero-knowledge share links (appended to URL hash fragment).
+   */
+  public static getMasterKeyHex(): string | null {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const savedHex = localStorage.getItem(this.STORAGE_KEY);
+      if (savedHex && savedHex.length === 64) {
+        return savedHex;
+      }
+    }
+    return null;
+  }
+
+  /**
    * Encrypts a binary chunk with AES-256-GCM.
    *
    * Prepends a random 12-byte IV to the ciphertext:

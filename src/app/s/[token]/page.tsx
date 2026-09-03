@@ -3,9 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Download, File, ShieldCheck, Lock, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { StorageStore } from '../../../lib/storage-store';
+import { StorageStore, calculateSha256 } from '../../../lib/storage-store';
 import { humanizeError } from '../../../lib/humanize-error';
 import { normalizeApiBase } from '../../../lib/utils';
+import { ClientEncryptionService } from '@/modules/security/client-encryption';
 
 export default function PublicSharePage() {
   const params = useParams();
@@ -19,6 +20,7 @@ export default function PublicSharePage() {
   const [downloading, setDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -76,25 +78,75 @@ export default function PublicSharePage() {
     try {
       const store = StorageStore.getInstance();
       let bytes: Uint8Array;
+
+      // Extract client-side decryption key from URL hash (#key=... or #<64-hex>)
+      let cryptoKey: CryptoKey | undefined = undefined;
+      if (typeof window !== 'undefined') {
+        const hash = window.location.hash || '';
+        const match = hash.match(/key=([a-f0-9]+)/i) || hash.match(/^#([a-f0-9]{64})$/i);
+        const hex = match ? match[1] : null;
+        if (hex) {
+          try {
+            cryptoKey = await ClientEncryptionService.importKeyFromHex(hex);
+          } catch {
+            // Ignore key import error and fall back to local vault key
+          }
+        }
+      }
+
+      // If key is not in hash, check if current browser has client vault key (e.g. owner testing)
+      if (!cryptoKey) {
+        const localHex = ClientEncryptionService.getMasterKeyHex();
+        if (localHex) {
+          try {
+            cryptoKey = await ClientEncryptionService.importKeyFromHex(localHex);
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      // 1. If owner session has this file locally, use local file reassembly
       try {
         const result = await store.getFileBytes(shareData.fileId);
         bytes = result.bytes;
       } catch {
-        // Direct reassembly from public chunk metadata for cross-device recipients
-        bytes = await store.getChunksBytes(shareData.chunks);
+        // 2. Cross-device / public recipient: stream chunks via public share backend endpoint
+        bytes = await store.getChunksBytes(shareData.chunks, {
+          token,
+          passcode: shareData.passcode || passcode,
+          key: cryptoKey,
+        });
       }
 
-      const blob = new Blob([bytes.buffer as ArrayBuffer], {
-        type: shareData.mimeType || 'application/octet-stream',
-      });
+      // 3. Cryptographic whole-file integrity verification
+      if (shareData.wholeFileHash) {
+        const wholeHash = await calculateSha256(bytes);
+        if (wholeHash !== shareData.wholeFileHash) {
+          throw new Error('Whole-file cryptographic integrity check failed (SHA-256 mismatch)');
+        }
+      }
+
+      const mime = shareData.mimeType || 'application/octet-stream';
+      const blob = new Blob([bytes.buffer as ArrayBuffer], { type: mime });
       const url = URL.createObjectURL(blob);
+
+      // Support inline preview for images
+      if (mime.startsWith('image/')) {
+        setPreviewUrl(url);
+      }
+
       const a = document.createElement('a');
       a.href = url;
       a.download = shareData.fileName || 'download';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+
+      if (!mime.startsWith('image/')) {
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+
       setDownloadSuccess(true);
     } catch (err: unknown) {
       setDownloadError(humanizeError(err));
@@ -197,6 +249,16 @@ export default function PublicSharePage() {
               <div role="status" className="p-3.5 bg-emerald-950/30 border border-emerald-800/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>Download started successfully!</span>
+              </div>
+            )}
+
+            {previewUrl && (
+              <div className="rounded-2xl overflow-hidden border border-[#262626] bg-black p-2 flex items-center justify-center max-h-72">
+                <img
+                  src={previewUrl}
+                  alt={shareData?.fileName || 'Preview'}
+                  className="max-h-64 max-w-full rounded-xl object-contain"
+                />
               </div>
             )}
 

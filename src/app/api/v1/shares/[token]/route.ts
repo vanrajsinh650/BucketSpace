@@ -13,12 +13,13 @@ const globalForShares = globalThis as unknown as {
 const shareStore = globalForShares.__bucketspace_share_store || {
   shares: new Map<string, any>(),
 };
+globalForShares.__bucketspace_share_store = shareStore;
 
 /**
  * GET /api/v1/shares/[token]
  *
  * Returns share metadata for a given token.
- * SECURITY: Never returns the plaintext passcode — only `hasPasscode: boolean`.
+ * SECURITY: Never returns the plaintext passcode or owner Telegram session string.
  */
 export async function GET(
   _req: NextRequest,
@@ -31,8 +32,14 @@ export async function GET(
       return NextResponse.json({ success: false, message: 'Share link not found or expired' }, { status: 404 });
     }
 
-    // Strip sensitive fields — never expose passcode to unauthenticated callers
-    const { passcode: _passcode, ...safeRecord } = record;
+    // Check expiration
+    if (record.expiresAt && new Date(record.expiresAt).getTime() <= Date.now()) {
+      shareStore.shares.delete(token);
+      return NextResponse.json({ success: false, message: 'Share link not found or expired' }, { status: 404 });
+    }
+
+    // Strip sensitive fields — never expose passcode or owner session
+    const { passcode: _passcode, ownerSessionString: _s, telegramSession: _t, ...safeRecord } = record;
     return NextResponse.json({
       ...safeRecord,
       hasPasscode: Boolean(record.passcode),
@@ -60,6 +67,12 @@ export async function POST(
       return NextResponse.json({ success: false, message: 'Share link not found or expired' }, { status: 404 });
     }
 
+    // Check expiration
+    if (record.expiresAt && new Date(record.expiresAt).getTime() <= Date.now()) {
+      shareStore.shares.delete(token);
+      return NextResponse.json({ success: false, message: 'Share link not found or expired' }, { status: 404 });
+    }
+
     // Passcode verification (if share is password-protected)
     if (record.passcode) {
       const expected = String(record.passcode);
@@ -71,8 +84,8 @@ export async function POST(
       }
     }
 
-    // Authenticated — return full record without passcode
-    const { passcode: _passcode, ...safeRecord } = record;
+    // Authenticated — return full record without passcode or owner session
+    const { passcode: _passcode, ownerSessionString: _s, telegramSession: _t, ...safeRecord } = record;
     return NextResponse.json({ success: true, ...safeRecord });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: 'Verification failed' }, { status: 500 });
