@@ -17,6 +17,7 @@ import {
 import { PhoneInputWithCountry } from './PhoneInputWithCountry';
 import { humanizeError } from '../lib/humanize-error';
 import { FloatingClouds } from './FloatingClouds';
+import { normalizeApiBase } from '../lib/utils';
 
 interface OnboardingLandingPageProps {
   onConnectProvider: (
@@ -42,10 +43,9 @@ export function OnboardingLandingPage({
 
   /* ─── REAL Telegram MTProto Auth Handlers ─── */
 
-  const API_BASE =
-    typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
-      ? process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '')
-      : '';
+  const API_BASE = normalizeApiBase(
+    typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_API_URL : ''
+  );
   const handleTelegramPhone = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone) return;

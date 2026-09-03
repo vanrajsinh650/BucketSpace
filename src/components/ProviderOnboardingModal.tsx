@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { X, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
 import { PhoneInputWithCountry } from './PhoneInputWithCountry';
 import { humanizeError } from '../lib/humanize-error';
+import { normalizeApiBase } from '../lib/utils';
 
 export interface ProviderOnboardingModalProps {
   isOpen: boolean;
@@ -31,10 +32,9 @@ export function ProviderOnboardingModal({
 
   /* ─── REAL Telegram MTProto Auth Handlers ─── */
 
-  const API_BASE =
-    typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
-      ? process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '')
-      : '';
+  const API_BASE = normalizeApiBase(
+    typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_API_URL : ''
+  );
 
   const handleTelegramPhone = async (e: React.FormEvent) => {
     e.preventDefault();

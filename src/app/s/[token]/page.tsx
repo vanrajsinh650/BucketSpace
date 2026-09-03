@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { Download, File, ShieldCheck, Lock, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { StorageStore } from '../../../lib/storage-store';
 import { humanizeError } from '../../../lib/humanize-error';
+import { normalizeApiBase } from '../../../lib/utils';
 
 export default function PublicSharePage() {
   const params = useParams();
@@ -45,10 +46,9 @@ export default function PublicSharePage() {
     }
 
     try {
-      const apiBase =
-        typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
-          ? process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '')
-          : '';
+      const apiBase = normalizeApiBase(
+        typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_API_URL : ''
+      );
       const res = await fetch(`${apiBase}/api/v1/shares/${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

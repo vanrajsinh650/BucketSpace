@@ -20,3 +20,18 @@ export function formatDate(timestamp: number | Date | string): string {
   return d.toISOString().split('T')[0];
 }
 
+/**
+ * Normalizes an API base URL, ensuring it has a protocol and no trailing slashes.
+ * Automatically adds 'https://' if the user entered a bare domain without protocol.
+ */
+export function normalizeApiBase(rawUrl?: string): string {
+  if (!rawUrl || typeof rawUrl !== 'string') return '';
+  let trimmed = rawUrl.trim().replace(/\/+$/, '');
+  if (!trimmed) return '';
+  if (!/^https?:\/\//i.test(trimmed)) {
+    trimmed = `https://${trimmed}`;
+  }
+  return trimmed;
+}
+
+

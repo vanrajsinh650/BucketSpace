@@ -19,6 +19,7 @@ import {
   TelegramStorageAdapter,
 } from '@/modules/storage';
 import { ClientEncryptionService } from '@/modules/security/client-encryption';
+import { normalizeApiBase } from '@/lib/utils';
 
 export type CategoryFilter = 'ALL' | 'PHOTOS' | 'VIDEOS' | 'DOCUMENTS' | 'OTHER' | 'TRASH';
 export type SortField = 'name' | 'size' | 'date';
@@ -72,9 +73,7 @@ export class HttpTelegramStorageAdapter implements IStorageProvider {
 
   constructor(
     sessionString: string,
-    apiBaseUrl = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
-      ? process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '')
-      : '',
+    apiBaseUrl = normalizeApiBase(typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_API_URL : ''),
     optimalChunkSizeBytes = 16 * 1024 * 1024
   ) {
     this.sessionString = sessionString;
@@ -228,10 +227,9 @@ export class StorageStore {
   private constructor() {
     ProviderRegistry.clear();
 
-    this.apiBaseUrl =
-      typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
-        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '')
-        : '';
+    this.apiBaseUrl = normalizeApiBase(
+      typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_API_URL : ''
+    );
 
     // Initialize with safe default provider; credentials are vault-secured
     this.activeProvider = new InMemoryStorageProvider();
@@ -372,10 +370,9 @@ export class StorageStore {
   ): void {
     if (providerId === 'telegram') {
       const sessionString = (config?.sessionString as string) || '';
-      const apiBase =
-        typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
-          ? process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '')
-          : '';
+      const apiBase = normalizeApiBase(
+        typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_API_URL : ''
+      );
       const telegramProvider = new HttpTelegramStorageAdapter(sessionString, apiBase, this.uploadChunkSize);
       ProviderRegistry.register(telegramProvider);
       this.activeProvider = telegramProvider;

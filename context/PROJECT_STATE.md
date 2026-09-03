@@ -217,5 +217,6 @@ BucketSpace/
 - **Production Dockerfile & Container Cloud Support (`Dockerfile`, `.dockerignore`, `pnpm-workspace.yaml`):** Production container based on `node:22-slim` and `pnpm`. Configured explicit build script allowlisting (`allowBuilds` for `esbuild` and `sharp`; disallowing optional native C++ add-ons `bufferutil`, `utf-8-validate`, and ad script `es5-ext`) for zero-prompt, non-interactive builds on Railway, Northflank, and Render.
 - **Environment Configuration Resilience:** Added graceful variable resolution fallback in `resolveTelegramCredentials()` to support both `TELEGRAM_API_ID` and typo variant `TELEGRAM_APT_ID`.
 - **Diagnostic Server Logging & Credential Sanitization:** Added server-side error logging in authentication API routes and quote/whitespace stripping in credential parser to diagnose and prevent environment misconfigurations.
+- **API Base URL Normalization (`normalizeApiBase`):** Added automated protocol sanitization ensuring client-side API calls to external backends always enforce `https://`, preventing relative-path 404 routing errors on Vercel.
 
 
