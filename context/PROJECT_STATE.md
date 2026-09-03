@@ -219,5 +219,6 @@ BucketSpace/
 - **Diagnostic Server Logging & Credential Sanitization:** Added server-side error logging in authentication API routes and quote/whitespace stripping in credential parser to diagnose and prevent environment misconfigurations.
 - **API Base URL Normalization (`normalizeApiBase`):** Added automated protocol sanitization ensuring client-side API calls to external backends always enforce `https://`, preventing relative-path 404 routing errors on Vercel.
 - **Public File Sharing Architecture & Telegram Chunk Proxying (`GET /api/v1/shares/[token]/chunks/[index]`):** Resolved public share download failures across split Vercel/Railway deployments. Implemented server-side Telegram chunk retrieval using isolated owner session tokens without exposing credentials to recipients. Enforced zero-knowledge client-side AES-256-GCM decryption via RFC 3986 URL hash fragments (`#key=...`) that are never transmitted to backend servers, alongside SHA-256 chunk and whole-file verification.
+- **GitHub Actions CI pnpm Version Specification:** Configured `version: 10` in `pnpm/action-setup` in `.github/workflows/ci.yml` and declared `packageManager: pnpm@10.5.2` in `package.json` to resolve the 5-second runner failure.
 
 
