@@ -19,3 +19,4 @@ export * from './storage-rules/RuleEditor';
 export * from './storage-rules/RulePreview';
 export * from './ConfirmDialog';
 export * from './Toast';
+export * from './FloatingClouds';

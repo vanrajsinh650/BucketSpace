@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { PhoneInputWithCountry } from './PhoneInputWithCountry';
 import { humanizeError } from '../lib/humanize-error';
+import { FloatingClouds } from './FloatingClouds';
 
 interface OnboardingLandingPageProps {
   onConnectProvider: (
@@ -176,19 +177,13 @@ export function OnboardingLandingPage({
       {/* ─── Hero Section ─── */}
       <main className="pt-32 pb-16 px-6 md:px-12 max-w-7xl mx-auto">
         <div className="relative flex flex-col lg:flex-row items-center min-h-[60vh] md:min-h-[70vh]">
-          {/* Ethereal Floating Clouds - CSS & Image blend */}
-          <div className="absolute right-[-10%] top-[-10%] w-full lg:w-[120%] h-[120%] pointer-events-none opacity-80 mix-blend-screen motion-safe:animate-float-delayed">
-            {/* We use a beautiful dark abstract cloud texture masked perfectly into the background */}
-            <div 
-              className="w-full h-full bg-no-repeat bg-contain bg-right-top"
-              style={{
-                backgroundImage: `url('/images/dark_ethereal_cloud.jpg')`,
-                filter: 'grayscale(1) contrast(1.1) brightness(0.8)',
-                maskImage: 'radial-gradient(ellipse at 80% 30%, black 10%, transparent 60%)',
-                WebkitMaskImage: 'radial-gradient(ellipse at 80% 30%, black 10%, transparent 60%)'
-              }}
-            />
-          </div>
+          {/* Ethereal Floating Clouds Animation - Procedural & Organic */}
+          <FloatingClouds
+            preset="hero"
+            density={32}
+            opacity={1}
+            className="right-[-10%] top-[-15%] w-full lg:w-[125%] h-[130%]"
+          />
 
           <div className="relative z-10 lg:w-1/2 flex flex-col items-start text-left mt-12 lg:mt-0">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 mb-8 backdrop-blur-sm">
@@ -421,17 +416,13 @@ export function OnboardingLandingPage({
 
         {/* ─── Bottom CTA Banner ─── */}
         <div className="relative rounded-3xl overflow-hidden bg-[#111] border border-white/5 min-h-[300px] flex items-center">
-          <div className="absolute right-0 bottom-[-50%] w-full h-[200%] pointer-events-none opacity-50 mix-blend-screen motion-safe:animate-float">
-            <div 
-              className="w-full h-full bg-no-repeat bg-cover bg-bottom"
-              style={{
-                backgroundImage: `url('/images/dark_ethereal_cloud.jpg')`,
-                filter: 'grayscale(1) contrast(1.1) brightness(0.7)',
-                maskImage: 'linear-gradient(to top, black 30%, transparent 70%)',
-                WebkitMaskImage: 'linear-gradient(to top, black 30%, transparent 70%)'
-              }}
-            />
-          </div>
+          {/* Ethereal Floating Clouds Animation */}
+          <FloatingClouds
+            preset="banner"
+            density={20}
+            opacity={0.8}
+            className="inset-0 w-full h-full"
+          />
           
           <div className="relative z-10 p-12 md:p-16 max-w-xl">
             <span className="text-xs font-semibold uppercase tracking-wider text-stone-400 mb-4 block font-sans">Built around your files</span>

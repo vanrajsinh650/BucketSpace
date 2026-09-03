@@ -93,3 +93,4 @@ export function humanizeError(error: unknown): string {
 
   return 'An unexpected error occurred while processing your request. Please try again.';
 }
+

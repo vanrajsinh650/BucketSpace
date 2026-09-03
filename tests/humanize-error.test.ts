@@ -95,3 +95,4 @@ describe('humanizeError - Consumer Error Translation', () => {
     );
   });
 });
+

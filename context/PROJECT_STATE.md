@@ -199,5 +199,9 @@ BucketSpace/
   - Global `⌘K` keyboard shortcut listener in header search.
 - **Progress & Error Recovery:**
   - Upload modal displays real progress stages (`Preparing and encrypting file...`, `Uploading to private vault...`, `Finishing and verifying...`) with part counts and a one-click "Retry Upload" option on failures.
+- **Procedural Ethereal Floating Clouds (`src/components/FloatingClouds.tsx`):**
+  - Purged static `dark_ethereal_cloud.jpg` image asset (536KB) and its clipped rectangular boundary artifacts completely from the repository.
+  - Implemented high-performance HTML5 canvas procedural volumetric cloud animation with organic particle clustering, multi-layered drifting, sinusoidal breathing, and seamless radial gradient opacity falloff into `#000000`.
+  - Fully responsive via `ResizeObserver`, retina DPR scaled, and includes static fallback for `prefers-reduced-motion`.
 - **Validation:** 38 unit tests passing (100%), TypeScript typecheck clean, and production build fully verified.
 
