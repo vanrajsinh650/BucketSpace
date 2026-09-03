@@ -88,6 +88,9 @@ export interface TelegramRefData {
   fileReference?: string;
   dcId?: number;
   size?: number;
+  channelId?: string;
+  channelAccessHash?: string;
+  chatType?: 'vault' | 'channel' | 'saved_messages' | 'chat';
 }
 
 /**

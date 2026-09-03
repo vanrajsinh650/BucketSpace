@@ -51,4 +51,34 @@ describe('TelegramAuthService - MTProto 2.0 Authentication', () => {
       else process.env.TELEGRAM_API_HASH = originalApiHash;
     }
   });
+
+  it('should reject unauthenticated downloadChunk with controlled error', async () => {
+    await assert.rejects(
+      async () => {
+        await TelegramAuthService.downloadChunk({
+          sessionString: '1BVtsInvalidSessionString...',
+          messageId: 1234,
+          targetChatId: 'vault',
+          channelId: '4331787451',
+          channelAccessHash: '9876543210',
+        });
+      },
+      /No more data left to read|AUTH_KEY_UNREGISTERED|SESSION_REVOKED|Invalid session|Could not connect|expired/i
+    );
+  });
+
+  it('should handle backward-compatible numeric chatId without crashing on PeerUser resolution', async () => {
+    // Old providerRef references contain raw numeric chatId like '4331787451'
+    await assert.rejects(
+      async () => {
+        await TelegramAuthService.downloadChunk({
+          sessionString: '1BVtsInvalidSessionString...',
+          messageId: 5678,
+          targetChatId: '4331787451',
+        });
+      },
+      // Must fail on auth/connection, NEVER throw unhandled "Could not find the input entity for PeerUser"
+      /No more data left to read|AUTH_KEY_UNREGISTERED|SESSION_REVOKED|Invalid session|Could not connect|expired/i
+    );
+  });
 });

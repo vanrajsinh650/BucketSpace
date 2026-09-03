@@ -92,6 +92,8 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const messageId = Number(searchParams.get('messageId'));
     const targetChatId = searchParams.get('targetChatId') || 'vault';
+    const channelId = searchParams.get('channelId') || undefined;
+    const channelAccessHash = searchParams.get('channelAccessHash') || undefined;
     const sessionString =
       req.headers.get('x-telegram-session') ||
       '';
@@ -114,6 +116,8 @@ export async function GET(req: NextRequest) {
       sessionString,
       messageId,
       targetChatId,
+      channelId,
+      channelAccessHash,
     });
 
     return new NextResponse(new Uint8Array(buffer), {

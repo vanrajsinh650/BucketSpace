@@ -1,4 +1,4 @@
-import { Api, TelegramClient } from 'telegram';
+import { Api, TelegramClient, helpers } from 'telegram';
 import { StringSession } from 'telegram/sessions';
 import { CustomFile } from 'telegram/client/uploads';
 import type { TelegramRefData } from './telegram-storage-provider';
@@ -518,7 +518,32 @@ export class TelegramAuthService {
     });
 
     const doc = message.media && 'document' in message.media ? (message.media.document as any) : undefined;
-    const chatIdStr = typeof targetEntity === 'string' ? targetEntity : String((targetEntity as any)?.id || 'vault');
+
+    let channelId: string | undefined = undefined;
+    let channelAccessHash: string | undefined = undefined;
+    let chatType: 'vault' | 'channel' | 'saved_messages' | 'chat' = 'vault';
+
+    if (targetEntity === 'me' || targetEntity === 'self') {
+      chatType = 'saved_messages';
+    } else if (typeof targetEntity === 'object' && targetEntity !== null) {
+      if (targetEntity.id) {
+        channelId = String(targetEntity.id);
+      }
+      if (targetEntity.accessHash) {
+        channelAccessHash = String(targetEntity.accessHash);
+      }
+      chatType = targetEntity.className === 'Channel' || targetEntity.broadcast || targetEntity.megagroup ? 'channel' : 'vault';
+    }
+
+    let chatIdStr: string;
+    if (typeof targetEntity === 'string') {
+      chatIdStr = targetEntity;
+    } else if (targetEntity && targetEntity.id) {
+      const idStr = String(targetEntity.id);
+      chatIdStr = idStr.startsWith('-100') ? idStr : `-100${idStr}`;
+    } else {
+      chatIdStr = 'vault';
+    }
 
     return {
       chatId: chatIdStr,
@@ -529,39 +554,165 @@ export class TelegramAuthService {
       dcId: doc ? doc.dcId : undefined,
       fileReference: doc?.fileReference ? Buffer.from(doc.fileReference).toString('base64') : undefined,
       size: doc?.size ? Number(doc.size) : params.buffer.length,
+      channelId,
+      channelAccessHash,
+      chatType,
     };
   }
 
   /**
+   * Robust entity resolution for Telegram downloads.
+   * Resolves targetEntity to a valid GramJS InputPeer or entity object with accessHash.
+   * NEVER returns a bare numeric string, which causes GramJS to fail with
+   * "Could not find the input entity for PeerUser".
+   */
+  private static async resolveDownloadEntity(
+    client: TelegramClient,
+    sessionString: string,
+    targetChatId?: string
+  ): Promise<any> {
+    const rawTarget = targetChatId ? String(targetChatId).trim() : '';
+
+    // 1. Explicit Saved Messages keywords
+    if (!rawTarget || rawTarget === 'me' || rawTarget === 'self' || rawTarget === 'this') {
+      return 'me';
+    }
+
+    // 2. Explicit Vault keyword
+    if (rawTarget === 'vault') {
+      try {
+        const vault = await this.getOrCreateStorageVault(sessionString);
+        if (vault) return vault;
+      } catch {
+        return 'me';
+      }
+    }
+
+    // 3. Match against current authenticated user's own ID
+    try {
+      const me = await client.getMe();
+      if (me && (String(me.id) === rawTarget || String(me.id) === rawTarget.replace(/^-100/, ''))) {
+        return 'me';
+      }
+    } catch {
+      // ignore
+    }
+
+    // 4. Match against storage vault channel
+    try {
+      const vault = await this.getOrCreateStorageVault(sessionString);
+      if (vault) {
+        const cleanTarget = rawTarget.replace(/^-100/, '');
+        const vaultId = String(vault.id || '').replace(/^-100/, '');
+        if (vaultId === cleanTarget || String(vault.id) === rawTarget) {
+          return vault;
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    // 5. Match against active dialogs (both inbox folder 0 and archived folder 1)
+    try {
+      const cleanTarget = rawTarget.replace(/^-100/, '');
+      const [mainDialogs, archivedDialogs] = await Promise.all([
+        client.getDialogs({ limit: 100 }).catch(() => []),
+        client.getDialogs({ limit: 100, folder: 1 }).catch(() => []),
+      ]);
+      const allDialogs = [...mainDialogs, ...archivedDialogs];
+      const match = allDialogs.find((d: any) => {
+        const entityId = String(d.entity?.id || '').replace(/^-100/, '');
+        return entityId === cleanTarget;
+      });
+      if (match && match.entity) {
+        return match.entity;
+      }
+    } catch {
+      // ignore
+    }
+
+    // 6. Default fallback: use the vault channel, or 'me'
+    try {
+      const vault = await this.getOrCreateStorageVault(sessionString);
+      if (vault) return vault;
+    } catch {
+      // ignore
+    }
+
+    return 'me';
+  }
+
+  /**
    * Download chunk bytes directly from Telegram Data Center by message ID.
+   * Resiliently resolves target entity across:
+   * 1. Direct InputPeerChannel (using channelId + channelAccessHash)
+   * 2. Storage vault channel ('📦 BucketSpace Vault')
+   * 3. Personal Saved Messages ('me')
+   * 4. Dialog entity scan (matches numeric ID against dialogs with accessHash)
    */
   public static async downloadChunk(params: {
     sessionString: string;
     messageId: number;
     targetChatId?: string;
+    channelId?: string;
+    channelAccessHash?: string;
   }): Promise<Buffer> {
     const client = await this.getClient(params.sessionString);
 
-    let targetEntity: any = params.targetChatId;
-    if (!targetEntity || targetEntity === 'vault') {
+    // 1. If explicit channelId and channelAccessHash are available, build an InputPeerChannel
+    let primaryEntity: any = null;
+    if (params.channelId && params.channelAccessHash) {
       try {
-        targetEntity = await this.getOrCreateStorageVault(params.sessionString);
-      } catch {
-        targetEntity = 'me';
+        primaryEntity = new Api.InputPeerChannel({
+          channelId: helpers.returnBigInt(params.channelId),
+          accessHash: helpers.returnBigInt(params.channelAccessHash),
+        });
+      } catch (e) {
+        console.warn('[downloadChunk] Failed to build InputPeerChannel from params:', e);
       }
     }
 
-    let messages = await client.getMessages(targetEntity, { ids: [params.messageId] });
-    if ((!messages || messages.length === 0 || !messages[0] || !messages[0].media) && targetEntity !== 'me') {
-      // Fallback for older files stored in 'Saved Messages' before vault creation
+    // 2. Otherwise dynamically resolve target entity to a valid GramJS peer or entity object
+    if (!primaryEntity) {
+      primaryEntity = await this.resolveDownloadEntity(client, params.sessionString, params.targetChatId);
+    }
+
+    // Attempt retrieval from primaryEntity
+    let messages: any[] = [];
+    if (primaryEntity) {
       try {
-        const fallbackMessages = await client.getMessages('me', { ids: [params.messageId] });
-        if (fallbackMessages && fallbackMessages[0] && fallbackMessages[0].media) {
-          messages = fallbackMessages;
-          targetEntity = 'me';
+        messages = await client.getMessages(primaryEntity, { ids: [params.messageId] });
+      } catch (err: any) {
+        console.warn(`[downloadChunk] getMessages failed for primaryEntity (${err?.message || err}), trying fallback entities...`);
+      }
+    }
+
+    // Fallback A: If message not found, try the user's storage vault channel
+    if (!messages || messages.length === 0 || !messages[0] || !messages[0].media) {
+      try {
+        const vault = await this.getOrCreateStorageVault(params.sessionString);
+        if (vault && vault !== primaryEntity) {
+          const vaultMessages = await client.getMessages(vault, { ids: [params.messageId] });
+          if (vaultMessages && vaultMessages[0] && vaultMessages[0].media) {
+            messages = vaultMessages;
+          }
         }
-      } catch {
-        // Ignore fallback error
+      } catch (vaultErr: any) {
+        console.warn('[downloadChunk] Fallback to vault channel failed:', vaultErr?.message || vaultErr);
+      }
+    }
+
+    // Fallback B: If still not found, try user's 'Saved Messages' ('me')
+    if (!messages || messages.length === 0 || !messages[0] || !messages[0].media) {
+      try {
+        if (primaryEntity !== 'me') {
+          const meMessages = await client.getMessages('me', { ids: [params.messageId] });
+          if (meMessages && meMessages[0] && meMessages[0].media) {
+            messages = meMessages;
+          }
+        }
+      } catch (meErr: any) {
+        console.warn('[downloadChunk] Fallback to Saved Messages failed:', meErr?.message || meErr);
       }
     }
 

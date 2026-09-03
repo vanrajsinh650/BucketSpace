@@ -96,12 +96,17 @@ export async function GET(
         );
       }
 
-      const targetChatId = (chunk.providerRef?.reference?.chatId as string) || 'vault';
+      const refData = (chunk.providerRef?.reference || {}) as Record<string, any>;
+      const targetChatId = (refData.chatId as string) || 'vault';
+      const channelId = refData.channelId as string | undefined;
+      const channelAccessHash = refData.channelAccessHash as string | undefined;
 
       const buffer = await TelegramAuthService.downloadChunk({
         sessionString,
         messageId,
         targetChatId,
+        channelId,
+        channelAccessHash,
       });
 
       return new NextResponse(new Uint8Array(buffer) as unknown as BodyInit, {

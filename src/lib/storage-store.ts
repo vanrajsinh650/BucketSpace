@@ -158,17 +158,20 @@ export class HttpTelegramStorageAdapter implements IStorageProvider {
     const refObj = (ref.reference || {}) as Record<string, unknown>;
     const messageId = refObj.messageId;
     const targetChatId = (refObj.chatId as string) || 'vault';
+    const channelId = refObj.channelId ? String(refObj.channelId) : '';
+    const channelAccessHash = refObj.channelAccessHash ? String(refObj.channelAccessHash) : '';
 
-    const res = await fetch(
-      `${this.apiBaseUrl}/api/v1/telegram/mtproto/chunk?messageId=${encodeURIComponent(
-        String(messageId)
-      )}&targetChatId=${encodeURIComponent(targetChatId)}`,
-      {
-        headers: {
-          'x-telegram-session': this.sessionString,
-        },
-      }
-    );
+    let url = `${this.apiBaseUrl}/api/v1/telegram/mtproto/chunk?messageId=${encodeURIComponent(
+      String(messageId)
+    )}&targetChatId=${encodeURIComponent(targetChatId)}`;
+    if (channelId) url += `&channelId=${encodeURIComponent(channelId)}`;
+    if (channelAccessHash) url += `&channelAccessHash=${encodeURIComponent(channelAccessHash)}`;
+
+    const res = await fetch(url, {
+      headers: {
+        'x-telegram-session': this.sessionString,
+      },
+    });
 
     if (!res.ok) {
       throw new Error(`Failed to download chunk from Telegram MTProto (HTTP ${res.status})`);
