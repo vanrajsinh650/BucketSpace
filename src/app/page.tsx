@@ -470,6 +470,17 @@ export default function BucketSpaceApp() {
   };
 
   /* ─── Onboarding Landing Gate & Hydration Guard ─── */
+  const isFirstRun = !store.hasUserProvider();
+  if (isFirstRun) {
+    return (
+      <OnboardingLandingPage
+        onConnectProvider={handleConnectProvider}
+        onFinishOnboarding={() => setRefreshTrigger((prev) => prev + 1)}
+      />
+    );
+  }
+
+  // Returning user with active vault: brief clean mount
   if (!mounted) {
     return (
       <div
@@ -481,16 +492,6 @@ export default function BucketSpaceApp() {
           <span>Opening BucketSpace Vault...</span>
         </div>
       </div>
-    );
-  }
-
-  const isFirstRun = !store.hasUserProvider();
-  if (isFirstRun) {
-    return (
-      <OnboardingLandingPage
-        onConnectProvider={handleConnectProvider}
-        onFinishOnboarding={() => setRefreshTrigger((prev) => prev + 1)}
-      />
     );
   }
 

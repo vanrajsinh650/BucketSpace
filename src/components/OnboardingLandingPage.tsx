@@ -175,7 +175,7 @@ export function OnboardingLandingPage({
       </nav>
 
       {/* ─── Hero Section ─── */}
-      <main className="pt-32 pb-16 px-6 md:px-12 max-w-7xl mx-auto">
+      <main id="main-content" className="pt-32 pb-16 px-6 md:px-12 max-w-7xl mx-auto">
         <div className="relative flex flex-col lg:flex-row items-center min-h-[60vh] md:min-h-[70vh]">
           {/* Ethereal Floating Clouds Animation - Procedural & Organic */}
           <FloatingClouds

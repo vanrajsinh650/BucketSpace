@@ -41,6 +41,7 @@ export default function RootLayout({
       >
         <a
           href="#main-content"
+          style={{ position: 'absolute', left: '-9999px', top: 'auto', width: '1px', height: '1px', overflow: 'hidden' }}
           className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[999] focus:px-4 focus:py-2.5 focus:bg-white focus:text-black focus:rounded-xl focus:font-semibold focus:text-xs focus:shadow-2xl focus:outline-none"
         >
           Skip to main content

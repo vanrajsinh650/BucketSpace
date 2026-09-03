@@ -189,11 +189,11 @@ BucketSpace/
 
 ## 9. Frontend & Consumer UX Polish (Production Release)
 
-- **Hydration Guard:** `mounted` gate check executes before checking `hasUserProvider()`, completely eliminating the hydration flash of the landing page for authenticated users restoring local state.
+- **Instant Landing Page Render:** The landing page renders immediately for all visitors without blocking behind a loading spinner; only returning authenticated users with an active vault encounter the brief decryption mount state.
 - **Consumer Error Humanization (`src/lib/humanize-error.ts`):** Converts low-level Telegram MTProto RPC codes (`PHONE_CODE_INVALID`, `PASSWORD_HASH_INVALID`, `FLOOD_WAIT`), network timeouts, and crypto exceptions into clear consumer guidance across onboarding, upload, and sharing flows.
 - **Zero Native Browser Modals:** Replaced all native `alert()` and `confirm()` dialogs with an accessible `ToastContainer` and `ConfirmDialog` (`role="dialog" aria-modal="true"`) matching the dark charcoal design system.
 - **Mobile & Accessibility Enhancements:**
-  - Added accessible skip link (`#main-content`) in `src/app/layout.tsx`.
+  - Added accessible skip link (`#main-content`) in `src/app/layout.tsx` with defensive inline off-screen styling to prevent unstyled text flashes, and hooked `id="main-content"` to the hero section.
   - Added `:focus-visible` styling and `prefers-reduced-motion` media query handling in `src/app/globals.css`.
   - Upgraded dialogs to responsive bottom sheets on mobile devices with comfortable 40–44px minimum tap targets.
   - Global `⌘K` keyboard shortcut listener in header search.
