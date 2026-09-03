@@ -5,11 +5,12 @@
 **Open-source, client-side encrypted personal cloud storage engine backed by Telegram MTProto.**
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Next.js](https://img.shields.io/badge/Next.js-15.0-black?logo=next.js)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-15.5-black?logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19.0-61dafb?logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178c6?logo=typescript)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22.0.0-339933?logo=node.js)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-22.x-339933?logo=node.js)](https://nodejs.org/)
 [![Tests](https://img.shields.io/badge/Tests-38%2F38_Passing-success)]()
+[![CI](https://github.com/vanrajsinh650/BucketSpace/actions/workflows/ci.yml/badge.svg)](https://github.com/vanrajsinh650/BucketSpace/actions/workflows/ci.yml)
 
 </div>
 
