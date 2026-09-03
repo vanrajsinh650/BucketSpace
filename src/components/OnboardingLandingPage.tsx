@@ -41,7 +41,7 @@ export function OnboardingLandingPage({
 
   const API_BASE =
     typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
-      ? process.env.NEXT_PUBLIC_API_URL
+      ? process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '')
       : '';
   const handleTelegramPhone = async (e: React.FormEvent) => {
     e.preventDefault();

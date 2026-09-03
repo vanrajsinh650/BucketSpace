@@ -42,8 +42,10 @@ export default function PublicSharePage() {
     }
 
     try {
-      const res = await fetch(`/api/v1/shares/${token}`, {
-      const apiBase = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL : '';
+      const apiBase =
+        typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
+          ? process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '')
+          : '';
       const res = await fetch(`${apiBase}/api/v1/shares/${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

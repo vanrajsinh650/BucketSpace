@@ -60,6 +60,7 @@ export interface Verify2FAResult {
 interface GlobalTelegramState {
   activeSessions: Map<string, ActiveLoginSession>;
   clientPool: Map<string, { client: TelegramClient; lastUsed: number }>;
+  clientPromises: Map<string, Promise<TelegramClient>>;
   vaultChannels: Map<string, any>;
   vaultPromises: Map<string, Promise<any>>;
 }
@@ -72,10 +73,14 @@ const telegramState: GlobalTelegramState =
   globalForTelegram.__bucketspace_telegram_state || {
     activeSessions: new Map<string, ActiveLoginSession>(),
     clientPool: new Map<string, { client: TelegramClient; lastUsed: number }>(),
+    clientPromises: new Map<string, Promise<TelegramClient>>(),
     vaultChannels: new Map<string, any>(),
     vaultPromises: new Map<string, Promise<any>>(),
   };
 
+if (!telegramState.clientPromises) {
+  telegramState.clientPromises = new Map<string, Promise<TelegramClient>>();
+}
 if (!telegramState.vaultChannels) {
   telegramState.vaultChannels = new Map<string, any>();
 }
@@ -97,6 +102,7 @@ export class TelegramAuthService {
    * Essential for graceful server shutdown on Render (SIGTERM / SIGINT).
    */
   public static async closeAllClients(): Promise<void> {
+    telegramState.clientPromises?.clear();
     const clients = Array.from(telegramState.clientPool.values());
     telegramState.clientPool.clear();
     telegramState.vaultChannels.clear();
@@ -156,29 +162,45 @@ export class TelegramAuthService {
 
   /**
    * Get or create a connected TelegramClient instance for a saved sessionString.
+   * Employs an in-flight promise mutex to prevent concurrent cold-start requests
+   * (e.g. 5 parallel chunk upload workers) from opening duplicate connections.
    */
   public static async getClient(sessionString: string): Promise<TelegramClient> {
-    this.pruneClientPool();
-
     const cached = telegramState.clientPool.get(sessionString);
     if (cached && cached.client.connected) {
       cached.lastUsed = Date.now();
       return cached.client;
     }
 
-    const session = new StringSession(sessionString);
-    const { apiId, apiHash } = resolveTelegramCredentials();
+    const inFlight = telegramState.clientPromises.get(sessionString);
+    if (inFlight) {
+      return inFlight;
+    }
 
-    const client = new TelegramClient(session, apiId, apiHash, {
-      connectionRetries: 5,
-      floodSleepThreshold: 60,
-      useIPV6: false,
-      autoReconnect: true,
-    });
+    const connectPromise = (async () => {
+      this.pruneClientPool();
 
-    await client.connect();
-    telegramState.clientPool.set(sessionString, { client, lastUsed: Date.now() });
-    return client;
+      const session = new StringSession(sessionString);
+      const { apiId, apiHash } = resolveTelegramCredentials();
+
+      const client = new TelegramClient(session, apiId, apiHash, {
+        connectionRetries: 5,
+        floodSleepThreshold: 60,
+        useIPV6: false,
+        autoReconnect: true,
+      });
+
+      await client.connect();
+      telegramState.clientPool.set(sessionString, { client, lastUsed: Date.now() });
+      return client;
+    })();
+
+    telegramState.clientPromises.set(sessionString, connectPromise);
+    try {
+      return await connectPromise;
+    } finally {
+      telegramState.clientPromises.delete(sessionString);
+    }
   }
 
   /**

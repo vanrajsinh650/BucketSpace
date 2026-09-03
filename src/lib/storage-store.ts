@@ -73,7 +73,7 @@ export class HttpTelegramStorageAdapter implements IStorageProvider {
   constructor(
     sessionString: string,
     apiBaseUrl = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
-      ? process.env.NEXT_PUBLIC_API_URL
+      ? process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '')
       : '',
     optimalChunkSizeBytes = 16 * 1024 * 1024
   ) {
@@ -230,7 +230,7 @@ export class StorageStore {
 
     this.apiBaseUrl =
       typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
-        ? process.env.NEXT_PUBLIC_API_URL
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '')
         : '';
 
     // Initialize with safe default provider; credentials are vault-secured
@@ -371,7 +371,7 @@ export class StorageStore {
       const sessionString = (config?.sessionString as string) || '';
       const apiBase =
         typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
-          ? process.env.NEXT_PUBLIC_API_URL
+          ? process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '')
           : '';
       const telegramProvider = new HttpTelegramStorageAdapter(sessionString, apiBase, this.uploadChunkSize);
       ProviderRegistry.register(telegramProvider);
