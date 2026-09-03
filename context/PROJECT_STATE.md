@@ -178,7 +178,8 @@ BucketSpace/
   - **No Session in URL Parameters:** Removed `searchParams.get('sessionString')` fallbacks across all routes; session strings are transmitted strictly via the `x-telegram-session` header.
   - **Shares API Passcode Protection:** `GET /api/v1/shares/[token]` strips plaintext `passcode` and only returns `hasPasscode: boolean`. Passcode verification uses constant-time length-safe comparison in `POST`.
   - **Session Token Entropy:** `TelegramAuthService.sendCode()` uses `crypto.randomUUID()` for high-entropy login session tokens.
-  - **Connection Pool Pruning & Clean Shutdown:** Automatic idle client eviction (>30 min), maximum pool cap (20 clients), and `closeAllClients()` hook for SIGTERM/SIGINT signals.
+  - **Connection Pool Mutex & Clean Shutdown:** Added in-flight promise mutex (`clientPromises`) to eliminate concurrent connection race conditions when parallel chunk workers connect simultaneously; automatic idle client eviction (>30 min), maximum pool cap (20 clients), and `closeAllClients()` hook for SIGTERM/SIGINT signals.
+  - **URL Sanitization:** Standardized `NEXT_PUBLIC_API_URL` consumption with defensive trailing-slash normalization across all client adapters and modal auth flows.
   - **Security Headers & CSP:** Configured HSTS (`max-age=63072000`), X-Frame-Options DENY, nosniff, and strict Content-Security-Policy in `next.config.js`.
   - **CORS Middleware (`src/middleware.ts`):** Enforces origin whitelist validation across `/api/:path*`, allowing Vercel and local dev origins while rejecting unauthorized origins.
   - **Liveness Health Endpoint:** Dedicated `/api/health` probe responding with HTTP 200 and uptime in <5ms without Telegram dependencies.
