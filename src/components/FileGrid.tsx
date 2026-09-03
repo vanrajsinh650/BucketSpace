@@ -53,42 +53,47 @@ export function FileGrid({
   return (
     <div className="space-y-4">
       {/* Control Bar: View Mode Toggle & Sort Selector */}
-      <div className="flex items-center justify-between gap-3 text-xs font-mono">
-        <div className="text-[11px] text-[#666] uppercase tracking-wider">
-          <span className="text-white font-bold tabular-nums">{files.length}</span> items
+      <div className="flex items-center justify-between gap-3 text-xs">
+        <div className="text-xs text-zinc-400 font-medium">
+          <span className="text-zinc-100 font-semibold tabular-nums">{files.length}</span> {files.length === 1 ? 'item' : 'items'}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           {/* Sort Selector */}
-          <div className="flex items-center gap-1 bg-[#0a0a0a] border border-[#1e1e1e] rounded px-2 py-1 text-[#888]">
-            <ArrowUpDown className="w-3 h-3 text-[#555]" />
+          <div className="flex items-center gap-1.5 bg-[#141414] border border-[#262626] rounded-xl px-3 py-1.5 text-zinc-300 min-h-[36px]">
+            <ArrowUpDown className="w-3.5 h-3.5 text-zinc-500" />
             <select
+              aria-label="Sort files by"
               value={sortField}
               onChange={(e) => onSortChange(e.target.value as SortField)}
-              className="bg-transparent text-white text-xs font-mono focus:outline-none cursor-pointer"
+              className="bg-transparent text-zinc-200 text-xs focus:outline-none cursor-pointer font-medium"
             >
-              <option value="date" className="bg-black text-white">Date</option>
-              <option value="name" className="bg-black text-white">Name</option>
-              <option value="size" className="bg-black text-white">Size</option>
+              <option value="date" className="bg-[#141414] text-zinc-200">Date Added</option>
+              <option value="name" className="bg-[#141414] text-zinc-200">Name</option>
+              <option value="size" className="bg-[#141414] text-zinc-200">File Size</option>
             </select>
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center bg-[#0a0a0a] border border-[#1e1e1e] rounded p-0.5">
+          <div className="flex items-center bg-[#141414] border border-[#262626] rounded-xl p-1 min-h-[36px]">
             <button
+              type="button"
               onClick={() => onToggleViewMode('grid')}
-              className={`p-1 rounded transition-colors btn-press ${
-                viewMode === 'grid' ? 'bg-white text-black' : 'text-[#666] hover:text-white'
+              className={`p-1.5 rounded-lg transition-colors min-w-[30px] min-h-[30px] flex items-center justify-center ${
+                viewMode === 'grid' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
               }`}
+              aria-label="Grid view"
               title="Grid View"
             >
               <LayoutGrid className="w-3.5 h-3.5" />
             </button>
             <button
+              type="button"
               onClick={() => onToggleViewMode('list')}
-              className={`p-1 rounded transition-colors btn-press ${
-                viewMode === 'list' ? 'bg-white text-black' : 'text-[#666] hover:text-white'
+              className={`p-1.5 rounded-lg transition-colors min-w-[30px] min-h-[30px] flex items-center justify-center ${
+                viewMode === 'list' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
               }`}
+              aria-label="List view"
               title="List View"
             >
               <List className="w-3.5 h-3.5" />
@@ -99,28 +104,29 @@ export function FileGrid({
 
       {/* Main Files Display */}
       {files.length === 0 ? (
-        <div className="border border-[#1e1e1e] bg-[#0a0a0a] rounded-lg p-12 text-center space-y-4">
-          <div className="w-10 h-10 bg-[#121212] border border-[#222] rounded flex items-center justify-center mx-auto text-[#666]">
-            <FolderPlus className="w-5 h-5" />
+        <div className="border border-[#222] bg-[#121212] rounded-2xl p-12 text-center space-y-4 shadow-sm">
+          <div className="w-12 h-12 bg-zinc-850 border border-zinc-700/60 rounded-2xl flex items-center justify-center mx-auto text-zinc-400">
+            <FolderPlus className="w-6 h-6" />
           </div>
           <div className="space-y-1">
-            <div className="font-mono text-sm font-semibold text-white">No files found</div>
-            <div className="font-mono text-xs text-[#666] max-w-sm mx-auto">
-              Drop files here or click upload to encrypt files in your browser before storage.
+            <div className="text-sm font-semibold text-zinc-100">Your drive is empty</div>
+            <div className="text-xs text-zinc-400 max-w-sm mx-auto leading-relaxed">
+              Upload photos, documents, and videos to store them encrypted in your private Telegram vault.
             </div>
           </div>
           {onOpenUpload && (
             <button
+              type="button"
               onClick={onOpenUpload}
-              className="bg-white text-black hover:bg-[#e0e0e0] px-4 py-2 rounded text-xs font-mono font-bold uppercase tracking-wider transition-colors btn-press inline-flex items-center gap-1.5"
+              className="bg-white text-zinc-950 hover:bg-zinc-200 px-4 py-2.5 rounded-xl text-xs font-semibold transition-colors inline-flex items-center gap-2 min-h-[44px] shadow-sm"
             >
-              <FolderPlus className="w-3.5 h-3.5" />
-              <span>Upload First File</span>
+              <FolderPlus className="w-4 h-4" />
+              <span>Upload Files</span>
             </button>
           )}
         </div>
       ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[1px] bg-[#1e1e1e] border border-[#1e1e1e] rounded-lg overflow-hidden">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
           <AnimatePresence mode="popLayout">
             {files.map((file, idx) => (
               <FileCard
@@ -144,7 +150,7 @@ export function FileGrid({
           </AnimatePresence>
         </div>
       ) : (
-        <div className="divide-y divide-[#1e1e1e] border border-[#1e1e1e] rounded-lg overflow-hidden bg-[#1e1e1e]">
+        <div className="space-y-2">
           <AnimatePresence mode="popLayout">
             {files.map((file, idx) => (
               <FileCard

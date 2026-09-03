@@ -14,6 +14,7 @@ import {
   Key,
 } from 'lucide-react';
 import { PhoneInputWithCountry } from './PhoneInputWithCountry';
+import { humanizeError } from '../lib/humanize-error';
 
 interface OnboardingLandingPageProps {
   onConnectProvider: (
@@ -64,11 +65,7 @@ export function OnboardingLandingPage({
       setSessionToken(data.sessionToken);
       setStep('code');
     } catch (err: any) {
-      const msg =
-        err?.message === 'Failed to fetch'
-          ? 'Unable to reach the Telegram service. Please ensure your web server is running and try again.'
-          : err?.message || 'Failed to send verification code from Telegram.';
-      setErrorMessage(msg);
+      setErrorMessage(humanizeError(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -103,11 +100,7 @@ export function OnboardingLandingPage({
       await onConnectProvider('telegram', { sessionString: data.sessionString, phone });
       onFinishOnboarding();
     } catch (err: any) {
-      const msg =
-        err?.message === 'Failed to fetch'
-          ? 'Network connection error. Please try again.'
-          : err?.message || 'Verification failed.';
-      setErrorMessage(msg);
+      setErrorMessage(humanizeError(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -134,11 +127,7 @@ export function OnboardingLandingPage({
       await onConnectProvider('telegram', { sessionString: data.sessionString, phone });
       onFinishOnboarding();
     } catch (err: any) {
-      const msg =
-        err?.message === 'Failed to fetch'
-          ? 'Network connection error. Please try again.'
-          : err?.message || '2FA Authentication failed.';
-      setErrorMessage(msg);
+      setErrorMessage(humanizeError(err));
     } finally {
       setIsSubmitting(false);
     }

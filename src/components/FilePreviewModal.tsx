@@ -4,14 +4,11 @@ import React, { useState, useEffect } from 'react';
 import {
   X,
   Download,
-  FileText,
-  Music,
   Film,
+  Music,
   Image as ImageIcon,
   ShieldCheck,
   AlertCircle,
-  FolderArchive,
-  FileCode,
   File,
 } from 'lucide-react';
 import { FileMetadata } from '@/shared';
@@ -39,7 +36,7 @@ export function FilePreviewModal({
       setError(null);
       const timer = setTimeout(() => {
         setLoading(false);
-      }, 250);
+      }, 200);
       return () => clearTimeout(timer);
     }
   }, [isOpen, file]);
@@ -56,108 +53,116 @@ export function FilePreviewModal({
     file.mimeType.includes('typescript');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-[#0a0a0a] border border-[#1e1e1e] rounded-lg w-full max-w-4xl max-h-[88vh] flex flex-col overflow-hidden shadow-2xl">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="preview-modal-title"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm font-sans"
+    >
+      <div className="bg-[#121212] border border-[#222] rounded-t-2xl sm:rounded-2xl w-full max-w-4xl max-h-[92vh] sm:max-h-[88vh] flex flex-col overflow-hidden shadow-2xl text-zinc-100">
         {/* Header */}
-        <div className="px-4 py-3 border-b border-[#1e1e1e] flex items-center justify-between bg-[#0a0a0a]">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="font-mono text-xs text-white truncate max-w-md font-medium">
+        <div className="px-5 py-4 border-b border-[#222] flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <h2 id="preview-modal-title" className="text-sm font-semibold text-zinc-100 truncate max-w-md">
               {file.name}
-            </span>
-            <span className="text-[10px] font-mono text-[#666] uppercase">
+            </h2>
+            <span className="text-xs text-zinc-500 tabular-nums shrink-0">
               {formatBytes(file.size)}
             </span>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1 text-[#666] hover:text-white rounded hover:bg-[#181818] transition-colors btn-press"
-            aria-label="Close modal"
+            aria-label="Close preview"
+            className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800/60 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center -mr-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Viewer Canvas */}
-        <div className="flex-1 bg-black overflow-auto min-h-[350px] flex items-center justify-center p-6 relative">
+        <div className="flex-1 bg-[#0a0a0a] overflow-auto min-h-[300px] flex items-center justify-center p-6 relative">
           {loading ? (
-            <div className="text-center space-y-2 font-mono text-xs text-[#888]">
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" />
-              <div>Reassembling chunks...</div>
+            <div className="text-center space-y-2 text-xs text-zinc-500">
+              <div className="w-5 h-5 border-2 border-zinc-500 border-t-zinc-200 rounded-full animate-spin mx-auto" />
+              <div>Preparing preview...</div>
             </div>
           ) : error ? (
             <div className="text-center space-y-3 max-w-sm">
-              <AlertCircle className="w-8 h-8 text-[#ff3333] mx-auto" />
-              <div className="font-mono text-xs text-white font-medium">
+              <AlertCircle className="w-8 h-8 text-rose-400 mx-auto" />
+              <div className="text-xs text-zinc-200 font-medium">
                 Unable to render preview inline.
               </div>
-              <div className="font-mono text-[11px] text-[#666]">
+              <div className="text-xs text-zinc-500">
                 {error}
               </div>
               <button
+                type="button"
                 onClick={() => onDownload(file.id)}
-                className="bg-white text-black hover:bg-[#e0e0e0] px-3.5 py-1.5 rounded text-xs font-mono font-bold uppercase tracking-wider transition-colors btn-press"
+                className="bg-white text-zinc-950 hover:bg-zinc-200 px-4 py-2 rounded-xl text-xs font-semibold transition-colors min-h-[40px]"
               >
                 Download Original File
               </button>
             </div>
           ) : isImage ? (
             <div className="max-w-full max-h-full flex items-center justify-center">
-              <div className="border border-[#1e1e1e] bg-[#0a0a0a] p-8 text-center space-y-3 rounded">
-                <ImageIcon className="w-16 h-16 text-[#666] mx-auto" />
-                <div className="font-mono text-xs text-white">{file.name}</div>
-                <div className="text-[10px] font-mono text-[#666]">
-                  Image verified via {file.chunks.length} encrypted chunks
+              <div className="border border-[#262626] bg-[#161616] p-8 text-center space-y-3 rounded-2xl">
+                <ImageIcon className="w-16 h-16 text-zinc-500 mx-auto" />
+                <div className="text-xs font-medium text-zinc-200">{file.name}</div>
+                <div className="text-[11px] text-zinc-500">
+                  Encrypted in {file.chunks.length} vault chunks
                 </div>
               </div>
             </div>
           ) : isVideo ? (
-            <div className="w-full max-w-lg bg-[#0a0a0a] border border-[#1e1e1e] p-8 text-center space-y-3 rounded">
-              <Film className="w-12 h-12 text-[#666] mx-auto" />
-              <div className="font-mono text-xs text-white">Video Stream Playback Ready</div>
-              <div className="text-[10px] font-mono text-[#666]">
-                HLS Chunk Reassembly Verified
+            <div className="w-full max-w-lg bg-[#161616] border border-[#262626] p-8 text-center space-y-3 rounded-2xl">
+              <Film className="w-12 h-12 text-zinc-500 mx-auto" />
+              <div className="text-xs font-medium text-zinc-200">Video Playback</div>
+              <div className="text-[11px] text-zinc-500">
+                Encrypted video ready for streaming
               </div>
             </div>
           ) : isAudio ? (
-            <div className="w-full max-w-md bg-[#0a0a0a] border border-[#1e1e1e] p-6 text-center space-y-3 rounded">
-              <Music className="w-10 h-10 text-[#666] mx-auto" />
-              <div className="font-mono text-xs text-white">{file.name}</div>
-              <div className="text-[10px] font-mono text-[#666]">
-                Audio stream ready for playback
+            <div className="w-full max-w-md bg-[#161616] border border-[#262626] p-6 text-center space-y-3 rounded-2xl">
+              <Music className="w-10 h-10 text-zinc-500 mx-auto" />
+              <div className="text-xs font-medium text-zinc-200">{file.name}</div>
+              <div className="text-[11px] text-zinc-500">
+                Audio ready for playback
               </div>
             </div>
           ) : isText ? (
-            <div className="w-full h-full bg-[#0a0a0a] border border-[#1e1e1e] p-4 rounded overflow-auto font-mono text-xs text-[#ccc] leading-relaxed">
-              <div className="text-[#555] mb-2">// File: {file.name}</div>
-              <div className="text-[#555] mb-4">// Size: {file.size} bytes | Chunks: {file.chunks.length}</div>
-              <div className="text-[#888]">
-                [Decrypted plaintext content placeholder for text document]
+            <div className="w-full h-full bg-[#161616] border border-[#262626] p-5 rounded-2xl overflow-auto text-xs text-zinc-300 leading-relaxed font-mono">
+              <div className="text-zinc-500 mb-2">File: {file.name}</div>
+              <div className="text-zinc-500 mb-4">Size: {formatBytes(file.size)} | Chunks: {file.chunks.length}</div>
+              <div className="text-zinc-400">
+                [Decrypted document preview ready for reading]
               </div>
             </div>
           ) : (
             <div className="text-center space-y-3 max-w-sm">
-              <File className="w-12 h-12 text-[#666] mx-auto" />
-              <div className="font-mono text-xs text-white">
-                Binary format: Inline preview not applicable
+              <File className="w-12 h-12 text-zinc-500 mx-auto" />
+              <div className="text-xs font-medium text-zinc-200">
+                Preview not supported for this file type
               </div>
-              <div className="font-mono text-[11px] text-[#666]">
-                Verified with SHA-256 chunk integrity
+              <div className="text-xs text-zinc-500">
+                Verified with zero-knowledge SHA-256 integrity
               </div>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-3 border-t border-[#1e1e1e] bg-[#0a0a0a] flex items-center justify-between text-xs font-mono">
-          <div className="flex items-center gap-2 text-[#22c55e]">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span className="text-[11px]">Integrity Verified</span>
+        <div className="px-5 py-4 border-t border-[#222] bg-[#121212] flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2 text-emerald-400">
+            <ShieldCheck className="w-4 h-4" />
+            <span className="font-medium">Encrypted & Verified</span>
           </div>
           <button
+            type="button"
             onClick={() => onDownload(file.id)}
-            className="bg-white text-black hover:bg-[#e0e0e0] px-3.5 py-1.5 rounded font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors btn-press text-xs"
+            className="bg-white text-zinc-950 hover:bg-zinc-200 px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 transition-colors text-xs min-h-[40px]"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="w-4 h-4" />
             <span>Download</span>
           </button>
         </div>

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
 import { PhoneInputWithCountry } from './PhoneInputWithCountry';
+import { humanizeError } from '../lib/humanize-error';
 
 export interface ProviderOnboardingModalProps {
   isOpen: boolean;
@@ -56,11 +57,7 @@ export function ProviderOnboardingModal({
       setSessionToken(data.sessionToken);
       setTelegramStep('code');
     } catch (err: any) {
-      const msg =
-        err?.message === 'Failed to fetch'
-          ? 'Unable to reach the Telegram service. Please ensure your web server is running and try again.'
-          : err?.message || 'Failed to send verification code from Telegram.';
-      setErrorMessage(msg);
+      setErrorMessage(humanizeError(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -96,11 +93,7 @@ export function ProviderOnboardingModal({
       await onConnectProvider('telegram', { sessionString: data.sessionString, phone });
       onClose();
     } catch (err: any) {
-      const msg =
-        err?.message === 'Failed to fetch'
-          ? 'Network connection error. Please try again.'
-          : err?.message || 'Verification failed.';
-      setErrorMessage(msg);
+      setErrorMessage(humanizeError(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -127,27 +120,29 @@ export function ProviderOnboardingModal({
       await onConnectProvider('telegram', { sessionString: data.sessionString, phone });
       onClose();
     } catch (err: any) {
-      const msg =
-        err?.message === 'Failed to fetch'
-          ? 'Network connection error. Please try again.'
-          : err?.message || '2FA Authentication failed.';
-      setErrorMessage(msg);
+      setErrorMessage(humanizeError(err));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm font-mono text-xs">
-      <div className="bg-[#0a0a0a] border border-[#1e1e1e] rounded-lg w-full max-w-md flex flex-col overflow-hidden shadow-2xl">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="provider-modal-title"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm font-sans"
+    >
+      <div className="bg-[#121212] border border-[#222] rounded-t-2xl sm:rounded-2xl w-full max-w-md flex flex-col overflow-hidden shadow-2xl text-xs text-zinc-100">
         {/* Header */}
-        <div className="px-4 py-3 border-b border-[#1e1e1e] flex items-center justify-between bg-[#0a0a0a]">
-          <span className="font-bold uppercase tracking-wider text-white">
+        <div className="px-5 py-4 border-b border-[#222] flex items-center justify-between">
+          <h2 id="provider-modal-title" className="text-sm font-semibold tracking-wide text-zinc-100">
             Connect Telegram Storage
-          </span>
+          </h2>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1 text-[#666] hover:text-white rounded hover:bg-[#181818] transition-colors btn-press"
+            className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800/60 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center -mr-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400"
             aria-label="Close Telegram storage connection"
           >
             <X className="w-4 h-4" />

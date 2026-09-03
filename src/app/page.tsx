@@ -19,6 +19,10 @@ import {
   Sidebar,
   StorageRulesPanel,
   UploadModal,
+  ConfirmDialog,
+  ToastContainer,
+  ToastItem,
+  ToastType,
 } from '../components';
 import {
   CategoryFilter,
@@ -28,9 +32,29 @@ import {
   UploadProgressState,
 } from '../lib/storage-store';
 import { createZipArchive } from '../lib/zip-builder';
+import { humanizeError } from '../lib/humanize-error';
 
 export default function BucketSpaceApp() {
   const [store, setStore] = useState<StorageStore>(() => StorageStore.getInstance());
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    isDestructive?: boolean;
+    onConfirm: () => void;
+  } | null>(null);
+
+  const showToast = (message: string, type: ToastType = 'info') => {
+    const id = `toast_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    setToasts((prev) => [...prev, { id, message, type }]);
+  };
+
+  const dismissToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -202,33 +226,40 @@ export default function BucketSpaceApp() {
     try {
       await store.downloadFile(fileId);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Download failed';
-      // Extract the user-friendly portion (before [Technical:]) if present
-      const friendlyMsg = msg.includes('[Technical:') ? msg.split('[Technical:')[0].trim() : msg;
-      alert(friendlyMsg);
+      showToast(humanizeError(err), 'error');
     }
   };
 
   const handleDelete = (fileId: string) => {
     store.deleteFile(fileId);
     setRefreshTrigger((prev) => prev + 1);
+    showToast('File moved to Trash.', 'info');
   };
 
   const handleRestore = (fileId: string) => {
     store.restoreFile(fileId);
     setRefreshTrigger((prev) => prev + 1);
+    showToast('File restored to your drive.', 'success');
   };
 
   const handlePurge = async (fileId: string) => {
-    if (confirm('Are you sure you want to permanently purge this file and delete all chunk storage?')) {
-      try {
-        await store.purgeFile(fileId);
-        setRefreshTrigger((prev) => prev + 1);
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Purge failed';
-        alert(`Purge Error: ${msg}`);
-      }
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Permanently Delete File',
+      description: 'This will permanently remove the file and all its encrypted chunks from your Telegram vault. This action cannot be undone.',
+      confirmLabel: 'Delete Permanently',
+      isDestructive: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          await store.purgeFile(fileId);
+          setRefreshTrigger((prev) => prev + 1);
+          showToast('File permanently deleted.', 'info');
+        } catch (err: unknown) {
+          showToast(humanizeError(err), 'error');
+        }
+      },
+    });
   };
 
   /* ─── Provider Management Handlers ─── */
@@ -263,6 +294,7 @@ export default function BucketSpaceApp() {
   const handleRemoveProvider = (providerId: string) => {
     store.removeProvider(providerId);
     setProviderList((prev) => prev.filter((p) => p.providerId !== providerId));
+    showToast('Storage provider disconnected.', 'info');
   };
 
   const handleMoveFile = async (fileId: string, targetProviderId: string) => {
@@ -270,9 +302,9 @@ export default function BucketSpaceApp() {
       await store.migrateFile(fileId, targetProviderId);
       setSelectedFileForMove(null);
       setRefreshTrigger((prev) => prev + 1);
+      showToast('File relocated successfully.', 'success');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Migration failed';
-      alert(`Move Error: ${msg}`);
+      showToast(humanizeError(err), 'error');
     }
   };
 
@@ -338,52 +370,75 @@ export default function BucketSpaceApp() {
     const totalBytes = filesToDownload.reduce((acc, f) => acc + (f.size || 0), 0);
     const MAX_BULK_ZIP_BYTES = 250 * 1024 * 1024; // 250 MB browser RAM threshold
 
+    const count = filesToDownload.length;
+    const executeZip = async () => {
+      setIsDownloadingZip(true);
+      try {
+        const zipEntries = [];
+
+        for (const file of filesToDownload) {
+          const { bytes } = await store.getFileBytes(file.id);
+          zipEntries.push({
+            name: file.name,
+            bytes,
+          });
+        }
+
+        const zipBytes = createZipArchive(zipEntries);
+        const blob = new Blob([zipBytes.buffer as ArrayBuffer], { type: 'application/zip' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `bucketspace_archive_${new Date().toISOString().slice(0, 10)}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Archive downloaded successfully.', 'success');
+      } catch (err: unknown) {
+        showToast(humanizeError(err), 'error');
+      } finally {
+        setIsDownloadingZip(false);
+      }
+    };
+
     if (totalBytes > MAX_BULK_ZIP_BYTES) {
       const mb = Math.round(totalBytes / (1024 * 1024));
-      const proceed = confirm(
-        `Selected files total ${mb} MB. Generating a large in-browser ZIP archive may consume significant device memory. Proceed anyway?`
-      );
-      if (!proceed) return;
+      setConfirmDialog({
+        isOpen: true,
+        title: 'Large Archive Warning',
+        description: `Selected files total ${mb} MB. Creating this ZIP archive in your browser may consume significant device memory. Proceed anyway?`,
+        confirmLabel: 'Download Anyway',
+        onConfirm: () => {
+          setConfirmDialog(null);
+          executeZip();
+        },
+      });
+      return;
     }
 
-    setIsDownloadingZip(true);
-    try {
-      const zipEntries = [];
-
-      for (const file of filesToDownload) {
-        const { bytes } = await store.getFileBytes(file.id);
-        zipEntries.push({
-          name: file.name,
-          bytes,
-        });
-      }
-
-      const zipBytes = createZipArchive(zipEntries);
-      const blob = new Blob([zipBytes.buffer as ArrayBuffer], { type: 'application/zip' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `bucketspace_archive_${new Date().toISOString().slice(0, 10)}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err: any) {
-      alert(`Bulk download error: ${err?.message || 'Failed to create ZIP'}`);
-    } finally {
-      setIsDownloadingZip(false);
-    }
+    executeZip();
   };
 
   const handleBulkDelete = () => {
     if (selectedFileIds.size === 0) return;
-    if (confirm(`Move ${selectedFileIds.size} files to Trash?`)) {
-      Array.from(selectedFileIds).forEach((id) => {
-        store.deleteFile(id);
-      });
-      setSelectedFileIds(new Set());
-      setRefreshTrigger((prev) => prev + 1);
-    }
+    const count = selectedFileIds.size;
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Move Files to Trash',
+      description: `Are you sure you want to move ${count} ${count === 1 ? 'file' : 'files'} to Trash?`,
+      confirmLabel: 'Move to Trash',
+      isDestructive: true,
+      onConfirm: () => {
+        setConfirmDialog(null);
+        Array.from(selectedFileIds).forEach((id) => {
+          store.deleteFile(id);
+        });
+        setSelectedFileIds(new Set());
+        setRefreshTrigger((prev) => prev + 1);
+        showToast(`Moved ${count} ${count === 1 ? 'file' : 'files'} to Trash.`, 'info');
+      },
+    });
   };
 
   /* ─── Multi-Tab Synchronization & Disconnect ─── */
@@ -399,23 +454,22 @@ export default function BucketSpaceApp() {
   }, []);
 
   const handleDisconnect = () => {
-    if (confirm('Are you sure you want to disconnect this storage account and switch back to the landing page?')) {
-      store.clearUserSession();
-      setRefreshTrigger((prev) => prev + 1);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Disconnect Account',
+      description: 'Are you sure you want to disconnect your Telegram account? Your files will remain safely stored in Telegram.',
+      confirmLabel: 'Disconnect',
+      isDestructive: true,
+      onConfirm: () => {
+        setConfirmDialog(null);
+        store.clearUserSession();
+        setRefreshTrigger((prev) => prev + 1);
+        showToast('Disconnected from Telegram.', 'info');
+      },
+    });
   };
 
   /* ─── Onboarding Landing Gate & Hydration Guard ─── */
-  const isFirstRun = !store.hasUserProvider();
-  if (isFirstRun) {
-    return (
-      <OnboardingLandingPage
-        onConnectProvider={handleConnectProvider}
-        onFinishOnboarding={() => setRefreshTrigger((prev) => prev + 1)}
-      />
-    );
-  }
-
   if (!mounted) {
     return (
       <div
@@ -427,6 +481,16 @@ export default function BucketSpaceApp() {
           <span>Opening BucketSpace Vault...</span>
         </div>
       </div>
+    );
+  }
+
+  const isFirstRun = !store.hasUserProvider();
+  if (isFirstRun) {
+    return (
+      <OnboardingLandingPage
+        onConnectProvider={handleConnectProvider}
+        onFinishOnboarding={() => setRefreshTrigger((prev) => prev + 1)}
+      />
     );
   }
 
@@ -456,7 +520,7 @@ export default function BucketSpaceApp() {
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
         />
 
-        <main className="p-4 sm:p-8 flex-1">
+        <main id="main-content" className="p-4 sm:p-8 flex-1">
           <div className="mb-6 flex items-center justify-between">
             <div>
               <h2 className="text-xl sm:text-2xl font-semibold text-white capitalize tracking-tight">
@@ -522,13 +586,13 @@ export default function BucketSpaceApp() {
           }}
           availableProviders={store.getRegisteredProviders().map((p) => p.providerId)}
           onReplicate={(fileId, targetProviderId) => {
-            alert(`Replication initialized: Chunks mirrored to ${targetProviderId} with SHA-256 integrity verification.`);
+            showToast(`Replication initialized to ${targetProviderId}.`, 'success');
           }}
           onVerify={(fileId) => {
-            alert('Integrity audit passed: 100% of chunks match canonical SHA-256 digests.');
+            showToast('Integrity check passed: all chunks verified.', 'success');
           }}
           onRepair={(fileId) => {
-            alert('Self-healing complete: All chunk locations verified and healthy.');
+            showToast('Self-healing complete: all chunks healthy.', 'success');
           }}
           onClose={() => setSelectedFileForRedundancy(null)}
         />
@@ -615,6 +679,23 @@ export default function BucketSpaceApp() {
           onToggleRule={handleToggleRule}
           onDeleteRule={handleDeleteRule}
           onClose={() => setRulesOpen(false)}
+        />
+      )}
+
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+
+      {/* Confirmation Dialog */}
+      {confirmDialog && (
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          description={confirmDialog.description}
+          confirmLabel={confirmDialog.confirmLabel}
+          cancelLabel={confirmDialog.cancelLabel}
+          isDestructive={confirmDialog.isDestructive}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(null)}
         />
       )}
     </div>

@@ -103,24 +103,25 @@ export function Sidebar({
                 const count = categoryCounts[cat.id] || 0;
                 return (
                   <button
+                    type="button"
                     key={cat.id}
                     onClick={() => {
                       onSelectCategory(cat.id);
                       if (onCloseMobile) onCloseMobile();
                     }}
-                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded text-xs font-mono transition-colors btn-press ${
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-colors min-h-[40px] ${
                       isActive
-                        ? 'bg-[#1a1a1a] text-white border border-[#333]'
-                        : 'text-[#888] hover:text-white hover:bg-[#121212]'
+                        ? 'bg-zinc-800 text-white font-semibold shadow-sm'
+                        : 'text-zinc-400 hover:text-white hover:bg-zinc-900/80'
                     }`}
                   >
-                    <div className="flex items-center gap-2">
-                      <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-[#666]'}`} />
+                    <div className="flex items-center gap-2.5">
+                      <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-zinc-500'}`} />
                       <span>{cat.label}</span>
                     </div>
                     <span
-                      className={`text-[10px] tabular-nums ${
-                        isActive ? 'text-white font-bold' : 'text-[#555]'
+                      className={`text-xs tabular-nums ${
+                        isActive ? 'text-white font-semibold' : 'text-zinc-500'
                       }`}
                     >
                       {count}
@@ -132,45 +133,47 @@ export function Sidebar({
           </div>
 
         {/* Footer: Storage Quota & Settings */}
-        <div className="p-3 border-t border-[#1e1e1e] space-y-3 bg-[#0a0a0a]">
+        <div className="p-4 border-t border-[#222] space-y-3 bg-[#0a0a0a]">
           {/* Storage Quota Bar */}
-          <div className="p-2.5 bg-[#121212] border border-[#1e1e1e] rounded space-y-1.5">
-            <div className="flex items-center justify-between text-[10px] font-mono uppercase text-[#888]">
-              <span className="flex items-center gap-1">
-                <HardDrive className="w-3 h-3 text-[#666]" />
-                Usage
+          <div className="p-3 bg-[#141414] border border-[#262626] rounded-xl space-y-2">
+            <div className="flex items-center justify-between text-xs text-zinc-400">
+              <span className="flex items-center gap-1.5 font-medium">
+                <HardDrive className="w-3.5 h-3.5 text-zinc-500" />
+                Vault Storage
               </span>
-              <span className="text-white tabular-nums">{formatBytes(storageUsedBytes)}</span>
+              <span className="text-zinc-200 font-semibold tabular-nums">{formatBytes(storageUsedBytes)}</span>
             </div>
-            <div className="h-1 bg-[#222] rounded-full overflow-hidden">
+            <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
               <div
                 className="h-full bg-white transition-all duration-300"
                 style={{ width: `${Math.min(100, Math.max(2, (storageUsedBytes / (5 * 1024 * 1024 * 1024)) * 100))}%` }}
               />
             </div>
-            <div className="text-[9px] font-mono text-[#555] flex justify-between">
-              <span>Telegram storage</span>
-              <span>Client encrypted</span>
+            <div className="text-[10px] text-zinc-500 flex justify-between">
+              <span>Unlimited Telegram cloud</span>
+              <span>Encrypted</span>
             </div>
           </div>
 
           {/* Action Triggers */}
-          <div className="grid grid-cols-2 gap-1.5">
+          <div className="grid grid-cols-2 gap-2">
             <button
+              type="button"
               onClick={onOpenRules}
-              className="py-1.5 px-2 bg-[#121212] hover:bg-[#181818] border border-[#1e1e1e] hover:border-[#333] rounded text-[10px] font-mono text-[#888] hover:text-white flex items-center justify-center gap-1.5 transition-colors btn-press"
+              className="py-2.5 px-3 bg-[#141414] hover:bg-[#1a1a1a] border border-[#262626] hover:border-[#333] rounded-xl text-xs text-zinc-300 hover:text-white flex items-center justify-center gap-2 transition-colors min-h-[40px]"
               title="Storage Routing Rules"
             >
-              <Sliders className="w-3 h-3" />
+              <Sliders className="w-3.5 h-3.5 text-zinc-400" />
               <span>Rules</span>
             </button>
             <button
+              type="button"
               onClick={onOpenSettings}
-              className="py-1.5 px-2 bg-[#121212] hover:bg-[#181818] border border-[#1e1e1e] hover:border-[#333] rounded text-[10px] font-mono text-[#888] hover:text-white flex items-center justify-center gap-1.5 transition-colors btn-press"
-              title="Storage Provider Settings"
+              className="py-2.5 px-3 bg-[#141414] hover:bg-[#1a1a1a] border border-[#262626] hover:border-[#333] rounded-xl text-xs text-zinc-300 hover:text-white flex items-center justify-center gap-2 transition-colors min-h-[40px]"
+              title="Storage Account Settings"
             >
-              <Settings className="w-3 h-3" />
-              <span>Config</span>
+              <Settings className="w-3.5 h-3.5 text-zinc-400" />
+              <span>Settings</span>
             </button>
           </div>
         </div>

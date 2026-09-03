@@ -35,26 +35,27 @@ export function BulkActionBar({
           transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
           className="fixed bottom-6 left-1/2 z-40 max-w-[95vw]"
         >
-          <div className="bg-[#0a0a0a] border border-[#222] px-4 py-2 rounded-lg flex items-center gap-3 text-xs font-mono shadow-2xl shadow-black/90">
+          <div className="bg-[#121212] border border-[#262626] px-4 py-2.5 rounded-2xl flex items-center gap-3 text-xs font-sans shadow-2xl shadow-black/90 backdrop-blur-md overflow-x-auto max-w-[92vw]">
             {/* Selected Count */}
-            <div className="flex items-center gap-2 pr-3 border-r border-[#1e1e1e]">
-              <span className="text-white font-bold tabular-nums">{selectedCount}</span>
-              <span className="text-[#888]">selected</span>
+            <div className="flex items-center gap-2 pr-3 border-r border-[#222] shrink-0">
+              <span className="text-white font-semibold tabular-nums">{selectedCount}</span>
+              <span className="text-zinc-400">selected</span>
             </div>
 
             {/* Select All / Clear */}
             <button
+              type="button"
               onClick={onToggleSelectAll}
-              className="text-[#888] hover:text-white flex items-center gap-1.5 transition-colors btn-press"
+              className="text-zinc-400 hover:text-white flex items-center gap-1.5 transition-colors shrink-0 py-1.5 px-2 rounded-lg hover:bg-zinc-800/50 min-h-[36px]"
             >
               {isAllSelected ? (
                 <>
-                  <CheckSquare className="w-3.5 h-3.5 text-white" />
+                  <CheckSquare className="w-4 h-4 text-white" />
                   <span>Deselect All</span>
                 </>
               ) : (
                 <>
-                  <Square className="w-3.5 h-3.5" />
+                  <Square className="w-4 h-4" />
                   <span>Select All ({totalCount})</span>
                 </>
               )}
@@ -62,9 +63,10 @@ export function BulkActionBar({
 
             {/* Download Zip */}
             <button
+              type="button"
               onClick={onBulkDownloadZip}
               disabled={isDownloadingZip}
-              className="bg-white text-black hover:bg-[#e0e0e0] px-3 py-1 rounded font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors btn-press disabled:opacity-50"
+              className="bg-white text-zinc-950 hover:bg-zinc-200 px-3.5 py-1.5 rounded-xl font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50 shrink-0 min-h-[36px]"
             >
               <Archive className="w-3.5 h-3.5" />
               <span>{isDownloadingZip ? 'Archiving...' : 'Download ZIP'}</span>
@@ -72,8 +74,9 @@ export function BulkActionBar({
 
             {/* Delete Selected */}
             <button
+              type="button"
               onClick={onBulkDelete}
-              className="text-[#ff3333] hover:bg-[#ff3333]/10 border border-[#ff3333]/30 px-3 py-1 rounded flex items-center gap-1.5 transition-colors btn-press"
+              className="text-rose-400 hover:bg-rose-950/30 border border-rose-900/40 px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-colors shrink-0 min-h-[36px]"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>Delete</span>
@@ -81,8 +84,10 @@ export function BulkActionBar({
 
             {/* Clear selection icon */}
             <button
+              type="button"
               onClick={onClearSelection}
-              className="p-1 text-[#555] hover:text-white rounded transition-colors btn-press ml-1"
+              className="p-1.5 text-zinc-500 hover:text-white rounded-lg transition-colors ml-1 min-w-[32px] min-h-[32px] flex items-center justify-center shrink-0"
+              aria-label="Clear selection"
               title="Clear selection"
             >
               <X className="w-4 h-4" />

@@ -39,6 +39,12 @@ export default function RootLayout({
         style={{ backgroundColor: '#0a0a0a', color: '#f5f5f4', margin: 0 }}
         className={`${jakarta.variable} ${newsreader.variable} ${GeistSans.variable} ${GeistMono.variable} min-h-[100dvh] bg-[#0a0a0a] text-stone-50 font-sans antialiased selection:bg-stone-50 selection:text-black`}
       >
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[999] focus:px-4 focus:py-2.5 focus:bg-white focus:text-black focus:rounded-xl focus:font-semibold focus:text-xs focus:shadow-2xl focus:outline-none"
+        >
+          Skip to main content
+        </a>
         {children}
       </body>
     </html>

@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Download, File, ShieldCheck, Lock, AlertCircle } from 'lucide-react';
+import { Download, File, ShieldCheck, Lock, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { StorageStore } from '../../../lib/storage-store';
+import { humanizeError } from '../../../lib/humanize-error';
 
 export default function PublicSharePage() {
   const params = useParams();
@@ -13,7 +14,9 @@ export default function PublicSharePage() {
   const [passcode, setPasscode] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
@@ -53,20 +56,23 @@ export default function PublicSharePage() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setAuthError(data.message || 'Incorrect passcode.');
+        setAuthError(data.message || 'Incorrect passcode. Please try again.');
         return;
       }
       setShareData((prev: any) => ({ ...prev, ...data }));
       setIsAuthenticated(true);
       setAuthError('');
     } catch {
-      setAuthError('Incorrect passcode.');
+      setAuthError('Incorrect passcode. Please try again.');
     }
   };
 
   const handleDownload = async () => {
     if (!shareData) return;
     setDownloading(true);
+    setDownloadError(null);
+    setDownloadSuccess(false);
+
     try {
       const store = StorageStore.getInstance();
       let bytes: Uint8Array;
@@ -89,89 +95,132 @@ export default function PublicSharePage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (err: any) {
-      alert(err?.message || 'Failed to download and reassemble file chunks.');
+      setDownloadSuccess(true);
+    } catch (err: unknown) {
+      setDownloadError(humanizeError(err));
     } finally {
       setDownloading(false);
     }
   };
 
   return (
-    <div className="min-h-[100dvh] bg-black text-white font-mono flex flex-col justify-between p-6 sm:p-12">
+    <div className="min-h-[100dvh] bg-[#0a0a0a] text-zinc-100 font-sans flex flex-col justify-between p-6 sm:p-12">
       {/* Top Header */}
-      <header className="border-b border-[#1e1e1e] pb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 bg-white text-black font-bold text-xs flex items-center justify-center rounded">
+      <header className="border-b border-[#222] pb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-6 h-6 bg-white text-black font-bold text-xs flex items-center justify-center rounded-lg">
             B
           </div>
-          <span className="font-bold text-xs uppercase tracking-wider text-white">
+          <span className="font-semibold text-xs tracking-wider uppercase text-zinc-200">
             BucketSpace Secure Share
           </span>
         </div>
       </header>
 
-      {/* Center Card */}
-      <main className="max-w-md w-full mx-auto my-auto p-6 bg-[#0a0a0a] border border-[#1e1e1e] rounded-lg shadow-2xl space-y-5">
+      {/* Main Content Area */}
+      <main className="max-w-md w-full mx-auto my-auto py-12">
         {notFound ? (
           <div className="text-center space-y-3">
-            <AlertCircle className="w-8 h-8 text-[#ff3333] mx-auto" />
-            <div className="text-sm font-bold uppercase text-white">Link Expired or Not Found</div>
-            <p className="text-xs text-[#666]">This share token has reached its expiration limit or was revoked.</p>
+            <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-500">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            <h1 className="text-base font-semibold text-zinc-200">Link Not Found</h1>
+            <p className="text-xs text-zinc-500 leading-relaxed">
+              This shared link may have expired or been removed by its owner.
+            </p>
           </div>
         ) : !isAuthenticated ? (
-          <form onSubmit={handleUnlock} className="space-y-4 text-xs">
-            <div className="space-y-1 text-center">
-              <Lock className="w-6 h-6 text-white mx-auto mb-2" />
-              <div className="font-bold uppercase text-white">Password Protected Share</div>
-              <p className="text-[#666]">Enter the secret passcode to access this encrypted file.</p>
+          <form onSubmit={handleUnlock} className="space-y-4">
+            <div className="text-center space-y-1.5 mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-300 mb-3">
+                <Lock className="w-5 h-5" />
+              </div>
+              <h1 className="text-base font-semibold text-zinc-100">Passcode Protected File</h1>
+              <p className="text-xs text-zinc-400">
+                Enter the passcode provided by the sender to view and download this file.
+              </p>
             </div>
 
-            <input
-              type="password"
-              placeholder="Passcode"
-              value={passcode}
-              onChange={(e) => setPasscode(e.target.value)}
-              className="w-full bg-[#121212] border border-[#1e1e1e] p-2.5 rounded text-white text-xs focus:outline-none focus:border-[#444]"
-            />
-            {authError && <div className="text-[#ff3333] text-[11px]">{authError}</div>}
+            <div>
+              <label htmlFor="passcode-input" className="sr-only">
+                File Passcode
+              </label>
+              <input
+                id="passcode-input"
+                type="password"
+                placeholder="Enter passcode"
+                value={passcode}
+                onChange={(e) => setPasscode(e.target.value)}
+                className="w-full bg-[#141414] border border-[#262626] p-3 rounded-xl text-zinc-100 text-xs focus:outline-none focus:border-zinc-500 min-h-[44px]"
+                autoFocus
+              />
+            </div>
+
+            {authError && (
+              <div role="alert" className="text-rose-400 text-xs flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>{authError}</span>
+              </div>
+            )}
 
             <button
               type="submit"
-              className="w-full bg-white text-black font-bold py-2 rounded uppercase tracking-wider text-xs btn-press"
+              className="w-full bg-white hover:bg-zinc-200 text-black font-semibold py-2.5 rounded-xl text-xs transition-colors min-h-[44px] flex items-center justify-center"
             >
               Unlock File
             </button>
           </form>
         ) : (
-          <div className="space-y-4 text-xs">
-            <div className="flex items-center gap-3 bg-[#121212] p-3 border border-[#1e1e1e] rounded">
-              <File className="w-8 h-8 text-[#888] shrink-0" />
+          <div className="space-y-5 text-xs">
+            <div className="flex items-center gap-3.5 bg-[#141414] p-4 border border-[#262626] rounded-2xl">
+              <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 text-zinc-400">
+                <File className="w-5 h-5" />
+              </div>
               <div className="min-w-0 flex-1">
-                <div className="text-white font-medium truncate">{shareData?.fileName || 'Encrypted File'}</div>
-                <div className="text-[10px] text-[#666]">AES-256-GCM encrypted file</div>
+                <div className="text-zinc-100 font-medium truncate text-sm">
+                  {shareData?.fileName || 'Shared File'}
+                </div>
+                <div className="text-xs text-zinc-500 mt-0.5">
+                  End-to-end encrypted · Private cloud delivery
+                </div>
               </div>
             </div>
 
+            {downloadError && (
+              <div role="alert" className="p-3.5 bg-rose-950/30 border border-rose-800/40 rounded-xl text-rose-300 text-xs flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                <span>{downloadError}</span>
+              </div>
+            )}
+
+            {downloadSuccess && (
+              <div role="status" className="p-3.5 bg-emerald-950/30 border border-emerald-800/40 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Download started successfully!</span>
+              </div>
+            )}
+
             <button
+              type="button"
               onClick={handleDownload}
               disabled={downloading}
-              className="w-full bg-white text-black hover:bg-[#e0e0e0] font-bold py-2.5 rounded uppercase tracking-wider text-xs flex items-center justify-center gap-2 transition-colors btn-press disabled:opacity-50"
+              className="w-full bg-white text-black hover:bg-zinc-200 font-semibold py-3 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors disabled:opacity-50 min-h-[44px]"
             >
               <Download className="w-4 h-4" />
-              <span>{downloading ? 'Decrypting Chunks...' : 'Download Original File'}</span>
+              <span>{downloading ? 'Decrypting and Reassembling...' : 'Download File'}</span>
             </button>
 
-            <div className="flex items-center justify-center gap-1.5 text-[10px] text-[#22c55e]">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>SHA-256 Checksum Verified</span>
+            <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-400">
+              <ShieldCheck className="w-4 h-4" />
+              <span>Verified with SHA-256 integrity</span>
             </div>
           </div>
         )}
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[#1e1e1e] pt-4 text-center text-[10px] text-[#555]">
-        Powered by BucketSpace - Zero Compromise Personal Cloud Storage
+      <footer className="border-t border-[#222] pt-4 text-center text-xs text-zinc-600">
+        Secured by BucketSpace · Zero-knowledge private cloud
       </footer>
     </div>
   );

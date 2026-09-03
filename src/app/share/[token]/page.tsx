@@ -16,8 +16,8 @@ export default function ShareRedirect() {
   }, [params, router]);
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center">
-      <div className="w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="w-5 h-5 border-2 border-zinc-700 border-t-zinc-200 rounded-full animate-spin" />
     </div>
   );
 }

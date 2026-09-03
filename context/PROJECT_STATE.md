@@ -185,3 +185,19 @@ BucketSpace/
   - **Liveness Health Endpoint:** Dedicated `/api/health` probe responding with HTTP 200 and uptime in <5ms without Telegram dependencies.
 - **CI / Pre-Deploy Validation:** Automated verification via `./scripts/validate-production.sh` running typecheck, unit tests, production compilation, and live server startup smoke tests.
 
+---
+
+## 9. Frontend & Consumer UX Polish (Production Release)
+
+- **Hydration Guard:** `mounted` gate check executes before checking `hasUserProvider()`, completely eliminating the hydration flash of the landing page for authenticated users restoring local state.
+- **Consumer Error Humanization (`src/lib/humanize-error.ts`):** Converts low-level Telegram MTProto RPC codes (`PHONE_CODE_INVALID`, `PASSWORD_HASH_INVALID`, `FLOOD_WAIT`), network timeouts, and crypto exceptions into clear consumer guidance across onboarding, upload, and sharing flows.
+- **Zero Native Browser Modals:** Replaced all native `alert()` and `confirm()` dialogs with an accessible `ToastContainer` and `ConfirmDialog` (`role="dialog" aria-modal="true"`) matching the dark charcoal design system.
+- **Mobile & Accessibility Enhancements:**
+  - Added accessible skip link (`#main-content`) in `src/app/layout.tsx`.
+  - Added `:focus-visible` styling and `prefers-reduced-motion` media query handling in `src/app/globals.css`.
+  - Upgraded dialogs to responsive bottom sheets on mobile devices with comfortable 40–44px minimum tap targets.
+  - Global `⌘K` keyboard shortcut listener in header search.
+- **Progress & Error Recovery:**
+  - Upload modal displays real progress stages (`Preparing and encrypting file...`, `Uploading to private vault...`, `Finishing and verifying...`) with part counts and a one-click "Retry Upload" option on failures.
+- **Validation:** 38 unit tests passing (100%), TypeScript typecheck clean, and production build fully verified.
+

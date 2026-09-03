@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Copy, Check, Share2, Shield } from 'lucide-react';
+import { X, Copy, Check, Share2, ShieldCheck } from 'lucide-react';
 import { FileMetadata } from '@/shared';
 import { StorageStore } from '../lib/storage-store';
 
@@ -40,50 +40,58 @@ export function ShareModal({ file, onClose }: ShareModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-[#0a0a0a] border border-[#1e1e1e] rounded-lg w-full max-w-md flex flex-col overflow-hidden shadow-2xl font-mono text-xs">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="share-modal-title"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm font-sans"
+    >
+      <div className="bg-[#121212] border border-[#222] rounded-t-2xl sm:rounded-2xl w-full max-w-md flex flex-col overflow-hidden shadow-2xl text-xs text-zinc-100">
         {/* Header */}
-        <div className="px-4 py-3 border-b border-[#1e1e1e] flex items-center justify-between bg-[#0a0a0a]">
-          <div className="flex items-center gap-2">
-            <Share2 className="w-3.5 h-3.5 text-white" />
-            <span className="font-bold uppercase tracking-wider text-white">
-              Create Share Link
-            </span>
+        <div className="px-5 py-4 border-b border-[#222] flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Share2 className="w-4 h-4 text-zinc-300" />
+            <h2 id="share-modal-title" className="text-sm font-semibold tracking-wide text-zinc-100">
+              Share File
+            </h2>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1 text-[#666] hover:text-white rounded hover:bg-[#181818] transition-colors btn-press"
+            aria-label="Close share dialog"
+            className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800/60 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center -mr-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-4 space-y-4">
-          <div className="space-y-1">
-            <div className="text-[10px] text-[#666] uppercase">File</div>
-            <div className="text-white font-medium truncate">{file.name}</div>
+        <div className="p-5 space-y-4">
+          <div className="p-3 bg-[#161616] border border-[#262626] rounded-xl space-y-1">
+            <div className="text-[11px] text-zinc-500 font-medium">Shared item</div>
+            <div className="text-zinc-100 font-medium truncate text-xs">{file.name}</div>
           </div>
 
           {/* Expiration Select */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] text-[#666] uppercase block">
-              Link Expiration (Duration)
+          <div className="space-y-2">
+            <label className="text-xs text-zinc-400 block font-medium">
+              Link expiration
             </label>
-            <div className="grid grid-cols-4 gap-1.5">
+            <div className="grid grid-cols-4 gap-2">
               {[
-                { label: '1h', value: '1h' },
-                { label: '24h', value: '24h' },
-                { label: '7d', value: '7d' },
-                { label: '∞ Never', value: 'Never' },
+                { label: '1 hour', value: '1h' },
+                { label: '24 hours', value: '24h' },
+                { label: '7 days', value: '7d' },
+                { label: 'Never', value: 'Never' },
               ].map((opt) => (
                 <button
+                  type="button"
                   key={opt.value}
                   onClick={() => setExpiresIn(opt.value)}
-                  className={`py-1.5 rounded border text-xs font-mono uppercase transition-colors btn-press ${
+                  className={`py-2 rounded-xl text-xs transition-colors min-h-[40px] font-medium ${
                     expiresIn === opt.value
-                      ? 'border-white bg-[#1a1a1a] text-white font-bold'
-                      : 'border-[#1e1e1e] bg-[#121212] text-[#888] hover:text-white'
+                      ? 'bg-zinc-800 text-white font-semibold border border-zinc-700'
+                      : 'bg-[#161616] border border-[#262626] text-zinc-400 hover:text-zinc-200'
                   }`}
                 >
                   {opt.label}
@@ -93,38 +101,41 @@ export function ShareModal({ file, onClose }: ShareModalProps) {
           </div>
 
           {/* Generated Share URL */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] text-[#666] uppercase block">
-              Public Secure URL
+          <div className="space-y-2">
+            <label htmlFor="share-link-input" className="text-xs text-zinc-400 block font-medium">
+              Share link
             </label>
-            <div className="flex items-center gap-2 bg-[#121212] border border-[#1e1e1e] rounded p-2">
+            <div className="flex items-center gap-2 bg-[#161616] border border-[#262626] rounded-xl p-2.5">
               <input
+                id="share-link-input"
                 type="text"
                 readOnly
                 value={shareUrl}
-                className="bg-transparent text-white text-xs font-mono flex-1 focus:outline-none truncate"
+                className="bg-transparent text-zinc-200 text-xs flex-1 focus:outline-none truncate px-1"
               />
               <button
+                type="button"
                 onClick={copyToClipboard}
-                className="bg-white text-black hover:bg-[#e0e0e0] px-2.5 py-1 rounded text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 transition-colors btn-press shrink-0"
+                className="bg-white text-zinc-950 hover:bg-zinc-200 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shrink-0 min-h-[36px]"
               >
-                {copied ? <Check className="w-3 h-3 text-[#22c55e]" /> : <Copy className="w-3 h-3" />}
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{copied ? 'Copied' : 'Copy'}</span>
               </button>
             </div>
           </div>
 
-          <div className="text-[10px] text-[#555] flex items-center gap-1.5">
-            <Shield className="w-3 h-3 text-[#666]" />
-            <span>Recipients stream directly from encrypted chunks.</span>
+          <div className="text-xs text-zinc-500 flex items-center gap-2 pt-1">
+            <ShieldCheck className="w-4 h-4 text-emerald-500/80 shrink-0" />
+            <span>Recipients download directly from encrypted cloud chunks.</span>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="p-3 border-t border-[#1e1e1e] bg-[#0a0a0a] flex items-center justify-end">
+        <div className="p-4 border-t border-[#222] bg-[#121212] flex items-center justify-end">
           <button
+            type="button"
             onClick={onClose}
-            className="border border-[#333] hover:border-white text-white px-4 py-1.5 rounded font-mono uppercase tracking-wider text-xs transition-colors btn-press"
+            className="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium text-xs transition-colors min-h-[40px]"
           >
             Done
           </button>

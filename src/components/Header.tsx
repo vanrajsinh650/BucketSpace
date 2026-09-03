@@ -18,32 +18,48 @@ export function Header({
   onDisconnect,
   onOpenMobileMenu,
 }: HeaderProps) {
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
-    <header className="h-14 border-b border-[#1e1e1e] bg-[#0a0a0a]/90 sticky top-0 z-30 px-4 sm:px-6 flex items-center justify-between gap-3 backdrop-blur-md">
+    <header className="h-16 border-b border-[#222] bg-[#0a0a0a]/90 sticky top-0 z-30 px-4 sm:px-6 flex items-center justify-between gap-3 backdrop-blur-md">
       {/* Search Input */}
       <div className="flex items-center gap-2.5 flex-1 max-w-md">
         {onOpenMobileMenu && (
           <button
+            type="button"
             onClick={onOpenMobileMenu}
-            className="lg:hidden p-1.5 rounded bg-[#121212] border border-[#1e1e1e] text-[#888] hover:text-white btn-press"
-            aria-label="Open Navigation"
+            className="lg:hidden p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white min-w-[40px] min-h-[40px] flex items-center justify-center"
+            aria-label="Open navigation menu"
           >
             <Menu className="w-4 h-4" />
           </button>
         )}
 
         <div className="relative flex-1">
-          <Search className="w-3.5 h-3.5 text-[#555] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
+            ref={searchInputRef}
             type="text"
-            placeholder="Search filenames or hashes..."
+            placeholder="Search your drive..."
+            aria-label="Search files"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full bg-[#0a0a0a] border border-[#1e1e1e] text-white placeholder-[#555] rounded-lg pl-8 pr-12 py-1.5 text-xs font-mono focus:outline-none focus:border-[#444] transition-colors"
+            className="w-full bg-[#121212] border border-[#262626] text-zinc-100 placeholder-zinc-500 rounded-xl pl-10 pr-12 py-2 text-xs focus:outline-none focus:border-zinc-500 transition-colors min-h-[40px]"
           />
-          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-[#555] pointer-events-none hidden sm:inline">
+          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-zinc-400 pointer-events-none hidden sm:inline bg-zinc-800/80 border border-zinc-700 px-1.5 py-0.5 rounded">
             ⌘K
-          </span>
+          </kbd>
         </div>
       </div>
 
@@ -51,23 +67,26 @@ export function Header({
       <div className="flex items-center gap-2.5">
         {/* Upload Button */}
         <button
+          type="button"
           onClick={onOpenUpload}
-          className="bg-white text-black hover:bg-[#e0e0e0] px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors btn-press shadow-sm"
+          className="bg-white text-black hover:bg-zinc-200 px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-colors shadow-sm min-h-[40px]"
         >
-          <Upload className="w-3.5 h-3.5" />
+          <Upload className="w-4 h-4" />
           <span>Upload</span>
         </button>
 
         {/* Provider Tag & Disconnect */}
-        <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-[#1e1e1e]">
-          <span className="text-[11px] font-mono text-[#888] uppercase">
+        <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-[#222]">
+          <span className="text-xs text-zinc-400 capitalize font-medium">
             {providerName}
           </span>
           {onDisconnect && (
             <button
+              type="button"
               onClick={onDisconnect}
-              className="p-1.5 text-[#555] hover:text-white rounded hover:bg-[#121212] transition-colors btn-press"
-              title="Disconnect Storage Provider"
+              className="p-2 text-zinc-500 hover:text-zinc-200 rounded-lg hover:bg-zinc-800 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+              aria-label="Disconnect storage account"
+              title="Disconnect storage account"
             >
               <LogOut className="w-3.5 h-3.5" />
             </button>

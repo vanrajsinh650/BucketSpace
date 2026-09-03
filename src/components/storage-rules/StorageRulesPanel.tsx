@@ -32,93 +32,106 @@ export function StorageRulesPanel({
   const sortedRules = [...rules].sort((a, b) => b.priority - a.priority);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm font-mono text-xs">
-      <div className="bg-[#0a0a0a] border border-[#1e1e1e] rounded-lg w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="rules-panel-title"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm font-sans"
+    >
+      <div className="bg-[#121212] border border-[#222] rounded-t-2xl sm:rounded-2xl w-full max-w-2xl max-h-[90vh] sm:max-h-[85vh] flex flex-col overflow-hidden shadow-2xl text-xs text-zinc-100">
         {/* Header */}
-        <div className="px-4 py-3 border-b border-[#1e1e1e] flex items-center justify-between bg-[#0a0a0a]">
-          <div className="flex items-center gap-2">
-            <Sliders className="w-3.5 h-3.5 text-white" />
-            <span className="font-bold uppercase tracking-wider text-white">
+        <div className="px-5 py-4 border-b border-[#222] flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Sliders className="w-4 h-4 text-zinc-300" />
+            <h2 id="rules-panel-title" className="text-sm font-semibold tracking-wide text-zinc-100">
               Storage Routing Rules
-            </span>
+            </h2>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1 text-[#666] hover:text-white rounded hover:bg-[#181818] transition-colors btn-press"
+            aria-label="Close rules panel"
+            className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800/60 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center -mr-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-4 space-y-4 overflow-y-auto flex-1">
+        <div className="p-5 space-y-4 overflow-y-auto flex-1">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-[#666] uppercase">
-              Routing Policies ({rules.length})
+            <span className="text-xs font-medium text-zinc-400">
+              Configured Rules ({rules.length})
             </span>
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => setIsPreviewOpen(true)}
-                className="border border-[#333] hover:border-white text-white px-2.5 py-1 rounded text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 transition-colors btn-press"
+                className="border border-[#333] hover:border-zinc-500 text-zinc-300 hover:text-white px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors min-h-[36px]"
               >
-                <Eye className="w-3 h-3" />
+                <Eye className="w-3.5 h-3.5" />
                 <span>Test Rules</span>
               </button>
               <button
+                type="button"
                 onClick={() => setIsCreating(true)}
-                className="bg-white text-black hover:bg-[#e0e0e0] px-2.5 py-1 rounded text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 transition-colors btn-press"
+                className="bg-white text-zinc-950 hover:bg-zinc-200 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors min-h-[36px]"
               >
-                <Plus className="w-3 h-3" />
+                <Plus className="w-3.5 h-3.5" />
                 <span>New Rule</span>
               </button>
             </div>
           </div>
 
           {/* Rules List */}
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {sortedRules.length === 0 ? (
-              <div className="p-8 text-center border border-[#1e1e1e] rounded text-[#555]">
-                No custom routing rules defined. Default provider is "{defaultProviderId}".
+              <div className="p-8 text-center border border-[#262626] bg-[#161616] rounded-2xl text-zinc-500 text-xs">
+                No custom routing rules defined. All files route to the default provider ("{defaultProviderId}").
               </div>
             ) : (
               sortedRules.map((rule) => (
                 <div
                   key={rule.id}
-                  className="bg-[#121212] border border-[#1e1e1e] p-3 rounded flex items-center justify-between gap-3"
+                  className="bg-[#161616] border border-[#262626] p-3.5 rounded-xl flex items-center justify-between gap-3"
                 >
                   <div className="space-y-1 min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-white font-medium truncate">{rule.name}</span>
-                      <span className="text-[10px] text-[#555] uppercase">
+                      <span className="text-zinc-100 font-medium truncate text-xs">{rule.name}</span>
+                      <span className="text-[10px] text-zinc-500">
                         Priority: {rule.priority}
                       </span>
                     </div>
-                    <div className="text-[10px] text-[#888] truncate">
-                      Routes to <span className="text-white uppercase font-bold">{rule.action.providerId}</span>
+                    <div className="text-xs text-zinc-400 truncate">
+                      Routes to <span className="text-zinc-200 capitalize font-medium">{rule.action.providerId}</span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <button
+                      type="button"
                       onClick={() => onToggleRule(rule.id, !rule.enabled)}
-                      className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold transition-colors ${
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-colors ${
                         rule.enabled
-                          ? 'bg-[#22c55e]/20 text-[#22c55e]'
-                          : 'bg-[#333] text-[#888]'
+                          ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-850'
+                          : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
                       }`}
                     >
-                      {rule.enabled ? 'ACTIVE' : 'DISABLED'}
+                      {rule.enabled ? 'Active' : 'Disabled'}
                     </button>
                     <button
+                      type="button"
                       onClick={() => setEditingRule(rule)}
-                      className="border border-[#333] hover:border-white text-white px-2 py-0.5 rounded text-[10px] uppercase transition-colors"
+                      className="border border-[#333] hover:border-zinc-500 text-zinc-300 hover:text-white px-2.5 py-1 rounded-lg text-xs transition-colors"
                     >
                       Edit
                     </button>
                     <button
+                      type="button"
                       onClick={() => onDeleteRule(rule.id)}
-                      className="text-[#ff3333] p-1 rounded hover:bg-[#ff3333]/10 transition-colors"
+                      className="text-zinc-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-rose-950/20 transition-colors"
                       title="Delete Rule"
+                      aria-label={`Delete rule ${rule.name}`}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -130,12 +143,13 @@ export function StorageRulesPanel({
         </div>
 
         {/* Footer */}
-        <div className="p-3 border-t border-[#1e1e1e] bg-[#0a0a0a] flex items-center justify-end">
+        <div className="p-4 border-t border-[#222] bg-[#121212] flex items-center justify-end">
           <button
+            type="button"
             onClick={onClose}
-            className="border border-[#333] hover:border-white text-white px-4 py-1.5 rounded font-mono uppercase tracking-wider text-xs transition-colors btn-press"
+            className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium text-xs transition-colors min-h-[40px]"
           >
-            Close
+            Done
           </button>
         </div>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Copy, Check, ShieldCheck, Database, HardDrive } from 'lucide-react';
+import { X, Copy, Check, ShieldCheck, Database, HardDrive, Info } from 'lucide-react';
 import { FileMetadata } from '@/shared';
 import { formatBytes } from '../lib/utils';
 
@@ -22,72 +22,83 @@ export function FileInfoModal({ file, onClose }: FileInfoModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-[#0a0a0a] border border-[#1e1e1e] rounded-lg w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl font-mono">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="file-info-title"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm font-sans"
+    >
+      <div className="bg-[#121212] border border-[#222] rounded-t-2xl sm:rounded-2xl w-full max-w-xl max-h-[90vh] sm:max-h-[85vh] flex flex-col overflow-hidden shadow-2xl text-zinc-100">
         {/* Header */}
-        <div className="px-4 py-3 border-b border-[#1e1e1e] flex items-center justify-between bg-[#0a0a0a]">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-white">
-              File Inspector
-            </span>
+        <div className="px-5 py-4 border-b border-[#222] flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Info className="w-4 h-4 text-zinc-300" />
+            <h2 id="file-info-title" className="text-sm font-semibold tracking-wide text-zinc-100">
+              File Details
+            </h2>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1 text-[#666] hover:text-white rounded hover:bg-[#181818] transition-colors btn-press"
+            aria-label="Close file details"
+            className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800/60 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center -mr-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-4 space-y-4 overflow-y-auto flex-1 text-xs">
+        <div className="p-5 space-y-4 overflow-y-auto flex-1 text-xs">
           {/* File Name & ID */}
-          <div className="space-y-1 bg-[#121212] p-3 border border-[#1e1e1e] rounded">
-            <div className="text-[10px] text-[#666] uppercase">File Name</div>
-            <div className="text-white font-medium break-all">{file.name}</div>
-            <div className="text-[10px] text-[#555] break-all pt-1">ID: {file.id}</div>
+          <div className="space-y-1.5 bg-[#161616] p-3.5 border border-[#262626] rounded-xl">
+            <div className="text-[11px] text-zinc-500 font-medium">Filename</div>
+            <div className="text-zinc-100 font-medium break-all text-sm">{file.name}</div>
+            <div className="text-[10px] text-zinc-500 font-mono break-all pt-0.5">ID: {file.id}</div>
           </div>
 
           {/* Metric Grid */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-[#121212] p-2.5 border border-[#1e1e1e] rounded">
-              <div className="text-[10px] text-[#666] uppercase">Size</div>
-              <div className="text-white font-medium tabular-nums">{formatBytes(file.size)} ({file.size} bytes)</div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="bg-[#161616] p-3 border border-[#262626] rounded-xl space-y-1">
+              <div className="text-[11px] text-zinc-500 font-medium">Size</div>
+              <div className="text-zinc-100 font-medium tabular-nums">{formatBytes(file.size)}</div>
             </div>
-            <div className="bg-[#121212] p-2.5 border border-[#1e1e1e] rounded">
-              <div className="text-[10px] text-[#666] uppercase">MIME Type</div>
-              <div className="text-white font-medium truncate">{file.mimeType}</div>
+            <div className="bg-[#161616] p-3 border border-[#262626] rounded-xl space-y-1">
+              <div className="text-[11px] text-zinc-500 font-medium">Type</div>
+              <div className="text-zinc-100 font-medium truncate">{file.mimeType}</div>
             </div>
-            <div className="bg-[#121212] p-2.5 border border-[#1e1e1e] rounded">
-              <div className="text-[10px] text-[#666] uppercase">Total Chunks</div>
-              <div className="text-white font-medium tabular-nums">{file.chunks.length} chunks</div>
+            <div className="bg-[#161616] p-3 border border-[#262626] rounded-xl space-y-1">
+              <div className="text-[11px] text-zinc-500 font-medium">Chunks</div>
+              <div className="text-zinc-100 font-medium tabular-nums">{file.chunks.length} {file.chunks.length === 1 ? 'part' : 'parts'}</div>
             </div>
-            <div className="bg-[#121212] p-2.5 border border-[#1e1e1e] rounded">
-              <div className="text-[10px] text-[#666] uppercase">Created</div>
-              <div className="text-white font-medium">{new Date(file.createdAt).toLocaleString()}</div>
+            <div className="bg-[#161616] p-3 border border-[#262626] rounded-xl space-y-1">
+              <div className="text-[11px] text-zinc-500 font-medium">Uploaded</div>
+              <div className="text-zinc-100 font-medium">{new Date(file.createdAt).toLocaleDateString()}</div>
             </div>
           </div>
 
           {/* Chunk Map */}
-          <div className="space-y-1.5">
-            <div className="text-[10px] text-[#666] uppercase tracking-wider">
-              Cryptographic Chunks ({file.chunks.length})
+          <div className="space-y-2">
+            <div className="text-[11px] text-zinc-400 font-medium">
+              Encrypted Vault Parts ({file.chunks.length})
             </div>
-            <div className="border border-[#1e1e1e] rounded divide-y divide-[#1e1e1e] max-h-48 overflow-y-auto bg-[#121212]">
+            <div className="border border-[#262626] rounded-xl divide-y divide-[#262626] max-h-48 overflow-y-auto bg-[#161616]">
               {file.chunks.map((chunk) => (
                 <div
                   key={chunk.id}
-                  className="p-2 flex items-center justify-between text-[11px] hover:bg-[#181818] transition-colors"
+                  className="p-2.5 flex items-center justify-between text-xs hover:bg-zinc-800/40 transition-colors"
                 >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-[#555] tabular-nums">#{chunk.index}</span>
-                    <span className="text-white font-mono truncate max-w-[200px]">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="text-zinc-500 tabular-nums">Part {chunk.index + 1}</span>
+                    <span className="text-zinc-300 font-mono text-[11px] truncate max-w-[180px]">
                       {chunk.hash.slice(0, 16)}...
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 text-[10px] text-[#666]">
+                  <div className="flex items-center gap-3 text-xs text-zinc-400">
                     <span className="tabular-nums">{formatBytes(chunk.size)}</span>
-                    <span className="text-[#22c55e]">Verified</span>
+                    <span className="text-emerald-400 font-medium flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3" />
+                      Verified
+                    </span>
                   </div>
                 </div>
               ))}
@@ -96,10 +107,11 @@ export function FileInfoModal({ file, onClose }: FileInfoModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="p-3 border-t border-[#1e1e1e] bg-[#0a0a0a] flex items-center justify-end">
+        <div className="p-4 border-t border-[#222] bg-[#121212] flex items-center justify-end">
           <button
+            type="button"
             onClick={onClose}
-            className="bg-white text-black hover:bg-[#e0e0e0] px-4 py-1.5 rounded font-mono font-bold uppercase tracking-wider text-xs transition-colors btn-press"
+            className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium text-xs transition-colors min-h-[40px]"
           >
             Close
           </button>

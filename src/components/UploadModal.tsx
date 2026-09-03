@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { X, Upload, File, CheckCircle2, AlertCircle } from 'lucide-react';
+import { X, Upload, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import { UploadProgressState } from '../lib/storage-store';
+import { humanizeError } from '../lib/humanize-error';
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export function UploadModal({
   uploadState,
 }: UploadModalProps) {
   const [dragActive, setDragActive] = useState(false);
+  const [lastFile, setLastFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
@@ -32,33 +34,61 @@ export function UploadModal({
     }
   };
 
+  const startUpload = (file: File) => {
+    setLastFile(file);
+    onUploadFile(file);
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      onUploadFile(e.dataTransfer.files[0]);
+      startUpload(e.dataTransfer.files[0]);
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
     if (e.target.files && e.target.files[0]) {
-      onUploadFile(e.target.files[0]);
+      startUpload(e.target.files[0]);
     }
   };
 
+  const handleRetry = () => {
+    if (lastFile) {
+      startUpload(lastFile);
+    }
+  };
+
+  // Humanize stage status
+  const getStageLabel = () => {
+    if (!uploadState) return '';
+    if (uploadState.status === 'COMPLETE') return 'Finishing and verifying...';
+    if (uploadState.status === 'FAILED') return 'Upload interrupted';
+    if (uploadState.percent < 5) return 'Preparing and encrypting file...';
+    if (uploadState.percent >= 98) return 'Finalizing in private vault...';
+    return 'Uploading to private vault...';
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm font-mono text-xs">
-      <div className="bg-[#0a0a0a] border border-[#1e1e1e] rounded-lg w-full max-w-lg flex flex-col overflow-hidden shadow-2xl">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="upload-modal-title"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm transition-opacity font-sans"
+    >
+      <div className="w-full sm:max-w-lg bg-[#121212] border border-[#222] rounded-t-2xl sm:rounded-2xl flex flex-col overflow-hidden shadow-2xl shadow-black text-zinc-100 animate-in fade-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-95 duration-150">
         {/* Header */}
-        <div className="px-4 py-3 border-b border-[#1e1e1e] flex items-center justify-between bg-[#0a0a0a]">
-          <span className="font-bold uppercase tracking-wider text-white">
+        <div className="px-5 py-4 border-b border-[#222] flex items-center justify-between">
+          <h2 id="upload-modal-title" className="text-sm font-semibold tracking-wide text-zinc-100">
             Upload File
-          </span>
+          </h2>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1 text-[#666] hover:text-white rounded hover:bg-[#181818] transition-colors btn-press"
+            aria-label="Close upload dialog"
+            className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800/60 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center -mr-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400"
           >
             <X className="w-4 h-4" />
           </button>
@@ -71,6 +101,7 @@ export function UploadModal({
             type="file"
             onChange={handleChange}
             className="hidden"
+            aria-label="Choose file to upload"
           />
 
           {!uploadState ? (
@@ -80,53 +111,83 @@ export function UploadModal({
               onDragOver={handleDrag}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className={`border border-dashed p-10 text-center rounded-lg cursor-pointer transition-colors ${
+              className={`border border-dashed p-10 text-center rounded-2xl cursor-pointer transition-colors ${
                 dragActive
-                  ? 'border-white bg-[#181818]'
-                  : 'border-[#333] hover:border-[#666] bg-[#121212]'
+                  ? 'border-zinc-300 bg-zinc-800/40'
+                  : 'border-zinc-700 hover:border-zinc-500 bg-[#161616]'
               }`}
             >
-              <Upload className="w-8 h-8 text-[#888] mx-auto mb-3" />
-              <div className="text-white font-medium mb-1">
+              <div className="w-12 h-12 rounded-2xl bg-zinc-800/80 border border-zinc-700/60 flex items-center justify-center mx-auto mb-4 text-zinc-300">
+                <Upload className="w-5 h-5" />
+              </div>
+              <div className="text-sm text-zinc-200 font-medium mb-1.5">
                 Drop file here or click to browse
               </div>
-              <div className="text-[11px] text-[#666]">
-                Chunked, encrypted, and distributed automatically
+              <div className="text-xs text-zinc-400">
+                Client-side encrypted before transfer to your Telegram vault
               </div>
             </div>
           ) : (
-            <div className="bg-[#121212] border border-[#1e1e1e] p-4 rounded space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-white font-medium truncate max-w-[200px]">
+            <div className="bg-[#161616] border border-[#262626] p-5 rounded-2xl space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm text-zinc-100 font-medium truncate max-w-[280px]">
                   {uploadState.fileName}
                 </span>
-                <span className="text-white font-bold tabular-nums">
+                <span className="text-sm font-semibold text-zinc-300 tabular-nums">
                   {uploadState.percent}%
                 </span>
               </div>
 
               {/* Progress Bar */}
-              <div className="h-1.5 bg-[#222] rounded-full overflow-hidden">
+              <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-white transition-all duration-200"
-                  style={{ width: `${uploadState.percent}%` }}
+                  className={`h-full transition-all duration-200 ${
+                    uploadState.status === 'FAILED' ? 'bg-rose-500' : 'bg-white'
+                  }`}
+                  style={{ width: `${Math.max(3, uploadState.percent)}%` }}
                 />
               </div>
 
-              <div className="flex items-center justify-between text-[10px] text-[#666]">
-                <span className={uploadState.status === 'FAILED' ? 'text-red-400 font-bold' : 'text-emerald-400/90 font-medium'}>
-                  Stage: {uploadState.status}
-                  {uploadState.status === 'UPLOADING' && ' (4x Parallel Streams)'}
+              <div className="flex items-center justify-between text-xs text-zinc-400">
+                <span className={uploadState.status === 'FAILED' ? 'text-rose-400 font-medium' : 'text-zinc-300'}>
+                  {getStageLabel()}
                 </span>
-                <span>Chunk {uploadState.currentChunk} / {uploadState.totalChunks}</span>
+                {uploadState.totalChunks > 1 && (
+                  <span className="tabular-nums text-zinc-400">
+                    Part {uploadState.currentChunk} of {uploadState.totalChunks}
+                  </span>
+                )}
               </div>
 
               {uploadState.status === 'FAILED' && (
-                <div className="p-2.5 bg-red-950/30 border border-red-800/40 rounded text-red-300 text-[11px] flex items-start gap-2 mt-2">
-                  <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
-                  <span className="leading-tight">
-                    {uploadState.errorMessage || 'Failed to upload chunk to Telegram MTProto. Please try again.'}
-                  </span>
+                <div
+                  role="alert"
+                  className="p-3.5 bg-rose-950/30 border border-rose-800/40 rounded-xl text-rose-300 text-xs flex flex-col gap-3 mt-2"
+                >
+                  <div className="flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                    <span className="leading-relaxed">
+                      {humanizeError(uploadState.errorMessage)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleRetry}
+                      className="px-3 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors min-h-[36px]"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      Retry Upload
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs font-medium transition-colors min-h-[36px]"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
