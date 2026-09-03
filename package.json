@@ -4,7 +4,7 @@
   "private": true,
   "description": "BucketSpace — Personal Cloud Storage Engine Powered by Telegram MTProto",
   "engines": {
-    "node": ">=22.0.0"
+    "node": "22.x"
   },
   "keywords": [
     "telegram-storage",
