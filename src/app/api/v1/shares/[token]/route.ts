@@ -1,19 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ShareStoreService } from '@/modules/storage/share-store-service';
 
 export const dynamic = 'force-dynamic';
-
-interface GlobalShareStore {
-  shares: Map<string, any>;
-}
-
-const globalForShares = globalThis as unknown as {
-  __bucketspace_share_store?: GlobalShareStore;
-};
-
-const shareStore = globalForShares.__bucketspace_share_store || {
-  shares: new Map<string, any>(),
-};
-globalForShares.__bucketspace_share_store = shareStore;
 
 /**
  * GET /api/v1/shares/[token]
@@ -27,14 +15,8 @@ export async function GET(
 ) {
   try {
     const { token } = await params;
-    const record = shareStore.shares.get(token);
+    const record = ShareStoreService.get(token);
     if (!record) {
-      return NextResponse.json({ success: false, message: 'Share link not found or expired' }, { status: 404 });
-    }
-
-    // Check expiration
-    if (record.expiresAt && new Date(record.expiresAt).getTime() <= Date.now()) {
-      shareStore.shares.delete(token);
       return NextResponse.json({ success: false, message: 'Share link not found or expired' }, { status: 404 });
     }
 
@@ -62,14 +44,8 @@ export async function POST(
   try {
     const { token } = await params;
     const body = await req.json().catch(() => ({}));
-    const record = shareStore.shares.get(token);
+    const record = ShareStoreService.get(token);
     if (!record) {
-      return NextResponse.json({ success: false, message: 'Share link not found or expired' }, { status: 404 });
-    }
-
-    // Check expiration
-    if (record.expiresAt && new Date(record.expiresAt).getTime() <= Date.now()) {
-      shareStore.shares.delete(token);
       return NextResponse.json({ success: false, message: 'Share link not found or expired' }, { status: 404 });
     }
 
