@@ -249,15 +249,15 @@ describe('Upload Pipeline Optimization Tests', () => {
 
   // ─── Chunk Size Configuration & Coexistence ───
 
-  it('StorageStore should default to 4 MB chunk size and allow configuration to 16 MB / 32 MB', async () => {
+  it('StorageStore should default to 16 MB chunk size and allow configuration to 4 MB / 32 MB', async () => {
     const { StorageStore } = await import('../src/lib/storage-store');
     const store = StorageStore.getInstance();
 
-    assert.strictEqual(StorageStore.DEFAULT_CHUNK_SIZE, 4 * 1024 * 1024, 'Default chunk size must be 4 MB');
-    assert.strictEqual(store.getUploadChunkSize(), 4 * 1024 * 1024, 'Initial store chunk size must be 4 MB');
+    assert.strictEqual(StorageStore.DEFAULT_CHUNK_SIZE, 16 * 1024 * 1024, 'Default chunk size must be 16 MB');
+    assert.strictEqual(store.getUploadChunkSize(), 16 * 1024 * 1024, 'Initial store chunk size must be 16 MB');
 
-    store.setUploadChunkSize(16 * 1024 * 1024);
-    assert.strictEqual(store.getUploadChunkSize(), 16 * 1024 * 1024, 'Store chunk size should be updated to 16 MB');
+    store.setUploadChunkSize(4 * 1024 * 1024);
+    assert.strictEqual(store.getUploadChunkSize(), 4 * 1024 * 1024, 'Store chunk size should be updated to 4 MB');
 
     store.setUploadChunkSize(32 * 1024 * 1024);
     assert.strictEqual(store.getUploadChunkSize(), 32 * 1024 * 1024, 'Store chunk size should be updated to 32 MB');
@@ -266,9 +266,9 @@ describe('Upload Pipeline Optimization Tests', () => {
     assert.throws(() => store.setUploadChunkSize(0), /Invalid chunk size/);
     assert.throws(() => store.setUploadChunkSize(-1024), /Invalid chunk size/);
 
-    // Reset back to 4 MB default
+    // Reset back to 16 MB default
     store.setUploadChunkSize(StorageStore.DEFAULT_CHUNK_SIZE);
-    assert.strictEqual(store.getUploadChunkSize(), 4 * 1024 * 1024);
+    assert.strictEqual(store.getUploadChunkSize(), 16 * 1024 * 1024);
   });
 
   it('Chunk count calculation for 4 MB, 16 MB, and 32 MB should match architectural specification', () => {

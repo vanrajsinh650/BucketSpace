@@ -16,6 +16,12 @@ build/
 .env.development
 *.pem
 
+# Data & Session Files
+*.sqlite
+*.sqlite3
+*.db
+*.session
+
 # IDE & System
 .DS_Store
 *.log

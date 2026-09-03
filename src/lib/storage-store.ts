@@ -75,7 +75,7 @@ export class HttpTelegramStorageAdapter implements IStorageProvider {
     apiBaseUrl = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL
       ? process.env.NEXT_PUBLIC_API_URL
       : '',
-    optimalChunkSizeBytes = 4 * 1024 * 1024
+    optimalChunkSizeBytes = 16 * 1024 * 1024
   ) {
     this.sessionString = sessionString;
     this.apiBaseUrl = apiBaseUrl;
@@ -249,7 +249,7 @@ export class StorageStore {
     return StorageStore.instance;
   }
 
-  public static readonly DEFAULT_CHUNK_SIZE = 4 * 1024 * 1024; // 4 MB default
+  public static readonly DEFAULT_CHUNK_SIZE = 16 * 1024 * 1024; // 16 MB default
   private uploadChunkSize: number = StorageStore.DEFAULT_CHUNK_SIZE;
 
   public setUploadChunkSize(sizeBytes: number): void {

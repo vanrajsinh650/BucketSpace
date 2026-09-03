@@ -94,7 +94,6 @@ export async function GET(req: NextRequest) {
     const targetChatId = searchParams.get('targetChatId') || 'vault';
     const sessionString =
       req.headers.get('x-telegram-session') ||
-      searchParams.get('sessionString') ||
       '';
 
     if (!messageId || isNaN(messageId)) {

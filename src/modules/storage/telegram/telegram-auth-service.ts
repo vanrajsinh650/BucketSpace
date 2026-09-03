@@ -93,9 +93,73 @@ globalForTelegram.__bucketspace_telegram_state = telegramState;
  */
 export class TelegramAuthService {
   /**
+   * Disconnect and clear all active Telegram clients in the connection pool.
+   * Essential for graceful server shutdown on Render (SIGTERM / SIGINT).
+   */
+  public static async closeAllClients(): Promise<void> {
+    const clients = Array.from(telegramState.clientPool.values());
+    telegramState.clientPool.clear();
+    telegramState.vaultChannels.clear();
+    await Promise.allSettled(
+      clients.map(async ({ client }) => {
+        try {
+          if (client.connected) {
+            await client.disconnect();
+          }
+        } catch {
+          // ignore error during shutdown
+        }
+      })
+    );
+  }
+
+  /**
+   * Evicts idle clients (> 30 min) or enforces a maximum pool size (20 clients).
+   */
+  private static pruneClientPool(): void {
+    const now = Date.now();
+    const MAX_IDLE_MS = 30 * 60 * 1000;
+    const MAX_POOL_SIZE = 20;
+
+    for (const [session, entry] of telegramState.clientPool.entries()) {
+      if (now - entry.lastUsed > MAX_IDLE_MS) {
+        try {
+          if (entry.client.connected) {
+            entry.client.disconnect().catch(() => {});
+          }
+        } catch {
+          // ignore
+        }
+        telegramState.clientPool.delete(session);
+        telegramState.vaultChannels.delete(session);
+      }
+    }
+
+    if (telegramState.clientPool.size > MAX_POOL_SIZE) {
+      const sorted = Array.from(telegramState.clientPool.entries()).sort(
+        (a, b) => a[1].lastUsed - b[1].lastUsed
+      );
+      while (sorted.length > MAX_POOL_SIZE) {
+        const [oldestSession, oldestEntry] = sorted.shift()!;
+        try {
+          if (oldestEntry.client.connected) {
+            oldestEntry.client.disconnect().catch(() => {});
+          }
+        } catch {
+          // ignore
+        }
+        telegramState.clientPool.delete(oldestSession);
+        telegramState.vaultChannels.delete(oldestSession);
+      }
+    }
+  }
+
+  /**
    * Get or create a connected TelegramClient instance for a saved sessionString.
    */
   public static async getClient(sessionString: string): Promise<TelegramClient> {
+    this.pruneClientPool();
+
     const cached = telegramState.clientPool.get(sessionString);
     if (cached && cached.client.connected) {
       cached.lastUsed = Date.now();
@@ -187,7 +251,7 @@ export class TelegramAuthService {
       cleanPhone
     );
 
-    const sessionToken = `tgsess_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    const sessionToken = `tgsess_${Date.now()}_${crypto.randomUUID().replace(/-/g, '')}`;
     telegramState.activeSessions.set(sessionToken, {
       client,
       phone: cleanPhone,

@@ -13,7 +13,6 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const sessionString =
       req.headers.get('x-telegram-session') ||
-      searchParams.get('sessionString') ||
       '';
 
     if (!sessionString) {
