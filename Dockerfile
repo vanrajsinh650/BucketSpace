@@ -11,8 +11,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Copy package manifests and install dependencies
-COPY package.json pnpm-lock.yaml ./
+# Copy package manifests and workspace configuration
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
 RUN pnpm install --frozen-lockfile
 
 # Copy application source code
@@ -26,3 +26,4 @@ EXPOSE 3000
 
 # Start long-running Node.js server
 CMD ["pnpm", "run", "start"]
+

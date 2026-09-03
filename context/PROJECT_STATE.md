@@ -214,6 +214,6 @@ BucketSpace/
 - **Documentation & Repository Polish (`README.md` & `package.json`):** High-visibility architecture flow diagrams, cross-platform installation guides for Linux, Apple macOS, and Windows (PowerShell/WSL2), curated discovery keywords, and production runbooks for Vercel + Render.
 - **Next.js Security Upgrade & Zero-Config Vercel:** Upgraded Next.js from vulnerable `15.0.0` to secure patched `15.5.25`, purged redundant `vercel.json` for native zero-config deployment, and verified 38/38 unit tests and production build.
 - **Automated CI/CD Quality Pipeline (`.github/workflows/ci.yml`):** GitHub Actions workflow running on Node 22 with automatic dependency caching. Automatically validates every commit and pull request across strict TypeScript static typing, 38 automated unit test suites, and production Next.js build compilation.
-- **Production Dockerfile & Container Cloud Support (`Dockerfile` & `.dockerignore`):** Production container based on `node:22-slim` and `pnpm`, enabling one-click deployment on Northflank, Render, Railway, or Fly.io.
+- **Production Dockerfile & Container Cloud Support (`Dockerfile`, `.dockerignore`, `pnpm-workspace.yaml`):** Production container based on `node:22-slim` and `pnpm`. Configured explicit build script allowlisting (`allowBuilds` for `esbuild` and `sharp`; disallowing optional native C++ add-ons `bufferutil`, `utf-8-validate`, and ad script `es5-ext`) for zero-prompt, non-interactive builds on Railway, Northflank, and Render.
 
 
