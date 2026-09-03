@@ -215,5 +215,6 @@ BucketSpace/
 - **Next.js Security Upgrade & Zero-Config Vercel:** Upgraded Next.js from vulnerable `15.0.0` to secure patched `15.5.25`, purged redundant `vercel.json` for native zero-config deployment, and verified 38/38 unit tests and production build.
 - **Automated CI/CD Quality Pipeline (`.github/workflows/ci.yml`):** GitHub Actions workflow running on Node 22 with automatic dependency caching. Automatically validates every commit and pull request across strict TypeScript static typing, 38 automated unit test suites, and production Next.js build compilation.
 - **Production Dockerfile & Container Cloud Support (`Dockerfile`, `.dockerignore`, `pnpm-workspace.yaml`):** Production container based on `node:22-slim` and `pnpm`. Configured explicit build script allowlisting (`allowBuilds` for `esbuild` and `sharp`; disallowing optional native C++ add-ons `bufferutil`, `utf-8-validate`, and ad script `es5-ext`) for zero-prompt, non-interactive builds on Railway, Northflank, and Render.
+- **Environment Configuration Resilience:** Added graceful variable resolution fallback in `resolveTelegramCredentials()` to support both `TELEGRAM_API_ID` and typo variant `TELEGRAM_APT_ID`.
 
 

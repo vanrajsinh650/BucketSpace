@@ -13,7 +13,9 @@ export interface TelegramCredentials {
  * Throws an explicit configuration error if credentials are not configured.
  */
 export function resolveTelegramCredentials(): TelegramCredentials {
-  const apiIdRaw = typeof process !== 'undefined' ? process.env.TELEGRAM_API_ID : undefined;
+  const apiIdRaw = typeof process !== 'undefined' 
+    ? (process.env.TELEGRAM_API_ID || process.env.TELEGRAM_APT_ID) 
+    : undefined;
   const apiHashRaw = typeof process !== 'undefined' ? process.env.TELEGRAM_API_HASH : undefined;
 
   const apiId = Number(apiIdRaw);
