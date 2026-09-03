@@ -211,5 +211,6 @@ BucketSpace/
 - **Privacy Policy (`PRIVACY.md`):** Comprehensive technical privacy disclosures accurately describing client-side AES-256-GCM encryption, ephemeral server memory management, absence of backend database persistence, browser `localStorage` usage, absence of third-party cookies/analytics, and third-party hosting/infrastructure boundaries (Telegram, Vercel, Render).
 - **Interactive `/privacy` Route (`src/app/privacy/page.tsx`):** Prerendered static privacy page with dark charcoal design system, clear headings, visible effective date, and back-to-home navigation.
 - **UI Navigation Links:** Integrated accessible Privacy Policy links into landing page navbar, landing page footer (`Legal` column), and dashboard sidebar footer.
+- **Documentation & Repository Polish (`README.md`):** Comprehensive rewrite of the main repository documentation with clean Mermaid architecture diagrams, cryptographic upload pipeline sequence, zero-ambiguity clean-machine installation guide (Telegram API credentials, environment variables, development, tests), production deployment runbooks for Vercel + Render, and explicit references to the Apache 2.0 License and Privacy Policy.
 
 

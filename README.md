@@ -1,107 +1,273 @@
 # BucketSpace
 
-**Open-source, secure personal cloud storage engine powered exclusively by Telegram MTProto with verifiable cryptographic storage integrity and zero-knowledge client-side encryption.**
+<div align="center">
+
+**Open-source, client-side encrypted personal cloud storage engine backed by Telegram MTProto.**
+
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![Next.js](https://img.shields.io/badge/Next.js-15.0-black?logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19.0-61dafb?logo=react)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178c6?logo=typescript)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22.0.0-339933?logo=node.js)](https://nodejs.org/)
+[![Tests](https://img.shields.io/badge/Tests-38%2F38_Passing-success)]()
+
+</div>
 
 ---
 
-## What BucketSpace Does
+## Overview
 
-BucketSpace turns your private Telegram cloud into a high-performance, unlimited, zero-subscription personal cloud storage system.
+**BucketSpace** turns your private Telegram storage into an unlimited, high-performance personal cloud drive. 
 
-- **Telegram as Cloud Storage Engine**: Store multi-gigabyte files directly in your Telegram Saved Messages / private channel via native MTProto 2.0 and Bot API transports.
-- **Zero-Knowledge Client-Side Encryption**: Files and chunks are encrypted with AES-256-GCM before transport. Encryption keys never leave your device.
-- **Adaptive Multi-Part Chunking**: Large files are sliced into deterministic, bounded chunks with parallel multi-part ingestion.
-- **100% Verifiable Integrity**: Every chunk is SHA-256 hashed and verified upon upload, download, and reassembly.
-- **Own Your Data**: Runs entirely locally or self-hosted. Zero recurring cloud fees or vendor lock-in.
+Files are sliced and encrypted directly in your browser using standard **AES-256-GCM** before any data touches the network. Your master encryption key stays exclusively on your local device. The backend operates purely as an ephemeral MTProto relay, ensuring zero backend database lock-in and zero plaintext exposure.
 
----
-
-## Architecture
-
-```
-BucketSpace
-│
-├── Storage Layer
-│   ├── Telegram MTProto 2.0 Storage Provider (GramJS)
-│   ├── Telegram Bot API Fallback Provider
-│   └── In-Memory Ephemeral Provider (Testing / Sandbox)
-│
-├── Reliability Layer
-│   ├── SHA-256 Chunk Verification
-│   ├── Deterministic Reassembly Engine
-│   └── Circuit Breaker & Backpressure
-│
-├── Security Layer
-│   ├── AES-256-GCM Envelope Encryption
-│   ├── OWASP scrypt Key Derivation (N=131072)
-│   ├── Hashed Share Tokens (SHA-256)
-│   ├── Path Traversal Sandboxing
-│   └── SQLite Append-Only Audit Logging
-│
-└── Database & Indexing Layer
-    ├── SQLite Files & Chunks Index
-    ├── Chunk Location Registry
-    ├── Storage Routing Policy Engine
-    └── Sync State Machine Ledger
-```
+- **Zero-Subscription Storage**: Uses your existing Telegram account as a resilient, free cloud storage layer.
+- **Client-Side Encryption**: 256-bit AES-GCM encryption with unique random IVs per chunk executed via the Web Crypto API.
+- **Adaptive 16 MB Chunking**: Multi-part streaming with deterministic reassembly and SHA-256 integrity verification.
+- **Stateless Backend**: The Node.js server stores no database records, no user files, and no persistent credentials.
+- **Modern Private Drive Interface**: Responsive file explorer, categorized navigation, search, share links, and procedural animated cloud aesthetics.
 
 ---
 
-## Important Design Decisions
+## Architecture & Data Flow
 
-### Telegram as Dedicated Storage Backend
-BucketSpace supports two Telegram transport modes with dynamic capability negotiation:
-- **MTProto 2.0 Client Mode (GramJS)**: Direct connection to Telegram's cloud using user credentials (`StringSession`), supporting streaming multi-gigabyte files (up to 2,000,000,000 bytes per document) with bounded 512 KB slice windows.
-- **Bot API Mode**: Standard bot-based transfers with Telegram's documented limits (50 MB upload, 20 MB download).
+BucketSpace separates stateless frontend rendering from persistent Telegram MTProto socket operations:
 
-Telegram is leveraged as a high-durability, zero-cost cloud storage backbone.
+```mermaid
+flowchart LR
+    subgraph Client ["Client Browser"]
+        UI["Next.js Web UI"]
+        Crypto["AES-256-GCM Engine"]
+        Storage["localStorage Vault"]
+        UI --> Crypto
+        UI <--> Storage
+    end
 
-### Security Model
-- **Storage access** = Application-enforced
-- **File deletion** = Application-enforced (cascading purge across chunks and shares)
-- **Sharing permissions** = Application-enforced (256-bit hashed tokens at rest)
-- **Master credentials** = Application-enforced (AES-256-GCM + scrypt vault)
+    subgraph Backend ["Render Backend Relay"]
+        Server["Node.js 22 Runtime"]
+        Pool["MTProto Connection Pool"]
+        Server --> Pool
+    end
 
-### Disaster Recovery Playbook
-If your local machine or BucketSpace host suffers hardware failure, your filesystem is **fully recoverable**:
+    subgraph Telegram ["Telegram Cloud"]
+        DC["Telegram Data Centers"]
+        Vault["#bucketspace-vault Channel"]
+        DC --> Vault
+    end
 
+    Crypto -- "Encrypted 16 MB Chunks (HTTPS)" --> Server
+    Pool -- "GramJS Parallel Parts (MTProto)" --> DC
 ```
-Disaster Recovery Workflow:
-Original Host ──► Export Snapshot ──► Host Dies ──► Fresh Machine ──► Restore SQLite ──► Reconnect Telegram ──► Audit & Verify Chunks ──► 100% Recovered
-```
 
-1. **Restore Metadata Backup**: Import the exported JSON/SQLite snapshot onto your clean machine.
-2. **Reconnect Telegram**: Provide your Telegram session / bot credentials.
-3. **Run Integrity Audit**: BucketSpace's `BackupManager` audits all chunk references against Telegram.
-4. **Instant Access**: Verified byte-identical file downloads resume immediately.
+### Cryptographic Upload Pipeline
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant B as Browser (Client)
+    participant E as Web Crypto API
+    participant R as Render Backend Relay
+    participant T as Telegram MTProto Cloud
+
+    B->>B: Slice file into 16 MB bounded chunks
+    B->>E: Encrypt chunk with AES-256-GCM (12-byte random IV)
+    E-->>B: Ciphertext + 128-bit Auth Tag
+    B->>R: POST /api/v1/telegram/mtproto/chunk (Encrypted Buffer)
+    R->>T: Stream physical parts via GramJS uploadFile
+    T-->>R: Document Message ID
+    R-->>B: Return Chunk Confirmation
+    B->>B: Persist chunk manifest & SHA-256 in localStorage
+```
 
 ---
 
-## Quick Start
+## Key Features
 
-### Prerequisites
-- **Node.js** >= 22.0.0
-- **pnpm** >= 9.0.0
+| Capability | Technical Implementation | Guarantee |
+| :--- | :--- | :--- |
+| **Client Encryption** | Web Crypto API `AES-256-GCM` | Backend & Telegram never see plaintext payloads |
+| **Chunking Engine** | Bounded 16 MB logical chunks (configurable to 4 / 32 MB) | Bypasses HTTP payload limits & allows parallel parts |
+| **Integrity Checks** | Deterministic SHA-256 digest per chunk and whole file | Bit-exact reassembly and tamper detection |
+| **Authentication** | MTProto 2.0 SRP authentication with 2FA support | Ephemeral in-memory login; session string stored in browser |
+| **Public Sharing** | Ephemeral token-based share routes (`/s/[token]`) | Optional constant-time passcodes and instant revocation |
+| **Zero Backend DB** | Ephemeral memory cache with client-side persistence | No user database to maintain, breach, or backup |
 
-### Clean-Machine Setup & First-Run
+---
+
+## Installation & Setup
+
+Follow these straightforward steps to run BucketSpace locally on your machine.
+
+### 1. Prerequisites
+
+Ensure you have the following installed:
+- **Node.js**: `>= 22.0.0` ([Download Node.js](https://nodejs.org/))
+- **pnpm**: `>= 9.0.0` (Install via `npm install -g pnpm` or Corepack)
+- **Git**: Installed and configured
+
+Verify your installed versions:
+```bash
+node -v   # Should be v22.x or higher
+pnpm -v   # Should be 9.x or higher
+```
+
+---
+
+### 2. Clone the Repository
 
 ```bash
-# 1. Clone the repository
 git clone https://github.com/vanrajsinh650/BucketSpace.git
 cd BucketSpace
+```
 
-# 2. Install dependencies with frozen lockfile
+---
+
+### 3. Install Dependencies
+
+Install project packages using pnpm:
+```bash
 pnpm install
+```
 
-# 3. Verify types and run test suites
-pnpm type-check
-pnpm test
+---
 
-# 4. Launch the local web interface
+### 4. Obtain Telegram API Credentials
+
+BucketSpace connects to Telegram using official MTProto 2.0 user credentials. To generate your API keys:
+
+1. Log in with your Telegram account at **[https://my.telegram.org](https://my.telegram.org)**.
+2. Click **API development tools**.
+3. Fill in the required fields:
+   - **App title**: `BucketSpace` (or your preferred name)
+   - **Short name**: `bucketspace`
+   - **Platform**: `Web` or `Desktop`
+4. Click **Create application**.
+5. Copy your **`api_id`** (numeric) and **`api_hash`** (alphanumeric string).
+
+> [!NOTE]
+> These credentials identify your application with Telegram's MTProto servers. They are kept securely on the backend and are never exposed to the browser.
+
+---
+
+### 5. Configure Environment Variables
+
+Copy the provided example environment file to `.env.local`:
+
+```bash
+cp .env.example .env.local
+```
+
+Open `.env.local` in your editor and enter your credentials:
+
+```ini
+# ============================================================
+# BucketSpace — Local Configuration (.env.local)
+# ============================================================
+
+# Telegram MTProto API Credentials (from https://my.telegram.org)
+TELEGRAM_API_ID="12345678"
+TELEGRAM_API_HASH="0123456789abcdef0123456789abcdef"
+
+# API URL (Leave blank for local development — browser uses same-origin)
+NEXT_PUBLIC_API_URL=""
+
+# Allowed CORS origins
+CORS_ORIGINS="http://localhost:3000"
+
+# Chunk upload socket timeout in milliseconds (default: 5 minutes)
+UPLOAD_TIMEOUT_MS=300000
+
+# Node Environment
+NODE_ENV=development
+```
+
+---
+
+### 6. Start the Development Server
+
+Run the development server:
+
+```bash
 pnpm dev
 ```
 
-Web UI: `http://localhost:3000`
+Open your browser and navigate to:
+```
+http://localhost:3000
+```
+
+1. Click **Get Started** or **Connect to Telegram**.
+2. Enter your phone number (with country code, e.g. `+1...`).
+3. Enter the verification code sent to your Telegram app.
+4. If prompted, enter your Telegram 2FA cloud password.
+5. Your private `#bucketspace-vault` channel is automatically initialized, and your encrypted drive is ready!
+
+---
+
+### 7. Run Verification & Tests
+
+BucketSpace comes with an automated unit test suite covering chunking, encryption, integrity hashing, MTProto auth, routing, and sharing:
+
+```bash
+# Run all 38 automated test suites
+pnpm test
+
+# Check TypeScript static types
+pnpm type-check
+
+# Compile production build
+pnpm build
+```
+
+---
+
+## Production Deployment (Vercel + Render)
+
+BucketSpace is optimized for a dual-host production topology:
+- **Vercel**: Serves the Next.js frontend, static assets, and client-side encryption.
+- **Render**: Runs the persistent Node.js service for Telegram MTProto socket connections.
+
+### Deploying the Backend to Render
+
+1. Create a new **Web Service** in [Render Dashboard](https://dashboard.render.com).
+2. Connect your `BucketSpace` repository.
+3. Configure settings:
+   - **Runtime**: `Node`
+   - **Branch**: `main`
+   - **Build Command**: `pnpm install && pnpm run build`
+   - **Start Command**: `pnpm run start`
+   - **Health Check Path**: `/api/health`
+4. Set Environment Variables in Render:
+   - `TELEGRAM_API_ID`: Your Telegram API ID
+   - `TELEGRAM_API_HASH`: Your Telegram API Hash
+   - `CORS_ORIGINS`: `https://your-frontend.vercel.app`
+   - `NODE_ENV`: `production`
+5. Note your Render service URL (e.g. `https://bucketspace-backend.onrender.com`).
+
+### Deploying the Frontend to Vercel
+
+1. Import the `BucketSpace` repository into [Vercel](https://vercel.com).
+2. Framework Preset: **Next.js** (auto-detected).
+3. Set Environment Variables in Vercel:
+   - `NEXT_PUBLIC_API_URL`: `https://bucketspace-backend.onrender.com` (your Render URL)
+4. Click **Deploy**.
+
+For detailed deployment instructions and production configuration, see [`DEPLOYMENT.md`](DEPLOYMENT.md).
+
+---
+
+## Security Model
+
+- **Client-Side Cryptography**: File encryption uses standard AES-256-GCM with unique 12-byte initialization vectors generated via `window.crypto.getRandomValues`.
+- **Key Isolation**: Master encryption keys are stored exclusively in browser `localStorage` (`bucketspace_master_encryption_key`). Neither the backend relay nor Telegram servers receive the key.
+- **No Database Footprint**: The backend does not maintain a database of file catalogs, user passwords, or phone numbers. All file metadata resides on the user's client device.
+- **Strict Session Scoping**: The backend processes Telegram operations via per-request `x-telegram-session` headers with zero cross-tenant session sharing.
+- **Origin-Enforced CORS**: The backend rejects API requests from unauthorized web origins.
+
+Detailed security documentation is available in the `/context` directory:
+- [`context/SECURITY_AUDIT.md`](context/SECURITY_AUDIT.md) — Cryptographic architecture and audit findings.
+- [`context/THREAT_MODEL.md`](context/THREAT_MODEL.md) — Threat modeling and security boundaries.
+- [`context/SECURITY_INVARIANTS.md`](context/SECURITY_INVARIANTS.md) — Enforced system invariants.
 
 ---
 
@@ -110,32 +276,39 @@ Web UI: `http://localhost:3000`
 ```
 BucketSpace/
 ├── src/
-│   ├── app/                 # Next.js 15 App Router & REST API routes
-│   ├── components/          # React UI components & modals
-│   ├── lib/                 # Browser state store & ZIP streaming helpers
+│   ├── app/                 # Next.js 15 App Router pages, layouts, and API routes
+│   │   ├── api/v1/          # Telegram auth, MTProto chunk, vault, and share routes
+│   │   ├── privacy/         # Dedicated /privacy disclosure route
+│   │   ├── s/ & share/      # Public token share preview & download routes
+│   │   ├── layout.tsx       # Root layout, fonts, and accessibility skip-link
+│   │   └── page.tsx         # Main application entry point & onboarding gate
+│   ├── components/          # Modular UI components (modals, file grid, clouds, sidebar)
+│   ├── lib/                 # Storage store, Web Crypto SHA-256, error humanizer
 │   ├── modules/
-│   │   ├── db/              # SQLite metadata repository & audit logging
-│   │   ├── security/        # AES-256-GCM envelope vault & scrypt hashing
-│   │   └── storage/         # Telegram MTProto adapter, chunker, routing & redundancy
-│   └── shared/              # Canonical domain contracts, IDs & byte utilities
-├── tests/                   # Deterministic test suites (chunker, encryption, share, SQLite, auth)
-└── context/                 # Architectural specifications & security runbooks
+│   │   ├── security/        # Client-side AES-256-GCM encryption service
+│   │   └── storage/         # Telegram MTProto adapter, connection pool & routing
+│   ├── shared/              # Domain types, byte utilities, and chunk definitions
+│   └── middleware.ts        # Production CORS origin validation middleware
+├── tests/                   # 38 unit test suites (chunking, crypto, auth, shares)
+├── context/                 # Architecture specifications, runbooks, and project state
+├── LICENSE                  # Apache License 2.0
+├── PRIVACY.md               # Technical Privacy Policy & data handling disclosures
+├── DEPLOYMENT.md            # Production Vercel + Render deployment specification
+└── package.json             # Pinned dependencies & runtime scripts
 ```
 
 ---
 
-## Security Documentation
+## Privacy Policy & Legal
 
-BucketSpace's security architecture is fully documented in `/context`:
-- [`SECURITY_AUDIT.md`](context/SECURITY_AUDIT.md) — Security Audit Report & OWASP Cryptographic Storage compliance.
-- [`THREAT_MODEL.md`](context/THREAT_MODEL.md) — Threat model and trust boundaries.
-- [`SECURITY_INVARIANTS.md`](context/SECURITY_INVARIANTS.md) — Executable security invariants.
-- [`SECURITY_RUNBOOK.md`](context/SECURITY_RUNBOOK.md) — Incident response, master key rotation, and disaster recovery runbooks.
-- [`TELEGRAM_CREDENTIALS_GUIDE.md`](context/TELEGRAM_CREDENTIALS_GUIDE.md) — Step-by-step guide for Telegram MTProto API keys.
+- **Open Source License**: BucketSpace is released under the **[Apache License 2.0](LICENSE)**.
+- **Privacy Disclosures**: Our technical data handling practices are transparently documented in **[`PRIVACY.md`](PRIVACY.md)** and accessible in-app at **[`/privacy`](src/app/privacy/page.tsx)**.
+- **Notice**: BucketSpace is an independent open-source project and is not affiliated with, sponsored by, or endorsed by Telegram FZ-LLC or Telegram Messenger Inc.
 
 ---
 
-## License
+## Author & Contact
 
-Distributed under the **MIT License**.
-
+Developed by **Vanraj Solanki**  
+- **Email**: [vanrajsolanki2875@gmail.com](mailto:vanrajsolanki2875@gmail.com)  
+- **GitHub**: [@vanrajsinh650](https://github.com/vanrajsinh650)
