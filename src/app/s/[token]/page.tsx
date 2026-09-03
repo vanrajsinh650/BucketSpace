@@ -119,10 +119,20 @@ export default function PublicSharePage() {
         });
       }
 
-      // 3. Cryptographic whole-file integrity verification
+      // 3. Cryptographic whole-file integrity verification (supports both raw content digest and chunk-tree digest)
       if (shareData.wholeFileHash) {
-        const wholeHash = await calculateSha256(bytes);
-        if (wholeHash !== shareData.wholeFileHash) {
+        const rawContentHash = await calculateSha256(bytes);
+        const chunkTreeHash = Array.isArray(shareData.chunks)
+          ? await calculateSha256(
+              new TextEncoder().encode(shareData.chunks.map((c: any) => c.hash).join(':'))
+            )
+          : null;
+
+        const matchesRaw = rawContentHash.toLowerCase() === String(shareData.wholeFileHash).toLowerCase();
+        const matchesTree =
+          chunkTreeHash !== null && chunkTreeHash.toLowerCase() === String(shareData.wholeFileHash).toLowerCase();
+
+        if (!matchesRaw && !matchesTree) {
           throw new Error('Whole-file cryptographic integrity check failed (SHA-256 mismatch)');
         }
       }
