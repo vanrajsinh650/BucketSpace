@@ -31,52 +31,58 @@ Files are sliced and encrypted directly in your browser using standard **AES-256
 
 ## Architecture & Data Flow
 
-BucketSpace separates stateless frontend rendering from persistent Telegram MTProto socket operations:
+BucketSpace separates stateless frontend client encryption from long-running Telegram MTProto socket operations:
 
-```mermaid
-flowchart LR
-    subgraph Client ["Client Browser"]
-        UI["Next.js Web UI"]
-        Crypto["AES-256-GCM Engine"]
-        Storage["localStorage Vault"]
-        UI --> Crypto
-        UI <--> Storage
-    end
-
-    subgraph Backend ["Render Backend Relay"]
-        Server["Node.js 22 Runtime"]
-        Pool["MTProto Connection Pool"]
-        Server --> Pool
-    end
-
-    subgraph Telegram ["Telegram Cloud"]
-        DC["Telegram Data Centers"]
-        Vault["#bucketspace-vault Channel"]
-        DC --> Vault
-    end
-
-    Crypto -- "Encrypted 16 MB Chunks (HTTPS)" --> Server
-    Pool -- "GramJS Parallel Parts (MTProto)" --> DC
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                              1. CLIENT BROWSER (Vercel)                                │
+│                                                                                        │
+│   [ Selected File ] ──► [ 16 MB Chunk Slicing ] ──► [ Web Crypto AES-256-GCM ]         │
+│                                                              │                         │
+│   • Master Key stays strictly in localStorage                ▼                         │
+│   • Random 12-byte IV per chunk                     Ciphertext Buffer                  │
+│   • 128-bit integrity authentication tag            (Binary Payload)                   │
+└───────────────────────────────────────────────┬────────────────────────────────────────┘
+                                                │
+                                                │ HTTPS POST /api/v1/telegram/mtproto/chunk
+                                                │ Header: x-telegram-session
+                                                ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                             2. BACKEND RELAY (Render)                                  │
+│                                                                                        │
+│   [ Validate Size (≤ 50 MB) ] ──► [ Connection Pool ] ──► [ GramJS 6-Worker Stream ]   │
+│                                                              │                         │
+│   • Zero backend database persistence                        ▼                         │
+│   • Ephemeral session memory only                   MTProto 2.0 Encrypted              │
+│   • Slices chunk into 512 KB physical parts         TCP Socket Stream                  │
+└───────────────────────────────────────────────┬────────────────────────────────────────┘
+                                                │
+                                                │ MTProto saveBigFilePart (Parallel Workers)
+                                                ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                           3. STORAGE BACKBONE (Telegram)                               │
+│                                                                                        │
+│   [ Telegram Data Centers ] ──► [ #bucketspace-vault ] ──► [ Document Message ID ]    │
+│                                                                                        │
+│   • High-durability unlimited cloud storage                                            │
+│   • Stored as encrypted documents in your private channel                              │
+│   • Reconstructible anytime directly via your Telegram credentials                     │
+└────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Cryptographic Upload Pipeline
+### End-to-End Pipeline
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant B as Browser (Client)
-    participant E as Web Crypto API
-    participant R as Render Backend Relay
-    participant T as Telegram MTProto Cloud
+| Stage | Execution Context | What Happens | Security & Privacy Guarantee |
+| :--- | :--- | :--- | :--- |
+| **1. Slice & Hash** | **Browser** | Slices file into 16 MB bounded chunks and calculates SHA-256 integrity hash. | Plaintext never leaves browser memory |
+| **2. Encrypt** | **Browser** | Encrypts each chunk with AES-256-GCM using a unique 12-byte random IV. | Master key stays in `localStorage` |
+| **3. Relay** | **Render Backend** | Streams binary ciphertext to Telegram via pooled GramJS MTProto workers. | Backend sees only encrypted bytes |
+| **4. Store** | **Telegram Cloud** | Saved as document messages inside user's private `#bucketspace-vault` channel. | Telegram stores encrypted ciphertext |
+| **5. Download** | **Browser** | Fetches encrypted chunks, validates SHA-256 hash, and decrypts with master key. | Bit-exact verification before save |
 
-    B->>B: Slice file into 16 MB bounded chunks
-    B->>E: Encrypt chunk with AES-256-GCM (12-byte random IV)
-    E-->>B: Ciphertext + 128-bit Auth Tag
-    B->>R: POST /api/v1/telegram/mtproto/chunk (Encrypted Buffer)
-    R->>T: Stream physical parts via GramJS uploadFile
-    T-->>R: Document Message ID
-    R-->>B: Return Chunk Confirmation
-    B->>B: Persist chunk manifest & SHA-256 in localStorage
+**Download & Reassembly Path**:
+```
+Telegram Vault ──► Backend Relay (Encrypted Chunks) ──► Browser Decryption (AES-256-GCM) ──► Saved File
 ```
 
 ---
