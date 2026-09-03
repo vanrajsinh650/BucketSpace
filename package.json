@@ -6,6 +6,17 @@
   "engines": {
     "node": ">=22.0.0"
   },
+  "keywords": [
+    "telegram-storage",
+    "cloud-storage",
+    "client-side-encryption",
+    "end-to-end-encryption",
+    "aes-256-gcm",
+    "self-hosted",
+    "mtproto",
+    "nextjs15",
+    "privacy-first"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",

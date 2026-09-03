@@ -11,6 +11,17 @@
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22.0.0-339933?logo=node.js)](https://nodejs.org/)
 [![Tests](https://img.shields.io/badge/Tests-38%2F38_Passing-success)]()
 
+<p align="center">
+  <a href="https://github.com/topics/telegram-storage"><code>#telegram-storage</code></a> &bull;
+  <a href="https://github.com/topics/cloud-storage"><code>#cloud-storage</code></a> &bull;
+  <a href="https://github.com/topics/end-to-end-encryption"><code>#end-to-end-encryption</code></a> &bull;
+  <a href="https://github.com/topics/aes-256-gcm"><code>#aes-256-gcm</code></a> &bull;
+  <a href="https://github.com/topics/self-hosted"><code>#self-hosted</code></a> &bull;
+  <a href="https://github.com/topics/privacy-first"><code>#privacy-first</code></a> &bull;
+  <a href="https://github.com/topics/mtproto"><code>#mtproto</code></a> &bull;
+  <a href="https://github.com/topics/nextjs15"><code>#nextjs15</code></a>
+</p>
+
 </div>
 
 ---
@@ -102,42 +113,105 @@ Telegram Vault ──► Backend Relay (Encrypted Chunks) ──► Browser Decr
 
 ## Installation & Setup
 
-Follow these straightforward steps to run BucketSpace locally on your machine.
+Choose your operating system for exact step-by-step setup instructions:
 
-### 1. Prerequisites
+### Step 1: Install on Your Platform
 
-Ensure you have the following installed:
-- **Node.js**: `>= 22.0.0` ([Download Node.js](https://nodejs.org/))
-- **pnpm**: `>= 9.0.0` (Install via `npm install -g pnpm` or Corepack)
-- **Git**: Installed and configured
+<details open>
+<summary><b>🐧 Linux (Ubuntu / Debian / Fedora / Arch)</b></summary>
+<br />
 
-Verify your installed versions:
-```bash
-node -v   # Should be v22.x or higher
-pnpm -v   # Should be 9.x or higher
-```
+1. **Install Node.js 22 & pnpm**:
+   ```bash
+   # Ubuntu / Debian
+   curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+   sudo apt-get install -y nodejs git
+   sudo corepack enable && corepack prepare pnpm@latest --activate
+
+   # Arch Linux
+   sudo pacman -S nodejs npm git
+   sudo npm install -g pnpm
+
+   # Fedora
+   sudo dnf install -y nodejs npm git
+   sudo npm install -g pnpm
+   ```
+
+2. **Clone & Install Dependencies**:
+   ```bash
+   git clone https://github.com/vanrajsinh650/BucketSpace.git
+   cd BucketSpace
+   pnpm install
+   ```
+
+3. **Initialize Environment Config**:
+   ```bash
+   cp .env.example .env.local
+   ```
+</details>
+
+<details>
+<summary><b>🍏 Apple macOS (Apple Silicon M-Series & Intel)</b></summary>
+<br />
+
+1. **Install via Homebrew**:
+   ```bash
+   # If Homebrew is not installed:
+   # /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+   brew install node@22 pnpm git
+   ```
+
+2. **Clone & Install Dependencies**:
+   ```bash
+   git clone https://github.com/vanrajsinh650/BucketSpace.git
+   cd BucketSpace
+   pnpm install
+   ```
+
+3. **Initialize Environment Config**:
+   ```bash
+   cp .env.example .env.local
+   ```
+</details>
+
+<details>
+<summary><b>🪟 Windows (PowerShell & WSL2)</b></summary>
+<br />
+
+**Option A: Native Windows (PowerShell)**
+1. **Install Node.js 22 & pnpm**:
+   ```powershell
+   # Using Windows Package Manager (winget)
+   winget install OpenJS.NodeJS.LTS
+   winget install Git.Git
+
+   # Install pnpm globally
+   npm install -g pnpm
+   ```
+   > *Tip*: If you encounter PowerShell script execution restrictions with pnpm, run:
+   > ```powershell
+   > Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+   > ```
+
+2. **Clone & Install Dependencies**:
+   ```powershell
+   git clone https://github.com/vanrajsinh650/BucketSpace.git
+   cd BucketSpace
+   pnpm install
+   ```
+
+3. **Initialize Environment Config**:
+   ```powershell
+   Copy-Item .env.example .env.local
+   ```
+
+**Option B: WSL2 (Ubuntu on Windows - Recommended)**
+Open your WSL terminal and follow the **Linux (Ubuntu/Debian)** instructions above.
+</details>
 
 ---
 
-### 2. Clone the Repository
-
-```bash
-git clone https://github.com/vanrajsinh650/BucketSpace.git
-cd BucketSpace
-```
-
----
-
-### 3. Install Dependencies
-
-Install project packages using pnpm:
-```bash
-pnpm install
-```
-
----
-
-### 4. Obtain Telegram API Credentials
+### Step 2: Obtain Telegram API Credentials
 
 BucketSpace connects to Telegram using official MTProto 2.0 user credentials. To generate your API keys:
 
@@ -155,7 +229,7 @@ BucketSpace connects to Telegram using official MTProto 2.0 user credentials. To
 
 ---
 
-### 5. Configure Environment Variables
+### Step 3: Configure Environment Variables
 
 Copy the provided example environment file to `.env.local`:
 
@@ -189,7 +263,7 @@ NODE_ENV=development
 
 ---
 
-### 6. Start the Development Server
+### Step 4: Start the Development Server
 
 Run the development server:
 
@@ -210,7 +284,7 @@ http://localhost:3000
 
 ---
 
-### 7. Run Verification & Tests
+### Step 5: Run Verification & Tests
 
 BucketSpace comes with an automated unit test suite covering chunking, encryption, integrity hashing, MTProto auth, routing, and sharing:
 
