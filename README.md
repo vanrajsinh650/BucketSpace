@@ -11,17 +11,6 @@
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22.0.0-339933?logo=node.js)](https://nodejs.org/)
 [![Tests](https://img.shields.io/badge/Tests-38%2F38_Passing-success)]()
 
-<p align="center">
-  <a href="https://github.com/topics/telegram-storage"><code>#telegram-storage</code></a> &bull;
-  <a href="https://github.com/topics/cloud-storage"><code>#cloud-storage</code></a> &bull;
-  <a href="https://github.com/topics/end-to-end-encryption"><code>#end-to-end-encryption</code></a> &bull;
-  <a href="https://github.com/topics/aes-256-gcm"><code>#aes-256-gcm</code></a> &bull;
-  <a href="https://github.com/topics/self-hosted"><code>#self-hosted</code></a> &bull;
-  <a href="https://github.com/topics/privacy-first"><code>#privacy-first</code></a> &bull;
-  <a href="https://github.com/topics/mtproto"><code>#mtproto</code></a> &bull;
-  <a href="https://github.com/topics/nextjs15"><code>#nextjs15</code></a>
-</p>
-
 </div>
 
 ---
