@@ -278,6 +278,9 @@ export class StorageStore {
    * a development/demo fallback.
    */
   public hasUserProvider(): boolean {
+    if (typeof window === 'undefined') {
+      return false;
+    }
     const providers = ProviderRegistry.list();
     return providers.some((p) => p.providerId !== 'in-memory');
   }
