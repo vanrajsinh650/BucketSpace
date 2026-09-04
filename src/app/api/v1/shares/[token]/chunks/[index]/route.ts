@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TelegramAuthService } from '@/modules/storage';
-import { ShareStoreService } from '@/modules/storage/share-store-service';
+import { ShareStoreService, type InMemoryChunkData } from '@/modules/storage/share-store-service';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -108,29 +108,41 @@ export async function GET(
     }
 
     // In-memory fallback (for unit tests / mock environment)
-    if (record.inMemoryChunks && (record.inMemoryChunks[chunkIdx] !== undefined || record.inMemoryChunks[chunk.id] !== undefined)) {
-      const rawMem = record.inMemoryChunks[chunkIdx] !== undefined ? record.inMemoryChunks[chunkIdx] : record.inMemoryChunks[chunk.id];
-      let uint8: Uint8Array;
-      if (rawMem instanceof Uint8Array) {
-        uint8 = rawMem;
-      } else if (Array.isArray(rawMem)) {
-        uint8 = new Uint8Array(rawMem);
-      } else if (typeof rawMem === 'object' && rawMem !== null) {
-        // Handle JSON serialized Uint8Array {"0": byte, "1": byte, ...}
-        const values = Object.values(rawMem) as number[];
-        uint8 = new Uint8Array(values);
-      } else {
-        uint8 = new Uint8Array(0);
+    if (record.inMemoryChunks) {
+      const memChunks = record.inMemoryChunks;
+      let rawMem: InMemoryChunkData | undefined = undefined;
+
+      if (Array.isArray(memChunks)) {
+        if (!isNaN(chunkIdx) && chunkIdx >= 0 && chunkIdx < memChunks.length) {
+          rawMem = memChunks[chunkIdx];
+        }
+      } else if (typeof memChunks === 'object' && memChunks !== null) {
+        rawMem = memChunks[String(chunkIdx)] ?? (chunk?.id ? memChunks[String(chunk.id)] : undefined);
       }
 
-      return new NextResponse(uint8 as unknown as BodyInit, {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/octet-stream',
-          'Content-Length': String(uint8.length),
-          'Cache-Control': 'public, max-age=31536000, immutable',
-        },
-      });
+      if (rawMem !== undefined) {
+        let uint8: Uint8Array;
+        if (rawMem instanceof Uint8Array) {
+          uint8 = rawMem;
+        } else if (Array.isArray(rawMem)) {
+          uint8 = new Uint8Array(rawMem);
+        } else if (typeof rawMem === 'object' && rawMem !== null) {
+          // Handle JSON serialized Uint8Array {"0": byte, "1": byte, ...}
+          const values = Object.values(rawMem);
+          uint8 = new Uint8Array(values);
+        } else {
+          uint8 = new Uint8Array(0);
+        }
+
+        return new NextResponse(new Uint8Array(uint8), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/octet-stream',
+            'Content-Length': String(uint8.length),
+            'Cache-Control': 'public, max-age=31536000, immutable',
+          },
+        });
+      }
     }
 
     return NextResponse.json(

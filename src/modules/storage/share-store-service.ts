@@ -1,6 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+export type InMemoryChunkData =
+  | Uint8Array
+  | number[]
+  | Record<string, number>;
+
 export interface ShareRecord {
   token: string;
   fileId: string;
@@ -14,6 +19,8 @@ export interface ShareRecord {
   ownerSessionString?: string;
   telegramSession?: string;
   wholeFileHash?: string;
+  /** Test/mock fallback: pre-buffered ciphertext chunks for automated tests */
+  inMemoryChunks?: InMemoryChunkData[] | Record<string, InMemoryChunkData>;
 }
 
 const DATA_DIR = process.env.DATA_DIR || (process.platform === 'win32' ? process.env.TEMP : '/tmp') || '/tmp';
@@ -119,3 +126,4 @@ export class ShareStoreService {
     return deleted;
   }
 }
+
