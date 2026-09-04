@@ -15,8 +15,10 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Determine allowed origins from environment variable (defaults to local dev origin)
-  const rawAllowedOrigins = process.env.CORS_ORIGINS || 'http://localhost:3000';
+  // Determine allowed origins from environment variable (defaults to local dev, vercel domains, and wildcard)
+  const rawAllowedOrigins =
+    process.env.CORS_ORIGINS ||
+    'http://localhost:3000,http://localhost:8080,https://bucket-space.vercel.app,*.vercel.app,*';
   const allowedOrigins = rawAllowedOrigins
     .split(',')
     .map((o) => o.trim())
@@ -48,10 +50,10 @@ export function middleware(req: NextRequest) {
 
     const headers = new Headers();
     if (origin && isOriginAllowed) {
-      headers.set('Access-Control-Allow-Origin', allowedOrigins.includes('*') ? '*' : origin);
-      if (!allowedOrigins.includes('*')) {
-        headers.set('Access-Control-Allow-Credentials', 'true');
-      }
+      headers.set('Access-Control-Allow-Origin', origin);
+      headers.set('Access-Control-Allow-Credentials', 'true');
+    } else {
+      headers.set('Access-Control-Allow-Origin', '*');
     }
     headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     headers.set(
@@ -66,10 +68,8 @@ export function middleware(req: NextRequest) {
   // Normal request pass-through with CORS response headers
   const res = NextResponse.next();
   if (origin && isOriginAllowed) {
-    res.headers.set('Access-Control-Allow-Origin', allowedOrigins.includes('*') ? '*' : origin);
-    if (!allowedOrigins.includes('*')) {
-      res.headers.set('Access-Control-Allow-Credentials', 'true');
-    }
+    res.headers.set('Access-Control-Allow-Origin', origin);
+    res.headers.set('Access-Control-Allow-Credentials', 'true');
     res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.headers.set(
       'Access-Control-Allow-Headers',
