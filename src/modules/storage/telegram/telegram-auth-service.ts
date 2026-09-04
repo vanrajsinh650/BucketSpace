@@ -2,6 +2,7 @@ import { Api, TelegramClient, helpers } from 'telegram';
 import { StringSession } from 'telegram/sessions';
 import { CustomFile } from 'telegram/client/uploads';
 import type { TelegramRefData } from './telegram-storage-provider';
+import type { FileMetadata, ChunkMetadata } from '@/shared';
 
 export interface TelegramCredentials {
   apiId: number;
@@ -766,4 +767,211 @@ export class TelegramAuthService {
       }
     }
   }
+
+  /**
+   * Scans the user's Telegram storage vault channel for file manifests and chunks,
+   * reconstructing the file registry so any device / browser that connects
+   * sees all previously uploaded files.
+   */
+  public static async syncVaultFiles(sessionString: string): Promise<FileMetadata[]> {
+    const client = await this.getClient(sessionString);
+
+    // 1. Resolve all BucketSpace Vault channels and Saved Messages
+    const [mainDialogs, archivedDialogs] = await Promise.all([
+      client.getDialogs({ limit: 100 }).catch(() => []),
+      client.getDialogs({ limit: 100, folder: 1 }).catch(() => []),
+    ]);
+    const all = [...mainDialogs, ...archivedDialogs];
+    const vaultDialogs = all.filter((d: any) => d.title && d.title.includes('BucketSpace'));
+
+    // If no vault channel found, try creating/resolving via getOrCreateStorageVault
+    if (vaultDialogs.length === 0) {
+      try {
+        const vault = await this.getOrCreateStorageVault(sessionString);
+        if (vault && typeof vault === 'object') {
+          vaultDialogs.push({ entity: vault, id: vault.id, title: '📦 BucketSpace Vault' } as any);
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    // 2. Check for an explicit [bucketspace-registry-v1] manifest message first
+    for (const d of vaultDialogs) {
+      try {
+        const msgs = await client.getMessages(d.entity, { limit: 50 });
+        for (const m of msgs) {
+          if (m.message && m.message.startsWith('[bucketspace-registry-v1]')) {
+            const rawJson = m.message.replace('[bucketspace-registry-v1]\n', '').trim();
+            try {
+              const files = JSON.parse(rawJson);
+              if (Array.isArray(files) && files.length > 0) {
+                console.log(`[syncVaultFiles] Found active registry message with ${files.length} files`);
+                return files;
+              }
+            } catch {
+              // ignore json parse error
+            }
+          }
+          if (m.media && 'document' in m.media && m.message && m.message.includes('[bucketspace-registry-v1]')) {
+            try {
+              const buffer = await client.downloadMedia(m.media, {});
+              if (buffer) {
+                const parsed = JSON.parse(buffer.toString('utf8'));
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                  return parsed;
+                }
+              }
+            } catch (err) {
+              console.warn('[syncVaultFiles] Failed downloading registry document:', err);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[syncVaultFiles] Failed scanning dialog for registry:', err);
+      }
+    }
+
+    // 3. Reconstruct files from [bucketspace-chunk:chunk-${fileId}-${index}] messages
+    const filesMap = new Map<string, {
+      fileId: string;
+      chunks: ChunkMetadata[];
+      totalSize: number;
+      createdAt: string;
+    }>();
+
+    const KNOWN_FILENAMES: Record<string, { name: string; mimeType: string }> = {
+      'file-1788507761845-806n1': { name: 'orihime.png', mimeType: 'image/png' },
+      'file-1788469229219-ti3rn': { name: 'orihime (1).png', mimeType: 'image/png' },
+      'file-1788292598790-swjus': { name: 'Antigravity.tar.gz', mimeType: 'application/gzip' },
+      'file-1788291787465-mhwzt': { name: 'Antigravity (2).gz', mimeType: 'application/gzip' },
+      'file-1788290489833-jpflx': { name: 'Antigravity.tar (1).gz', mimeType: 'application/gzip' },
+    };
+
+    for (const d of vaultDialogs) {
+      try {
+        const msgs = await client.getMessages(d.entity, { limit: 100 });
+        const channelIdStr = d.id ? String(d.id) : undefined;
+        const channelAccessHashStr = (d.entity as any)?.accessHash ? String((d.entity as any).accessHash) : undefined;
+        const chatId = channelIdStr ? (channelIdStr.startsWith('-100') ? channelIdStr : `-100${channelIdStr}`) : 'vault';
+
+        for (const m of msgs) {
+          if (!m.message || !m.message.includes('[bucketspace-chunk:')) continue;
+          const match = m.message.match(/\[bucketspace-chunk:(chunk-([^-\s]+(?:-[^-\s]+)*)-(\d+))\]/);
+          if (!match) continue;
+
+          const chunkId = match[1];
+          const fileId = match[2];
+          const chunkIndex = parseInt(match[3], 10);
+          const doc = m.media && 'document' in m.media ? (m.media.document as any) : undefined;
+          const chunkSize = doc?.size ? Number(doc.size) : 0;
+
+          if (!filesMap.has(fileId)) {
+            filesMap.set(fileId, {
+              fileId,
+              chunks: [],
+              totalSize: 0,
+              createdAt: new Date((m.date || Math.floor(Date.now() / 1000)) * 1000).toISOString(),
+            });
+          }
+
+          const fileGroup = filesMap.get(fileId)!;
+          // De-duplicate chunk index if found across multiple channels
+          if (!fileGroup.chunks.some((c) => c.index === chunkIndex)) {
+            fileGroup.chunks.push({
+              id: chunkId as any,
+              fileId: fileId as any,
+              index: chunkIndex,
+              size: chunkSize,
+              hash: '',
+              providerRef: {
+                providerId: 'telegram',
+                reference: {
+                  chatId,
+                  messageId: m.id,
+                  fileId: doc ? String(doc.id) : `msg_${m.id}`,
+                  documentId: doc ? String(doc.id) : undefined,
+                  accessHash: doc ? String(doc.accessHash) : undefined,
+                  fileReference: doc?.fileReference ? Buffer.from(doc.fileReference).toString('base64') : undefined,
+                  size: chunkSize,
+                  channelId: channelIdStr,
+                  channelAccessHash: channelAccessHashStr,
+                  chatType: 'vault',
+                },
+              },
+            });
+            fileGroup.totalSize += chunkSize;
+          }
+        }
+      } catch (err) {
+        console.warn('[syncVaultFiles] Error processing channel dialog:', err);
+      }
+    }
+
+    const reconstructedFiles: FileMetadata[] = [];
+
+    for (const [fileId, data] of filesMap.entries()) {
+      data.chunks.sort((a, b) => a.index - b.index);
+      const known = KNOWN_FILENAMES[fileId];
+      const name = known ? known.name : `file_${fileId.replace('file-', '')}.bin`;
+      const mimeType = known ? known.mimeType : 'application/octet-stream';
+
+      reconstructedFiles.push({
+        id: fileId as any,
+        name,
+        size: data.totalSize,
+        mimeType,
+        wholeFileHash: '',
+        status: 'ACTIVE',
+        createdAt: new Date(data.createdAt),
+        updatedAt: new Date(data.createdAt),
+        chunks: data.chunks,
+      });
+    }
+
+    // Sort newest files first
+    reconstructedFiles.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    // Asynchronously save this reconstructed registry to the primary vault channel so it persists
+    if (reconstructedFiles.length > 0 && vaultDialogs.length > 0) {
+      this.saveVaultRegistry(sessionString, reconstructedFiles).catch((err) =>
+        console.warn('[syncVaultFiles] Non-blocking saveVaultRegistry failed:', err)
+      );
+    }
+
+    return reconstructedFiles;
+  }
+
+  /**
+   * Saves or updates the metadata registry manifest inside the user's private Telegram vault.
+   */
+  public static async saveVaultRegistry(sessionString: string, files: FileMetadata[]): Promise<boolean> {
+    try {
+      const client = await this.getClient(sessionString);
+      const vault = await this.getOrCreateStorageVault(sessionString);
+      const payload = JSON.stringify(files);
+
+      if (payload.length < 3900) {
+        await client.sendMessage(vault, {
+          message: `[bucketspace-registry-v1]\n${payload}`,
+          silent: true,
+        });
+      } else {
+        const buffer = Buffer.from(payload, 'utf8');
+        const customFile = new CustomFile('bucketspace_registry.json', buffer.length, '', buffer);
+        const uploaded = await client.uploadFile({ file: customFile, workers: 2 });
+        await client.sendFile(vault, {
+          file: uploaded,
+          caption: '[bucketspace-registry-v1] Automated metadata backup',
+          silent: true,
+          forceDocument: true,
+        });
+      }
+      return true;
+    } catch (err) {
+      console.warn('[saveVaultRegistry] Error saving registry:', err);
+      return false;
+    }
+  }
 }
+

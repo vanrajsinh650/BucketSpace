@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Upload, LogOut, Menu } from 'lucide-react';
+import { Search, Upload, LogOut, Menu, RotateCw } from 'lucide-react';
 
 interface HeaderProps {
   searchQuery: string;
@@ -8,6 +8,8 @@ interface HeaderProps {
   providerName: string;
   onDisconnect?: () => void;
   onOpenMobileMenu?: () => void;
+  onSync?: () => void;
+  isSyncing?: boolean;
 }
 
 export function Header({
@@ -17,6 +19,8 @@ export function Header({
   providerName,
   onDisconnect,
   onOpenMobileMenu,
+  onSync,
+  isSyncing = false,
 }: HeaderProps) {
   const searchInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -65,6 +69,20 @@ export function Header({
 
       {/* Right Actions: Upload & Active Provider */}
       <div className="flex items-center gap-2.5">
+        {/* Sync Button */}
+        {onSync && (
+          <button
+            type="button"
+            onClick={onSync}
+            disabled={isSyncing}
+            className="p-2 text-zinc-400 hover:text-white rounded-xl bg-[#121212] border border-[#262626] hover:border-zinc-700 transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center disabled:opacity-50"
+            aria-label="Sync files from Telegram vault"
+            title={isSyncing ? "Syncing files..." : "Sync files from Telegram vault"}
+          >
+            <RotateCw className={`w-4 h-4 ${isSyncing ? 'animate-spin text-sky-400' : ''}`} />
+          </button>
+        )}
+
         {/* Upload Button */}
         <button
           type="button"

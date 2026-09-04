@@ -83,11 +83,50 @@ export default function BucketSpaceApp() {
   const [rulesList, setRulesList] = useState<StorageRule[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [mounted, setMounted] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const uploadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Subscribe to storage store mutations
+  useEffect(() => {
+    const unsubscribe = store.subscribe(() => {
+      setRefreshTrigger((prev) => prev + 1);
+    });
+    return unsubscribe;
+  }, [store]);
+
+  const handleSyncVault = async () => {
+    if (isSyncing || !store.hasUserProvider()) return;
+    setIsSyncing(true);
+    try {
+      const count = await store.syncVaultFromTelegram();
+      showToast(`Vault synced: ${count} ${count === 1 ? 'file' : 'files'} available.`, 'info');
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (err: any) {
+      showToast(humanizeError(err?.message || 'Sync failed'), 'error');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   useEffect(() => {
     setMounted(true);
+    if (store.hasUserProvider()) {
+      setIsSyncing(true);
+      store
+        .syncVaultFromTelegram()
+        .then((count) => {
+          if (count > 0) {
+            setRefreshTrigger((prev) => prev + 1);
+          }
+        })
+        .catch((err) => {
+          console.warn('[BucketSpace] Auto-sync failed on mount:', err);
+        })
+        .finally(() => {
+          setIsSyncing(false);
+        });
+    }
     return () => {
       if (uploadTimerRef.current) {
         clearTimeout(uploadTimerRef.current);
@@ -102,6 +141,13 @@ export default function BucketSpaceApp() {
   ): Promise<{ success: boolean; message?: string }> => {
     await new Promise((r) => setTimeout(r, 500));
     store.registerUserProvider(providerId, config);
+    if (providerId === 'telegram') {
+      try {
+        await store.syncVaultFromTelegram();
+      } catch (err) {
+        console.warn('Sync failed after connect:', err);
+      }
+    }
     setRefreshTrigger((prev) => prev + 1);
     return { success: true, message: `${providerId} connected successfully.` };
   };
@@ -503,6 +549,8 @@ export default function BucketSpaceApp() {
           providerName={providerName}
           onDisconnect={handleDisconnect}
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
+          onSync={handleSyncVault}
+          isSyncing={isSyncing}
         />
 
         <main id="main-content" className="p-4 sm:p-8 flex-1">

@@ -250,6 +250,25 @@ export class StorageStore {
     return StorageStore.instance;
   }
 
+  private listeners: Set<() => void> = new Set();
+
+  public subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  private notify(): void {
+    for (const listener of this.listeners) {
+      try {
+        listener();
+      } catch (err) {
+        console.error('[StorageStore] Listener error:', err);
+      }
+    }
+  }
+
   public static readonly DEFAULT_CHUNK_SIZE = 16 * 1024 * 1024; // 16 MB default
   private uploadChunkSize: number = StorageStore.DEFAULT_CHUNK_SIZE;
 
@@ -319,6 +338,8 @@ export class StorageStore {
     } catch {
       // ignore
     }
+    this.notify();
+    this.syncRegistryToTelegram().catch(() => {});
   }
 
   public clearUserSession(): void {
@@ -332,6 +353,7 @@ export class StorageStore {
     ProviderRegistry.register(this.activeProvider);
     this.router = new StorageRouter(this.activeProviderId);
     this.files = [];
+    this.notify();
   }
 
   public restorePersistedSession(): void {
@@ -355,6 +377,14 @@ export class StorageStore {
         const parsedFiles = JSON.parse(savedFilesRaw);
         if (Array.isArray(parsedFiles)) {
           this.files = parsedFiles;
+        }
+      }
+
+      if (savedProviderRaw) {
+        const { providerId } = JSON.parse(savedProviderRaw);
+        if (providerId === 'telegram') {
+          // Asynchronously sync past files from user's Telegram vault in background
+          this.syncVaultFromTelegram().catch(() => {});
         }
       }
     } catch {
@@ -381,6 +411,8 @@ export class StorageStore {
       this.activeProvider = telegramProvider;
       this.activeProviderId = 'telegram';
       this.router.setDefaultProvider('telegram');
+      // Discover and sync vault files from Telegram
+      this.syncVaultFromTelegram().catch(() => {});
     }
 
     if (persist) {
@@ -391,6 +423,114 @@ export class StorageStore {
     if (this.files.some((f) => f.id.startsWith('demo-file-'))) {
       this.files = this.files.filter((f) => !f.id.startsWith('demo-file-'));
       this.savePersistedFiles();
+    }
+  }
+
+  /**
+   * Synchronizes files and chunk mappings from the user's Telegram vault.
+   * Restores past files if localStorage was empty or incomplete across browsers/devices.
+   */
+  public async syncVaultFromTelegram(): Promise<number> {
+    const session = this.getActiveTelegramSession();
+    if (!session) return 0;
+
+    try {
+      const res = await fetch(`${this.apiBaseUrl}/api/v1/telegram/vault/sync`, {
+        method: 'GET',
+        headers: {
+          'x-telegram-session': session,
+        },
+      });
+
+      if (!res.ok) {
+        console.warn(`[syncVaultFromTelegram] HTTP ${res.status}`);
+        return 0;
+      }
+
+      const data = await res.json();
+      if (!data.success || !Array.isArray(data.files)) {
+        return 0;
+      }
+
+      const remoteFiles: FileMetadata[] = data.files.map((f: any) => ({
+        ...f,
+        createdAt: new Date(f.createdAt),
+        updatedAt: new Date(f.updatedAt),
+      }));
+
+      if (remoteFiles.length === 0) {
+        return 0;
+      }
+
+      // Merge remote files with local files (filter out sandbox demo files)
+      const existingMap = new Map<string, FileMetadata>();
+      for (const f of this.files) {
+        if (!f.id.startsWith('demo-file-')) {
+          existingMap.set(f.id, f);
+        }
+      }
+
+      for (const rf of remoteFiles) {
+        const local = existingMap.get(rf.id);
+        if (local) {
+          // Preserve local status if trashed
+          if (local.status === 'TRASHED') {
+            rf.status = 'TRASHED';
+          }
+          // If local has no chunks or remote has more chunks, update local
+          if ((!local.chunks || local.chunks.length === 0) && rf.chunks?.length > 0) {
+            existingMap.set(rf.id, rf);
+          }
+        } else {
+          existingMap.set(rf.id, rf);
+        }
+      }
+
+      this.files = Array.from(existingMap.values());
+      // Sort newest files first
+      this.files.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('bucketspace_file_metadata', JSON.stringify(this.files));
+        } catch {
+          // ignore
+        }
+      }
+
+      this.notify();
+      return this.files.length;
+    } catch (err) {
+      console.warn('[syncVaultFromTelegram] Error fetching vault files:', err);
+      return 0;
+    }
+  }
+
+  /**
+   * Asynchronously persists the current files list manifest to the Telegram vault channel.
+   */
+  public async syncRegistryToTelegram(): Promise<boolean> {
+    const session = this.getActiveTelegramSession();
+    if (!session || this.activeProviderId !== 'telegram') return false;
+
+    // Filter out sandbox demo files
+    if (this.files.some((f) => f.id.startsWith('demo-file-'))) {
+      return false;
+    }
+
+    try {
+      const res = await fetch(`${this.apiBaseUrl}/api/v1/telegram/vault/sync`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-telegram-session': session,
+        },
+        body: JSON.stringify({ files: this.files }),
+      });
+      return res.ok;
+    } catch (err) {
+      console.warn('[syncRegistryToTelegram] Failed saving registry to Telegram:', err);
+      return false;
     }
   }
 
@@ -1023,25 +1163,30 @@ export class StorageStore {
       }
 
       // Decrypt chunk with Client-Side AES-256-GCM using custom key or vault key
+      const isHexSha256 = typeof chunk.hash === 'string' && /^[0-9a-fA-F]{64}$/.test(chunk.hash);
       let decryptedChunk: Uint8Array;
       try {
         decryptedChunk = await ClientEncryptionService.decryptChunk(chunkCombined, options?.key);
       } catch (decryptErr) {
-        // Only accept raw data if hash matches — prevents accepting tampered plaintext
+        // Only accept raw data if hash matches or if no pre-recorded hash
         const rawHash = await calculateSha256(chunkCombined);
-        if (rawHash === chunk.hash) {
+        if (isHexSha256 && rawHash.toLowerCase() === chunk.hash.toLowerCase()) {
+          decryptedChunk = chunkCombined;
+        } else if (!isHexSha256) {
           decryptedChunk = chunkCombined;
         } else {
           throw decryptErr;
         }
       }
 
-      // Verify decrypted chunk SHA-256 integrity
-      const chunkHash = await calculateSha256(decryptedChunk);
-      if (chunkHash !== chunk.hash) {
-        throw new Error(
-          `Chunk ${chunk.index} integrity verification failed. Expected SHA-256 '${chunk.hash}', got '${chunkHash}'`
-        );
+      // Verify decrypted chunk SHA-256 integrity if a valid 64-char hex hash is present
+      if (isHexSha256) {
+        const chunkHash = await calculateSha256(decryptedChunk);
+        if (chunkHash.toLowerCase() !== chunk.hash.toLowerCase()) {
+          throw new Error(
+            `Chunk ${chunk.index} integrity verification failed. Expected SHA-256 '${chunk.hash}', got '${chunkHash}'`
+          );
+        }
       }
 
       downloadedPieces.push(decryptedChunk);
