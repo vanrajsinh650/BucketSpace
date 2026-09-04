@@ -110,14 +110,19 @@ export function FileCard({
 
           <div
             onClick={() => onPreview && onPreview(file)}
-            className="cursor-pointer flex items-center gap-3 min-w-0 flex-1"
+            className="cursor-pointer flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1"
           >
             <div className="w-8 h-8 rounded-lg bg-zinc-800/80 flex items-center justify-center shrink-0 text-zinc-400">
               <IconComponent className="w-4 h-4" />
             </div>
-            <span className="text-xs font-medium text-zinc-100 truncate group-hover:text-white">
-              {file.name}
-            </span>
+            <div className="flex flex-col min-w-0 flex-1">
+              <span className="text-xs font-medium text-zinc-100 truncate group-hover:text-white">
+                {file.name}
+              </span>
+              <span className="sm:hidden text-[10px] text-zinc-500 font-mono mt-0.5">
+                {formatBytes(file.size)} · {formatDate(file.createdAt)}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -129,13 +134,13 @@ export function FileCard({
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
           {!isDeleted ? (
             <>
               <button
                 type="button"
                 onClick={() => onDownload(file.id)}
-                className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+                className="p-1.5 sm:p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors min-w-[32px] sm:min-w-[36px] min-h-[32px] sm:min-h-[36px] flex items-center justify-center"
                 title="Download"
                 aria-label={`Download ${file.name}`}
               >
@@ -145,7 +150,7 @@ export function FileCard({
                 <button
                   type="button"
                   onClick={() => onShare(file)}
-                  className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+                  className="p-1.5 sm:p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors min-w-[32px] sm:min-w-[36px] min-h-[32px] sm:min-h-[36px] flex items-center justify-center"
                   title="Share"
                   aria-label={`Share ${file.name}`}
                 >
@@ -156,7 +161,7 @@ export function FileCard({
                 <button
                   type="button"
                   onClick={() => onMove(file)}
-                  className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+                  className="hidden md:flex p-1.5 sm:p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors min-w-[32px] sm:min-w-[36px] min-h-[32px] sm:min-h-[36px] items-center justify-center"
                   title="Move"
                   aria-label={`Move ${file.name}`}
                 >
@@ -167,7 +172,7 @@ export function FileCard({
                 <button
                   type="button"
                   onClick={() => onRedundancy(file)}
-                  className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+                  className="hidden md:flex p-1.5 sm:p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors min-w-[32px] sm:min-w-[36px] min-h-[32px] sm:min-h-[36px] items-center justify-center"
                   title="Replicas"
                   aria-label={`Replicas for ${file.name}`}
                 >
@@ -177,7 +182,7 @@ export function FileCard({
               <button
                 type="button"
                 onClick={() => onInfo(file)}
-                className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+                className="p-1.5 sm:p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors min-w-[32px] sm:min-w-[36px] min-h-[32px] sm:min-h-[36px] flex items-center justify-center"
                 title="Details"
                 aria-label={`Details for ${file.name}`}
               >
@@ -186,7 +191,7 @@ export function FileCard({
               <button
                 type="button"
                 onClick={() => onDelete(file.id)}
-                className="p-2 text-zinc-400 hover:text-rose-400 rounded-lg hover:bg-rose-950/20 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+                className="p-1.5 sm:p-2 text-zinc-400 hover:text-rose-400 rounded-lg hover:bg-rose-950/20 transition-colors min-w-[32px] sm:min-w-[36px] min-h-[32px] sm:min-h-[36px] flex items-center justify-center"
                 title="Move to Trash"
                 aria-label={`Delete ${file.name}`}
               >
@@ -253,14 +258,14 @@ export function FileCard({
             {isSelected ? (
               <CheckSquare className="w-4 h-4 text-white" />
             ) : (
-              <Square className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <Square className="w-4 h-4 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" />
             )}
           </button>
         ) : (
           <div />
         )}
 
-        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
           {!isDeleted ? (
             <>
               <button

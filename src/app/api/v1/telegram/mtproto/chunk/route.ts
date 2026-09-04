@@ -42,6 +42,35 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const hasLocalCredentials = Boolean(
+      (process.env.TELEGRAM_API_ID || process.env.TELEGRAM_APT_ID) &&
+      process.env.TELEGRAM_API_HASH &&
+      process.env.TELEGRAM_API_HASH !== 'your-telegram-api-hash'
+    );
+    const backendUrl =
+      process.env.BACKEND_API_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      'https://bucketspace-production.up.railway.app';
+
+    if (!hasLocalCredentials && backendUrl) {
+      console.log('[chunk-upload] Proxying chunk upload to cloud backend:', backendUrl);
+      const targetUrl = `${backendUrl.trim().replace(/\/+$/, '')}/api/v1/telegram/mtproto/chunk`;
+      const proxyFormData = new FormData();
+      proxyFormData.append('file', file, filename);
+      proxyFormData.append('chunkId', chunkId);
+      proxyFormData.append('filename', filename);
+      proxyFormData.append('targetChatId', targetChatId);
+      proxyFormData.append('sessionString', sessionString);
+
+      const proxyRes = await fetch(targetUrl, {
+        method: 'POST',
+        body: proxyFormData,
+        headers: { 'x-telegram-session': sessionString },
+      });
+      const proxyData = await proxyRes.json().catch(() => ({}));
+      return NextResponse.json(proxyData, { status: proxyRes.status });
+    }
+
     // GramJS CustomFile requires a Node Buffer. Buffer.from(arrayBuffer) is a
     // zero-copy view when possible in Node 16+, but may copy in older runtimes.
     const arrayBuffer = await file.arrayBuffer();
@@ -112,6 +141,33 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const hasLocalCredentials = Boolean(
+      (process.env.TELEGRAM_API_ID || process.env.TELEGRAM_APT_ID) &&
+      process.env.TELEGRAM_API_HASH &&
+      process.env.TELEGRAM_API_HASH !== 'your-telegram-api-hash'
+    );
+    const backendUrl =
+      process.env.BACKEND_API_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      'https://bucketspace-production.up.railway.app';
+
+    if (!hasLocalCredentials && backendUrl) {
+      const targetUrl = `${backendUrl.trim().replace(/\/+$/, '')}/api/v1/telegram/mtproto/chunk?${searchParams.toString()}`;
+      const proxyRes = await fetch(targetUrl, {
+        method: 'GET',
+        headers: { 'x-telegram-session': sessionString },
+      });
+      const chunkBytes = await proxyRes.arrayBuffer();
+      return new NextResponse(new Uint8Array(chunkBytes), {
+        status: proxyRes.status,
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'Content-Length': String(chunkBytes.byteLength),
+          'Cache-Control': 'public, max-age=31536000, immutable',
+        },
+      });
+    }
+
     const buffer = await TelegramAuthService.downloadChunk({
       sessionString,
       messageId,
@@ -163,6 +219,30 @@ export async function DELETE(req: NextRequest) {
         { success: false, message: 'Missing Telegram session string' },
         { status: 401 }
       );
+    }
+
+    const hasLocalCredentials = Boolean(
+      (process.env.TELEGRAM_API_ID || process.env.TELEGRAM_APT_ID) &&
+      process.env.TELEGRAM_API_HASH &&
+      process.env.TELEGRAM_API_HASH !== 'your-telegram-api-hash'
+    );
+    const backendUrl =
+      process.env.BACKEND_API_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      'https://bucketspace-production.up.railway.app';
+
+    if (!hasLocalCredentials && backendUrl) {
+      const targetUrl = `${backendUrl.trim().replace(/\/+$/, '')}/api/v1/telegram/mtproto/chunk`;
+      const proxyRes = await fetch(targetUrl, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-telegram-session': sessionString,
+        },
+        body: JSON.stringify({ messageId, targetChatId, sessionString }),
+      });
+      const proxyData = await proxyRes.json().catch(() => ({}));
+      return NextResponse.json(proxyData, { status: proxyRes.status });
     }
 
     await TelegramAuthService.deleteChunk({

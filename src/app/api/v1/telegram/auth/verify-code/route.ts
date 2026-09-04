@@ -15,6 +15,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const hasLocalCredentials = Boolean(
+      (process.env.TELEGRAM_API_ID || process.env.TELEGRAM_APT_ID) &&
+      process.env.TELEGRAM_API_HASH &&
+      process.env.TELEGRAM_API_HASH !== 'your-telegram-api-hash'
+    );
+    const backendUrl =
+      process.env.BACKEND_API_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      'https://bucketspace-production.up.railway.app';
+
+    if (!hasLocalCredentials && backendUrl) {
+      console.log('[verify-code] Proxying request to cloud backend:', backendUrl);
+      const targetUrl = `${backendUrl.trim().replace(/\/+$/, '')}/api/v1/telegram/auth/verify-code`;
+      const proxyRes = await fetch(targetUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionToken: String(sessionToken).trim(), code: String(code).trim() }),
+      });
+      const proxyData = await proxyRes.json().catch(() => ({}));
+      return NextResponse.json(proxyData, { status: proxyRes.status });
+    }
+
     const result = await TelegramAuthService.verifyCode({
       sessionToken: String(sessionToken).trim(),
       code: String(code).trim(),

@@ -57,6 +57,7 @@ export function ProviderOnboardingModal({
       setSessionToken(data.sessionToken);
       setTelegramStep('code');
     } catch (err: any) {
+      console.error('[send-code] Auth request failed to:', `${API_BASE}/api/v1/telegram/auth/send-code`, err);
       setErrorMessage(humanizeError(err));
     } finally {
       setIsSubmitting(false);
@@ -93,6 +94,7 @@ export function ProviderOnboardingModal({
       await onConnectProvider('telegram', { sessionString: data.sessionString, phone });
       onClose();
     } catch (err: any) {
+      console.error('[verify-code] Auth request failed to:', `${API_BASE}/api/v1/telegram/auth/verify-code`, err);
       setErrorMessage(humanizeError(err));
     } finally {
       setIsSubmitting(false);
@@ -120,6 +122,7 @@ export function ProviderOnboardingModal({
       await onConnectProvider('telegram', { sessionString: data.sessionString, phone });
       onClose();
     } catch (err: any) {
+      console.error('[verify-2fa] Auth request failed to:', `${API_BASE}/api/v1/telegram/auth/verify-2fa`, err);
       setErrorMessage(humanizeError(err));
     } finally {
       setIsSubmitting(false);
@@ -133,7 +136,7 @@ export function ProviderOnboardingModal({
       aria-labelledby="provider-modal-title"
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm font-sans"
     >
-      <div className="bg-[#121212] border border-[#222] rounded-t-2xl sm:rounded-2xl w-full max-w-md flex flex-col overflow-hidden shadow-2xl text-xs text-zinc-100">
+      <div className="bg-[#121212] border border-[#222] rounded-t-2xl sm:rounded-2xl w-full max-w-md max-h-[92vh] overflow-y-auto flex flex-col shadow-2xl text-xs text-zinc-100">
         {/* Header */}
         <div className="px-5 py-4 border-b border-[#222] flex items-center justify-between">
           <h2 id="provider-modal-title" className="text-sm font-semibold tracking-wide text-zinc-100">

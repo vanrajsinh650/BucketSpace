@@ -67,6 +67,7 @@ export function OnboardingLandingPage({
       setSessionToken(data.sessionToken);
       setStep('code');
     } catch (err: any) {
+      console.error('[send-code] Auth request failed to:', `${API_BASE}/api/v1/telegram/auth/send-code`, err);
       setErrorMessage(humanizeError(err));
     } finally {
       setIsSubmitting(false);
@@ -102,6 +103,7 @@ export function OnboardingLandingPage({
       await onConnectProvider('telegram', { sessionString: data.sessionString, phone });
       onFinishOnboarding();
     } catch (err: any) {
+      console.error('[verify-code] Auth request failed to:', `${API_BASE}/api/v1/telegram/auth/verify-code`, err);
       setErrorMessage(humanizeError(err));
     } finally {
       setIsSubmitting(false);
@@ -129,6 +131,7 @@ export function OnboardingLandingPage({
       await onConnectProvider('telegram', { sessionString: data.sessionString, phone });
       onFinishOnboarding();
     } catch (err: any) {
+      console.error('[verify-2fa] Auth request failed to:', `${API_BASE}/api/v1/telegram/auth/verify-2fa`, err);
       setErrorMessage(humanizeError(err));
     } finally {
       setIsSubmitting(false);
@@ -138,12 +141,12 @@ export function OnboardingLandingPage({
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-stone-50 font-sans selection:bg-stone-50 selection:text-black overflow-x-hidden">
       {/* ─── Navigation ─── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 py-5 bg-[#0a0a0a]/80 backdrop-blur-md border-b border-white/5">
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 md:px-12 py-3.5 sm:py-5 bg-[#0a0a0a]/80 backdrop-blur-md border-b border-white/5">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center border border-white/20">
             <Cloud className="w-4 h-4 text-white" />
           </div>
-          <span className="font-semibold text-lg tracking-tight">BucketSpace</span>
+          <span className="font-semibold text-base sm:text-lg tracking-tight">BucketSpace</span>
         </div>
         
         <div className="hidden lg:flex items-center gap-8 text-sm text-stone-400">
@@ -152,7 +155,7 @@ export function OnboardingLandingPage({
           <a href="https://github.com/vanrajsinh650/BucketSpace" target="_blank" rel="noreferrer" className="hover:text-stone-50 transition-colors">GitHub</a>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           <button 
             onClick={() => {
               setModalOpen(true);
@@ -169,7 +172,7 @@ export function OnboardingLandingPage({
               setStep('phone');
               setErrorMessage('');
             }}
-            className="bg-white text-black hover:bg-stone-200 px-5 py-2.5 rounded-full text-sm font-semibold transition-colors shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+            className="bg-white text-black hover:bg-stone-200 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-colors shadow-[0_0_20px_rgba(255,255,255,0.15)]"
           >
             Get Started
           </button>
@@ -177,7 +180,7 @@ export function OnboardingLandingPage({
       </nav>
 
       {/* ─── Hero Section ─── */}
-      <main id="main-content" className="pt-32 pb-16 px-6 md:px-12 max-w-7xl mx-auto">
+      <main id="main-content" className="pt-24 sm:pt-32 pb-12 sm:pb-16 px-4 sm:px-6 md:px-12 max-w-7xl mx-auto">
         <div className="relative flex flex-col lg:flex-row items-center min-h-[60vh] md:min-h-[70vh]">
           {/* Ethereal Floating Clouds Animation - Procedural & Organic */}
           <FloatingClouds
@@ -187,35 +190,35 @@ export function OnboardingLandingPage({
             className="right-[-10%] top-[-15%] w-full lg:w-[125%] h-[130%]"
           />
 
-          <div className="relative z-10 lg:w-1/2 flex flex-col items-start text-left mt-12 lg:mt-0">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 mb-8 backdrop-blur-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-white motion-safe:animate-pulse-slow" />
-              <span className="text-xs font-medium text-stone-300">Client-side encryption. Telegram-backed storage.</span>
+          <div className="relative z-10 lg:w-1/2 flex flex-col items-start text-left mt-8 sm:mt-12 lg:mt-0">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 mb-6 sm:mb-8 backdrop-blur-sm max-w-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-white motion-safe:animate-pulse-slow shrink-0" />
+              <span className="text-[11px] sm:text-xs font-medium text-stone-300 truncate">Client-side encryption. Telegram-backed storage.</span>
             </div>
 
-            <h1 className="font-serif text-6xl sm:text-7xl lg:text-8xl xl:text-[7.5rem] leading-[1.05] tracking-tight mb-8">
+            <h1 className="font-serif text-4xl sm:text-7xl lg:text-8xl xl:text-[7.5rem] leading-[1.08] sm:leading-[1.05] tracking-tight mb-6 sm:mb-8">
               A place for<br />everything.
             </h1>
             
-            <p className="text-lg md:text-xl text-stone-400 mb-10 max-w-lg leading-relaxed font-sans">
+            <p className="text-base sm:text-lg md:text-xl text-stone-400 mb-8 sm:mb-10 max-w-lg leading-relaxed font-sans">
               A personal storage workspace built on Telegram MTProto. Files are encrypted on this device before upload.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
               <button 
                 onClick={() => {
                   setModalOpen(true);
                   setStep('phone');
                   setErrorMessage('');
                 }}
-                className="w-full sm:w-auto bg-white text-black hover:bg-stone-200 px-6 py-3.5 rounded-full text-[15px] font-semibold transition-all flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(255,255,255,0.1)] hover:scale-[1.02]"
+                className="w-full sm:w-auto bg-white text-black hover:bg-stone-200 px-6 py-3.5 rounded-full text-[15px] font-semibold transition-all flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(255,255,255,0.1)] hover:scale-[1.02] min-h-[44px]"
               >
                 <span>Get Started</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
               
               <button 
-                className="w-full sm:w-auto bg-transparent border border-white/20 text-white hover:bg-white/5 px-6 py-3.5 rounded-full text-[15px] font-medium transition-colors"
+                className="w-full sm:w-auto bg-transparent border border-white/20 text-white hover:bg-white/5 px-6 py-3.5 rounded-full text-[15px] font-medium transition-colors min-h-[44px]"
                 onClick={() => {
                   const el = document.getElementById('features');
                   el?.scrollIntoView({ behavior: 'smooth' });
@@ -228,7 +231,7 @@ export function OnboardingLandingPage({
         </div>
 
         {/* ─── Mini Value Props Strip ─── */}
-        <div className="mt-24 mb-32 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 p-2 rounded-3xl bg-[#111] border border-white/5">
+        <div className="mt-16 sm:mt-24 mb-20 sm:mb-32 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 p-2 rounded-2xl sm:rounded-3xl bg-[#111] border border-white/5">
           <div className="p-6 flex flex-col gap-3">
             <HardDrive className="w-6 h-6 text-stone-400" />
             <h3 className="font-medium text-[15px]">Your Files</h3>
@@ -252,56 +255,56 @@ export function OnboardingLandingPage({
         </div>
 
         {/* ─── UI Showcase Section ─── */}
-        <div id="features" className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24 mb-40">
+        <div id="features" className="flex flex-col lg:flex-row items-center gap-10 lg:gap-24 mb-24 sm:mb-40">
           <div className="lg:w-1/3 flex flex-col">
-            <span className="text-sm font-medium text-stone-500 mb-4">Everything in one place</span>
-            <h2 className="font-serif text-5xl md:text-6xl tracking-tight leading-[1.1] mb-6">
+            <span className="text-xs sm:text-sm font-medium text-stone-500 mb-3 sm:mb-4">Everything in one place</span>
+            <h2 className="font-serif text-3xl sm:text-5xl md:text-6xl tracking-tight leading-[1.1] mb-4 sm:mb-6">
               All your files.<br />One workspace.
             </h2>
-            <p className="text-lg text-stone-400 mb-10 leading-relaxed max-w-sm font-sans">
+            <p className="text-base sm:text-lg text-stone-400 mb-8 sm:mb-10 leading-relaxed max-w-sm font-sans">
               Upload, search, preview, download, and share files from the BucketSpace workspace.
             </p>
             
-            <div className="flex flex-wrap gap-4 mb-10">
-              <div className="flex items-center gap-2 text-sm text-stone-300 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+            <div className="flex flex-wrap gap-2.5 sm:gap-4 mb-8 sm:mb-10">
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-stone-300 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
                 <HardDrive className="w-4 h-4" /> Files
               </div>
-              <div className="flex items-center gap-2 text-sm text-stone-300 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-stone-300 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> Photos
               </div>
-              <div className="flex items-center gap-2 text-sm text-stone-300 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-stone-300 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg> Videos
               </div>
             </div>
 
-            <p className="text-sm text-stone-500">The interface shown is an illustrative example.</p>
+            <p className="text-xs sm:text-sm text-stone-500">The interface shown is an illustrative example.</p>
           </div>
 
           <div className="lg:w-2/3 w-full">
             {/* Fake OS Window UI mimicking reference */}
             <div className="w-full bg-[#111] rounded-2xl border border-white/5 shadow-2xl overflow-hidden flex flex-col font-sans">
               {/* Window Header */}
-              <div className="h-14 border-b border-white/5 flex items-center px-4 justify-between bg-[#0a0a0a]">
-                <div className="flex items-center gap-2 text-stone-300">
-                  <Cloud className="w-5 h-5" />
-                  <span className="font-semibold text-sm">BucketSpace — Example interface</span>
+              <div className="h-12 sm:h-14 border-b border-white/5 flex items-center px-3 sm:px-4 justify-between bg-[#0a0a0a]">
+                <div className="flex items-center gap-2 text-stone-300 min-w-0">
+                  <Cloud className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                  <span className="font-semibold text-xs sm:text-sm truncate">BucketSpace — Example interface</span>
                 </div>
-                <div className="flex-1 max-w-md mx-6">
-                  <div className="bg-[#1a1a1a] border border-white/5 rounded-full px-4 py-1.5 flex items-center gap-2">
-                    <SearchIcon className="w-4 h-4 text-stone-500" />
-                    <span className="text-xs text-stone-500">Search your files...</span>
+                <div className="hidden sm:flex flex-1 max-w-md mx-3 sm:mx-6">
+                  <div className="w-full bg-[#1a1a1a] border border-white/5 rounded-full px-4 py-1.5 flex items-center gap-2">
+                    <SearchIcon className="w-4 h-4 text-stone-500 shrink-0" />
+                    <span className="text-xs text-stone-500 truncate">Search your files...</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="bg-[#1a1a1a] border border-white/5 text-stone-300 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="bg-[#1a1a1a] border border-white/5 text-stone-300 text-xs px-2.5 sm:px-3 py-1.5 rounded-lg flex items-center gap-1.5">
                     <Send className="w-3 h-3" /> Upload
                   </span>
                 </div>
               </div>
               
-              <div className="flex flex-1 min-h-[400px]">
-                {/* Sidebar */}
-                <div className="w-56 border-r border-white/5 bg-[#0a0a0a]/50 p-4 flex flex-col gap-1">
+              <div className="flex flex-1 min-h-[340px] sm:min-h-[400px]">
+                {/* Sidebar - responsive: visible on md+, compact files list on mobile */}
+                <div className="hidden md:flex flex-col w-48 lg:w-56 border-r border-white/5 bg-[#0a0a0a]/50 p-4 gap-1 shrink-0">
                   <div className="flex items-center gap-3 px-3 py-2 bg-white/10 rounded-lg text-white text-sm font-medium">
                     <HardDrive className="w-4 h-4" /> All Files
                   </div>
@@ -325,31 +328,31 @@ export function OnboardingLandingPage({
                 </div>
 
                 {/* Main Content Area */}
-                <div className="flex-1 bg-[#111] p-6">
-                  <h3 className="text-lg font-medium mb-6 text-stone-200">All Files</h3>
+                <div className="flex-1 bg-[#111] p-4 sm:p-6 min-w-0">
+                  <h3 className="text-base sm:text-lg font-medium mb-4 sm:mb-6 text-stone-200">All Files</h3>
                   
                   <div className="grid grid-cols-12 text-xs font-medium text-stone-500 pb-3 border-b border-white/5 mb-3">
-                    <div className="col-span-6">Name</div>
-                    <div className="col-span-4">Modified</div>
-                    <div className="col-span-2">Size</div>
+                    <div className="col-span-8 sm:col-span-6">Name</div>
+                    <div className="hidden sm:block sm:col-span-4">Modified</div>
+                    <div className="col-span-4 sm:col-span-2 text-right sm:text-left">Size</div>
                   </div>
 
                   <div className="flex flex-col gap-1 text-sm text-stone-300">
                     {[
-                      { icon: <FileDesignIcon className="w-4 h-4 text-blue-400" />, name: 'Project Notes.md', date: 'Example', size: 'Demo File' },
-                      { icon: <ImageIcon className="w-4 h-4 text-green-400" />, name: 'Summer Photo.jpg', date: 'Example', size: 'Demo File' },
-                      { icon: <FilePdfIcon className="w-4 h-4 text-red-400" />, name: 'Budget.pdf', date: 'Example', size: 'Demo File' },
-                      { icon: <FileDesignIcon className="w-4 h-4 text-blue-400" />, name: 'Design System.fig', date: 'Example', size: 'Demo File' },
-                      { icon: <FilePdfIcon className="w-4 h-4 text-red-400" />, name: 'Presentation.pdf', date: 'Example', size: 'Demo File' },
-                      { icon: <ImageIcon className="w-4 h-4 text-green-400" />, name: 'Screenshot.png', date: 'Example', size: 'Demo File' },
+                      { icon: <FileDesignIcon className="w-4 h-4 text-blue-400 shrink-0" />, name: 'Project Notes.md', date: 'Example', size: 'Demo File' },
+                      { icon: <ImageIcon className="w-4 h-4 text-green-400 shrink-0" />, name: 'Summer Photo.jpg', date: 'Example', size: 'Demo File' },
+                      { icon: <FilePdfIcon className="w-4 h-4 text-red-400 shrink-0" />, name: 'Budget.pdf', date: 'Example', size: 'Demo File' },
+                      { icon: <FileDesignIcon className="w-4 h-4 text-blue-400 shrink-0" />, name: 'Design System.fig', date: 'Example', size: 'Demo File' },
+                      { icon: <FilePdfIcon className="w-4 h-4 text-red-400 shrink-0" />, name: 'Presentation.pdf', date: 'Example', size: 'Demo File' },
+                      { icon: <ImageIcon className="w-4 h-4 text-green-400 shrink-0" />, name: 'Screenshot.png', date: 'Example', size: 'Demo File' },
                     ].map((item, i) => (
-                      <div key={i} className="grid grid-cols-12 items-center py-3 hover:bg-white/5 rounded-lg px-2 -mx-2 transition cursor-default">
-                        <div className="col-span-6 flex items-center gap-3">
+                      <div key={i} className="grid grid-cols-12 items-center py-2.5 sm:py-3 hover:bg-white/5 rounded-lg px-2 -mx-2 transition cursor-default">
+                        <div className="col-span-8 sm:col-span-6 flex items-center gap-2.5 sm:gap-3 min-w-0">
                           {item.icon}
-                          <span className="font-medium text-stone-200">{item.name}</span>
+                          <span className="font-medium text-stone-200 truncate">{item.name}</span>
                         </div>
-                        <div className="col-span-4 text-stone-500 text-xs">{item.date}</div>
-                        <div className="col-span-2 text-stone-500 text-xs">{item.size}</div>
+                        <div className="hidden sm:block sm:col-span-4 text-stone-500 text-xs">{item.date}</div>
+                        <div className="col-span-4 sm:col-span-2 text-stone-500 text-xs text-right sm:text-left">{item.size}</div>
                       </div>
                     ))}
                   </div>
@@ -360,64 +363,64 @@ export function OnboardingLandingPage({
         </div>
 
         {/* ─── Powerful Features Section ─── */}
-        <div className="mb-40">
-          <div className="flex flex-col md:flex-row justify-between items-end mb-12">
+        <div className="mb-24 sm:mb-40">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 sm:mb-12">
             <div>
-              <span className="text-sm font-medium text-stone-500 mb-4 block">Workspace features</span>
-              <h2 className="font-serif text-4xl md:text-5xl tracking-tight leading-[1.1] max-w-xl">
+              <span className="text-xs sm:text-sm font-medium text-stone-500 mb-3 sm:mb-4 block">Workspace features</span>
+              <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl tracking-tight leading-[1.1] max-w-xl">
                 Core workspace<br />features.
               </h2>
             </div>
-            <a href="https://github.com/vanrajsinh650/BucketSpace" target="_blank" rel="noreferrer" className="text-sm font-medium text-stone-300 hover:text-white flex items-center gap-1.5 transition-colors mt-6 md:mt-0 font-sans">
+            <a href="https://github.com/vanrajsinh650/BucketSpace" target="_blank" rel="noreferrer" className="text-xs sm:text-sm font-medium text-stone-300 hover:text-white flex items-center gap-1.5 transition-colors mt-4 md:mt-0 font-sans">
               View the project <ArrowRight className="w-4 h-4" />
             </a>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 font-sans">
-            <div className="bg-[#111] border border-white/5 rounded-3xl p-8 flex flex-col justify-between min-h-[280px]">
-              <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 font-sans">
+            <div className="bg-[#111] border border-white/5 rounded-2xl sm:rounded-3xl p-6 sm:p-8 flex flex-col justify-between min-h-[220px] sm:min-h-[280px]">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-8 sm:mb-12">
                 <SearchIcon className="w-5 h-5 text-stone-300" />
               </div>
               <div>
-                <h3 className="text-lg font-medium mb-3 text-stone-200">File search</h3>
-                <p className="text-sm text-stone-400 leading-relaxed">Find files in your workspace by name.</p>
+                <h3 className="text-base sm:text-lg font-medium mb-2 sm:mb-3 text-stone-200">File search</h3>
+                <p className="text-xs sm:text-sm text-stone-400 leading-relaxed">Find files in your workspace by name.</p>
               </div>
             </div>
 
-            <div className="bg-[#111] border border-white/5 rounded-3xl p-8 flex flex-col justify-between min-h-[280px]">
-              <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-12">
+            <div className="bg-[#111] border border-white/5 rounded-2xl sm:rounded-3xl p-6 sm:p-8 flex flex-col justify-between min-h-[220px] sm:min-h-[280px]">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-8 sm:mb-12">
                 <FolderIcon className="w-5 h-5 text-stone-300" />
               </div>
               <div>
-                <h3 className="text-lg font-medium mb-3 text-stone-200">File categories</h3>
-                <p className="text-sm text-stone-400 leading-relaxed">Browse photos, videos, documents, archives, and trash.</p>
+                <h3 className="text-base sm:text-lg font-medium mb-2 sm:mb-3 text-stone-200">File categories</h3>
+                <p className="text-xs sm:text-sm text-stone-400 leading-relaxed">Browse photos, videos, documents, archives, and trash.</p>
               </div>
             </div>
 
-            <div className="bg-[#111] border border-white/5 rounded-3xl p-8 flex flex-col justify-between min-h-[280px]">
-              <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-12">
+            <div className="bg-[#111] border border-white/5 rounded-2xl sm:rounded-3xl p-6 sm:p-8 flex flex-col justify-between min-h-[220px] sm:min-h-[280px]">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-8 sm:mb-12">
                 <ShareIcon className="w-5 h-5 text-stone-300" />
               </div>
               <div>
-                <h3 className="text-lg font-medium mb-3 text-stone-200">Share links</h3>
-                <p className="text-sm text-stone-400 leading-relaxed">Create links for downloading individual files.</p>
+                <h3 className="text-base sm:text-lg font-medium mb-2 sm:mb-3 text-stone-200">Share links</h3>
+                <p className="text-xs sm:text-sm text-stone-400 leading-relaxed">Create links for downloading individual files.</p>
               </div>
             </div>
 
-            <div className="bg-[#111] border border-white/5 rounded-3xl p-8 flex flex-col justify-between min-h-[280px]">
-              <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-12">
+            <div className="bg-[#111] border border-white/5 rounded-2xl sm:rounded-3xl p-6 sm:p-8 flex flex-col justify-between min-h-[220px] sm:min-h-[280px]">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-8 sm:mb-12">
                 <Terminal className="w-5 h-5 text-stone-300" />
               </div>
               <div>
-                <h3 className="text-lg font-medium mb-3 text-stone-200">Open source</h3>
-                <p className="text-sm text-stone-400 leading-relaxed">Inspect the implementation and contribute on GitHub.</p>
+                <h3 className="text-base sm:text-lg font-medium mb-2 sm:mb-3 text-stone-200">Open source</h3>
+                <p className="text-xs sm:text-sm text-stone-400 leading-relaxed">Inspect the implementation and contribute on GitHub.</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* ─── Bottom CTA Banner ─── */}
-        <div className="relative rounded-3xl overflow-hidden bg-[#111] border border-white/5 min-h-[300px] flex items-center">
+        <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-[#111] border border-white/5 min-h-[260px] sm:min-h-[300px] flex items-center">
           {/* Ethereal Floating Clouds Animation */}
           <FloatingClouds
             preset="banner"
@@ -426,12 +429,12 @@ export function OnboardingLandingPage({
             className="inset-0 w-full h-full"
           />
           
-          <div className="relative z-10 p-12 md:p-16 max-w-xl">
-            <span className="text-xs font-semibold uppercase tracking-wider text-stone-400 mb-4 block font-sans">Built around your files</span>
-            <h2 className="font-serif text-4xl md:text-5xl tracking-tight leading-[1.1] mb-6">
+          <div className="relative z-10 p-6 sm:p-12 md:p-16 max-w-xl">
+            <span className="text-xs font-semibold uppercase tracking-wider text-stone-400 mb-3 sm:mb-4 block font-sans">Built around your files</span>
+            <h2 className="font-serif text-2xl sm:text-4xl md:text-5xl tracking-tight leading-[1.1] mb-4 sm:mb-6">
               Encryption before upload.
             </h2>
-            <p className="text-stone-400 leading-relaxed mb-8 font-sans">
+            <p className="text-stone-400 text-sm sm:text-base leading-relaxed mb-6 sm:mb-8 font-sans">
               BucketSpace encrypts file chunks in the browser before they are sent to Telegram storage.
             </p>
           </div>
@@ -440,7 +443,7 @@ export function OnboardingLandingPage({
       </main>
 
       {/* ─── Footer ─── */}
-      <footer className="border-t border-white/5 bg-black py-16 px-6 md:px-12 font-sans">
+      <footer className="border-t border-white/5 bg-black py-12 sm:py-16 px-4 sm:px-6 md:px-12 font-sans">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-12">
           <div className="max-w-xs">
             <div className="flex items-center gap-2 mb-6">
@@ -478,8 +481,8 @@ export function OnboardingLandingPage({
 
       {/* ─── Modal Overlay (Kept from original) ─── */}
       {modalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm font-sans">
-          <div className="relative w-full max-w-md bg-[#161616] border border-white/10 rounded-2xl p-6 shadow-2xl">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm font-sans">
+          <div className="relative w-full sm:max-w-md bg-[#161616] border border-white/10 rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 shadow-2xl max-h-[92vh] overflow-y-auto">
             <button
               onClick={() => setModalOpen(false)}
               className="absolute top-4 right-4 text-stone-500 hover:text-white"

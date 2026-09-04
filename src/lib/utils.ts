@@ -25,6 +25,17 @@ export function formatDate(timestamp: number | Date | string): string {
  * Automatically adds 'https://' if the user entered a bare domain without protocol.
  */
 export function normalizeApiBase(rawUrl?: string): string {
+  // If running in the browser on Vercel and pointing to Railway, prefer same-origin relative path
+  // so Vercel's edge proxy routes the request directly to Railway, bypassing ISP-level DNS blocks
+  // (such as Jio/Airtel blocking *.up.railway.app in India).
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    const isVercel = host.endsWith('.vercel.app') || host === 'bucket-space.vercel.app';
+    if (isVercel && (!rawUrl || rawUrl.includes('railway.app'))) {
+      return '';
+    }
+  }
+
   if (!rawUrl || typeof rawUrl !== 'string') return '';
   let trimmed = rawUrl.trim().replace(/\/+$/, '');
   if (!trimmed) return '';

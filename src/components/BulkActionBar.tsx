@@ -35,11 +35,11 @@ export function BulkActionBar({
           transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
           className="fixed bottom-6 left-1/2 z-40 max-w-[95vw]"
         >
-          <div className="bg-[#121212] border border-[#262626] px-4 py-2.5 rounded-2xl flex items-center gap-3 text-xs font-sans shadow-2xl shadow-black/90 backdrop-blur-md overflow-x-auto max-w-[92vw]">
+          <div className="bg-[#121212] border border-[#262626] px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl flex items-center gap-2 sm:gap-3 text-xs font-sans shadow-2xl shadow-black/90 backdrop-blur-md overflow-x-auto max-w-[96vw] sm:max-w-[92vw]">
             {/* Selected Count */}
-            <div className="flex items-center gap-2 pr-3 border-r border-[#222] shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 pr-2.5 sm:pr-3 border-r border-[#222] shrink-0">
               <span className="text-white font-semibold tabular-nums">{selectedCount}</span>
-              <span className="text-zinc-400">selected</span>
+              <span className="text-zinc-400 text-[11px] sm:text-xs">selected</span>
             </div>
 
             {/* Select All / Clear */}
@@ -51,12 +51,14 @@ export function BulkActionBar({
               {isAllSelected ? (
                 <>
                   <CheckSquare className="w-4 h-4 text-white" />
-                  <span>Deselect All</span>
+                  <span className="hidden sm:inline">Deselect All</span>
+                  <span className="sm:hidden">Deselect</span>
                 </>
               ) : (
                 <>
                   <Square className="w-4 h-4" />
-                  <span>Select All ({totalCount})</span>
+                  <span className="hidden sm:inline">Select All ({totalCount})</span>
+                  <span className="sm:hidden">All ({totalCount})</span>
                 </>
               )}
             </button>
@@ -66,10 +68,11 @@ export function BulkActionBar({
               type="button"
               onClick={onBulkDownloadZip}
               disabled={isDownloadingZip}
-              className="bg-white text-zinc-950 hover:bg-zinc-200 px-3.5 py-1.5 rounded-xl font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50 shrink-0 min-h-[36px]"
+              className="bg-white text-zinc-950 hover:bg-zinc-200 px-3 sm:px-3.5 py-1.5 rounded-xl font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50 shrink-0 min-h-[36px]"
             >
               <Archive className="w-3.5 h-3.5" />
-              <span>{isDownloadingZip ? 'Archiving...' : 'Download ZIP'}</span>
+              <span className="hidden sm:inline">{isDownloadingZip ? 'Archiving...' : 'Download ZIP'}</span>
+              <span className="sm:hidden">{isDownloadingZip ? '...' : 'ZIP'}</span>
             </button>
 
             {/* Delete Selected */}

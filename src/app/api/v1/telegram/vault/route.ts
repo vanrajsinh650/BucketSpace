@@ -22,6 +22,27 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const hasLocalCredentials = Boolean(
+      (process.env.TELEGRAM_API_ID || process.env.TELEGRAM_APT_ID) &&
+      process.env.TELEGRAM_API_HASH &&
+      process.env.TELEGRAM_API_HASH !== 'your-telegram-api-hash'
+    );
+    const backendUrl =
+      process.env.BACKEND_API_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      'https://bucketspace-production.up.railway.app';
+
+    if (!hasLocalCredentials && backendUrl) {
+      console.log('[vault] Proxying request to cloud backend:', backendUrl);
+      const targetUrl = `${backendUrl.trim().replace(/\/+$/, '')}/api/v1/telegram/vault`;
+      const proxyRes = await fetch(targetUrl, {
+        method: 'GET',
+        headers: { 'x-telegram-session': sessionString },
+      });
+      const proxyData = await proxyRes.json().catch(() => ({}));
+      return NextResponse.json(proxyData, { status: proxyRes.status });
+    }
+
     const vault = await TelegramAuthService.getOrCreateStorageVault(sessionString);
     const vaultId = typeof vault === 'string' ? vault : String(vault?.id || 'vault');
     const title = typeof vault === 'string' ? 'Saved Messages' : vault?.title || '📦 BucketSpace Vault';

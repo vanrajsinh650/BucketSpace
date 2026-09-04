@@ -12,6 +12,43 @@ const nextConfig = {
   // Keep these heavy server-only packages out of the browser bundle
   serverExternalPackages: ['telegram', 'better-sqlite3', 'gramjs'],
 
+  async rewrites() {
+    // If this instance is the direct Telegram backend (e.g. Railway or local fullstack with credentials),
+    // it serves the endpoints directly without proxying.
+    const isDirectBackend = Boolean(
+      process.env.TELEGRAM_API_ID ||
+      process.env.TELEGRAM_APT_ID ||
+      process.env.RAILWAY_ENVIRONMENT ||
+      process.env.RAILWAY_PROJECT_ID
+    );
+    if (isDirectBackend && !process.env.BACKEND_API_URL) {
+      return [];
+    }
+
+    const backendUrl =
+      process.env.BACKEND_API_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      'https://bucketspace-production.up.railway.app';
+    const cleanBackend = backendUrl.trim().replace(/\/+$/, '');
+
+    return {
+      beforeFiles: [
+        {
+          source: '/api/v1/telegram/:path*',
+          destination: `${cleanBackend}/api/v1/telegram/:path*`,
+        },
+        {
+          source: '/api/v1/shares/:path*',
+          destination: `${cleanBackend}/api/v1/shares/:path*`,
+        },
+        {
+          source: '/api/health',
+          destination: `${cleanBackend}/api/health`,
+        },
+      ],
+    };
+  },
+
   async headers() {
     return [
       {
