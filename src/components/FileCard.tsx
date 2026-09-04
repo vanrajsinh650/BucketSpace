@@ -182,7 +182,7 @@ export function FileCard({
               <button
                 type="button"
                 onClick={() => onInfo(file)}
-                className="p-1.5 sm:p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors min-w-[32px] sm:min-w-[36px] min-h-[32px] sm:min-h-[36px] flex items-center justify-center"
+                className="hidden sm:flex p-1.5 sm:p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors min-w-[32px] sm:min-w-[36px] min-h-[32px] sm:min-h-[36px] items-center justify-center"
                 title="Details"
                 aria-label={`Details for ${file.name}`}
               >

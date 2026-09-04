@@ -53,15 +53,15 @@ export function FileGrid({
   return (
     <div className="space-y-4">
       {/* Control Bar: View Mode Toggle & Sort Selector */}
-      <div className="flex items-center justify-between gap-3 text-xs">
-        <div className="text-xs text-zinc-400 font-medium">
+      <div className="flex items-center justify-between gap-2 sm:gap-3 text-xs">
+        <div className="text-xs text-zinc-400 font-medium shrink-0">
           <span className="text-zinc-100 font-semibold tabular-nums">{files.length}</span> {files.length === 1 ? 'item' : 'items'}
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 sm:gap-2.5">
           {/* Sort Selector */}
-          <div className="flex items-center gap-1.5 bg-[#141414] border border-[#262626] rounded-xl px-3 py-1.5 text-zinc-300 min-h-[36px]">
-            <ArrowUpDown className="w-3.5 h-3.5 text-zinc-500" />
+          <div className="flex items-center gap-1.5 bg-[#141414] border border-[#262626] rounded-xl px-2.5 sm:px-3 py-1.5 text-zinc-300 min-h-[36px]">
+            <ArrowUpDown className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
             <select
               aria-label="Sort files by"
               value={sortField}

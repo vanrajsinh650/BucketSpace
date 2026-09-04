@@ -284,27 +284,29 @@ export function OnboardingLandingPage({
             {/* Fake OS Window UI mimicking reference */}
             <div className="w-full bg-[#111] rounded-2xl border border-white/5 shadow-2xl overflow-hidden flex flex-col font-sans">
               {/* Window Header */}
-              <div className="h-12 sm:h-14 border-b border-white/5 flex items-center px-3 sm:px-4 justify-between bg-[#0a0a0a]">
+              <div className="h-12 sm:h-14 border-b border-white/5 flex items-center px-3 sm:px-4 justify-between bg-[#0a0a0a] gap-2">
                 <div className="flex items-center gap-2 text-stone-300 min-w-0">
-                  <Cloud className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-                  <span className="font-semibold text-xs sm:text-sm truncate">BucketSpace — Example interface</span>
+                  <Cloud className="w-4 h-4 sm:w-5 sm:h-5 shrink-0 text-white" />
+                  <span className="font-semibold text-xs sm:text-sm truncate">
+                    BucketSpace <span className="hidden sm:inline text-stone-500 font-normal">— Example interface</span>
+                  </span>
                 </div>
-                <div className="hidden sm:flex flex-1 max-w-md mx-3 sm:mx-6">
-                  <div className="w-full bg-[#1a1a1a] border border-white/5 rounded-full px-4 py-1.5 flex items-center gap-2">
-                    <SearchIcon className="w-4 h-4 text-stone-500 shrink-0" />
+                <div className="hidden lg:flex flex-1 max-w-xs mx-4">
+                  <div className="w-full bg-[#1a1a1a] border border-white/5 rounded-full px-3 py-1 flex items-center gap-2">
+                    <SearchIcon className="w-3.5 h-3.5 text-stone-500 shrink-0" />
                     <span className="text-xs text-stone-500 truncate">Search your files...</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="bg-[#1a1a1a] border border-white/5 text-stone-300 text-xs px-2.5 sm:px-3 py-1.5 rounded-lg flex items-center gap-1.5">
-                    <Send className="w-3 h-3" /> Upload
+                    <Send className="w-3 h-3 text-stone-400" /> <span>Upload</span>
                   </span>
                 </div>
               </div>
               
-              <div className="flex flex-1 min-h-[340px] sm:min-h-[400px]">
-                {/* Sidebar - responsive: visible on md+, compact files list on mobile */}
-                <div className="hidden md:flex flex-col w-48 lg:w-56 border-r border-white/5 bg-[#0a0a0a]/50 p-4 gap-1 shrink-0">
+              <div className="flex flex-1 min-h-[300px] sm:min-h-[380px]">
+                {/* Sidebar - responsive: visible on large screens (lg+), clean full-width on mobile/tablet */}
+                <div className="hidden lg:flex flex-col w-52 border-r border-white/5 bg-[#0a0a0a]/50 p-4 gap-1 shrink-0">
                   <div className="flex items-center gap-3 px-3 py-2 bg-white/10 rounded-lg text-white text-sm font-medium">
                     <HardDrive className="w-4 h-4" /> All Files
                   </div>
@@ -319,7 +321,7 @@ export function OnboardingLandingPage({
                   </div>
                   
                   <div className="mt-auto pt-6 border-t border-white/5">
-                    <div className="text-xs text-stone-500 mb-2">Example workspace</div>
+                    <div className="text-xs text-stone-500 mb-1">Example workspace</div>
                     <div className="text-xs font-medium text-stone-300 mb-2"><span className="text-white">Demo</span> data</div>
                     <div className="h-1.5 w-full bg-[#222] rounded-full overflow-hidden">
                       <div className="h-full bg-white w-[0%] rounded-full"></div>
@@ -328,31 +330,52 @@ export function OnboardingLandingPage({
                 </div>
 
                 {/* Main Content Area */}
-                <div className="flex-1 bg-[#111] p-4 sm:p-6 min-w-0">
-                  <h3 className="text-base sm:text-lg font-medium mb-4 sm:mb-6 text-stone-200">All Files</h3>
+                <div className="flex-1 bg-[#111] p-3.5 sm:p-5 lg:p-6 min-w-0">
+                  <div className="flex items-center justify-between mb-3 sm:mb-5">
+                    <h3 className="text-sm sm:text-base font-medium text-stone-200">All Files</h3>
+                    <span className="text-xs text-stone-500 font-mono">6 demo files</span>
+                  </div>
                   
-                  <div className="grid grid-cols-12 text-xs font-medium text-stone-500 pb-3 border-b border-white/5 mb-3">
-                    <div className="col-span-8 sm:col-span-6">Name</div>
-                    <div className="hidden sm:block sm:col-span-4">Modified</div>
-                    <div className="col-span-4 sm:col-span-2 text-right sm:text-left">Size</div>
+                  {/* Column Header (visible on sm+ screens) */}
+                  <div className="hidden sm:flex items-center justify-between text-xs font-medium text-stone-500 pb-2.5 border-b border-white/5 mb-2 px-2">
+                    <div className="flex-1 min-w-0">Name</div>
+                    <div className="w-28 text-left">Modified</div>
+                    <div className="w-24 text-right">Size</div>
                   </div>
 
-                  <div className="flex flex-col gap-1 text-sm text-stone-300">
+                  <div className="flex flex-col gap-1 text-xs sm:text-sm text-stone-300">
                     {[
-                      { icon: <FileDesignIcon className="w-4 h-4 text-blue-400 shrink-0" />, name: 'Project Notes.md', date: 'Example', size: 'Demo File' },
-                      { icon: <ImageIcon className="w-4 h-4 text-green-400 shrink-0" />, name: 'Summer Photo.jpg', date: 'Example', size: 'Demo File' },
-                      { icon: <FilePdfIcon className="w-4 h-4 text-red-400 shrink-0" />, name: 'Budget.pdf', date: 'Example', size: 'Demo File' },
-                      { icon: <FileDesignIcon className="w-4 h-4 text-blue-400 shrink-0" />, name: 'Design System.fig', date: 'Example', size: 'Demo File' },
-                      { icon: <FilePdfIcon className="w-4 h-4 text-red-400 shrink-0" />, name: 'Presentation.pdf', date: 'Example', size: 'Demo File' },
-                      { icon: <ImageIcon className="w-4 h-4 text-green-400 shrink-0" />, name: 'Screenshot.png', date: 'Example', size: 'Demo File' },
+                      { icon: <FileDesignIcon className="w-4 h-4 text-blue-400 shrink-0" />, name: 'Project Notes.md', date: '2 hours ago', size: '24 KB' },
+                      { icon: <ImageIcon className="w-4 h-4 text-green-400 shrink-0" />, name: 'Summer Photo.jpg', date: 'Yesterday', size: '3.4 MB' },
+                      { icon: <FilePdfIcon className="w-4 h-4 text-red-400 shrink-0" />, name: 'Budget.pdf', date: '3 days ago', size: '1.2 MB' },
+                      { icon: <FileDesignIcon className="w-4 h-4 text-blue-400 shrink-0" />, name: 'Design System.fig', date: 'May 12', size: '14.8 MB' },
+                      { icon: <FilePdfIcon className="w-4 h-4 text-red-400 shrink-0" />, name: 'Presentation.pdf', date: 'Apr 28', size: '8.1 MB' },
+                      { icon: <ImageIcon className="w-4 h-4 text-green-400 shrink-0" />, name: 'Screenshot.png', date: 'Apr 15', size: '520 KB' },
                     ].map((item, i) => (
-                      <div key={i} className="grid grid-cols-12 items-center py-2.5 sm:py-3 hover:bg-white/5 rounded-lg px-2 -mx-2 transition cursor-default">
-                        <div className="col-span-8 sm:col-span-6 flex items-center gap-2.5 sm:gap-3 min-w-0">
+                      <div
+                        key={i}
+                        className="flex items-center justify-between py-2 sm:py-2.5 hover:bg-white/5 rounded-lg px-2 -mx-2 transition cursor-default gap-3"
+                      >
+                        {/* File Icon & Name */}
+                        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
                           {item.icon}
-                          <span className="font-medium text-stone-200 truncate">{item.name}</span>
+                          <div className="min-w-0 flex-1">
+                            <span className="font-medium text-stone-200 text-xs sm:text-sm truncate block">
+                              {item.name}
+                            </span>
+                            <span className="text-[11px] text-stone-500 sm:hidden block mt-0.5">
+                              {item.size} · {item.date}
+                            </span>
+                          </div>
                         </div>
-                        <div className="hidden sm:block sm:col-span-4 text-stone-500 text-xs">{item.date}</div>
-                        <div className="col-span-4 sm:col-span-2 text-stone-500 text-xs text-right sm:text-left">{item.size}</div>
+
+                        {/* Desktop/Tablet Columns */}
+                        <div className="hidden sm:block w-28 text-stone-500 text-xs truncate">
+                          {item.date}
+                        </div>
+                        <div className="hidden sm:block w-24 text-stone-500 text-xs text-right tabular-nums">
+                          {item.size}
+                        </div>
                       </div>
                     ))}
                   </div>

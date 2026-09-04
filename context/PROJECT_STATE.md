@@ -239,3 +239,8 @@ BucketSpace/
   - *Two-Tier Proxy Route (`/api/v1/telegram/vault/sync`):* Implemented GET and POST handlers supporting seamless proxying from Vercel serverless to the Railway MTProto worker using `x-telegram-session`.
   - *Reactive Client-Side Auto-Sync (`StorageStore.syncVaultFromTelegram`):* Automatically triggers upon provider login and initial dashboard mount, merging remote vault files into state, persisting to `localStorage`, and notifying subscribers.
   - *Visual Sync Trigger & Reassurance:* Integrated an animated sync button in `Header.tsx` allowing instant manual refresh with user feedback toasts.
+- **Mobile-First Illustrative Preview & Navigation Polish (`OnboardingLandingPage.tsx`, `Header.tsx`, `FileGrid.tsx`, `FileCard.tsx`):**
+  - *Illustrative Mockup Overlap Elimination:* Fixed text collisions and horizontal squeezing inside the landing page illustrative window preview. Replaced the rigid 12-column grid on phones with a clean responsive flex list featuring secondary metadata (`size · date`), hid the desktop mockup sidebar below `lg:` (1024px) breakpoint (`hidden lg:flex`), and moved window search to `hidden lg:flex` to eliminate header crowding.
+  - *Dashboard Header Phone Optimization:* Optimized search bar padding and placeholder, streamlined icon buttons on narrow viewports, and tucked button text on mobile to maintain clean single-row alignment without wrapping or viewport overflow.
+  - *List View File Card Spacing:* Optimized action button density on mobile viewports in `FileCard.tsx` list mode to provide filename text maximum breathing room without horizontal scrolling.
+
