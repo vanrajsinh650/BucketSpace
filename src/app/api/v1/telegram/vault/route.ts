@@ -39,7 +39,13 @@ export async function GET(req: NextRequest) {
         method: 'GET',
         headers: { 'x-telegram-session': sessionString },
       });
-      const proxyData = await proxyRes.json().catch(() => ({}));
+      const rawText = await proxyRes.text();
+      let proxyData: any;
+      try {
+        proxyData = JSON.parse(rawText);
+      } catch {
+        proxyData = { success: false, message: rawText || `Backend returned status ${proxyRes.status}` };
+      }
       return NextResponse.json(proxyData, { status: proxyRes.status });
     }
 

@@ -19,6 +19,37 @@ export async function GET(
 ) {
   try {
     const { token, index } = await params;
+
+    const hasLocalCredentials = Boolean(
+      (process.env.TELEGRAM_API_ID || process.env.TELEGRAM_APT_ID) &&
+      process.env.TELEGRAM_API_HASH &&
+      process.env.TELEGRAM_API_HASH !== 'your-telegram-api-hash'
+    );
+    const backendUrl =
+      process.env.BACKEND_API_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      'https://bucketspace-production.up.railway.app';
+
+    if (!hasLocalCredentials && backendUrl && process.env.NODE_ENV !== 'test') {
+      console.log('[share-chunk] Proxying chunk download to cloud backend:', backendUrl);
+      const targetUrl = `${backendUrl.trim().replace(/\/+$/, '')}/api/v1/shares/${token}/chunks/${index}`;
+      const proxyRes = await fetch(targetUrl, {
+        method: 'GET',
+        headers: req.headers.get('x-share-passcode')
+          ? { 'x-share-passcode': req.headers.get('x-share-passcode')! }
+          : {},
+      });
+      const chunkBytes = await proxyRes.arrayBuffer();
+      return new NextResponse(new Uint8Array(chunkBytes), {
+        status: proxyRes.status,
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'Content-Length': String(chunkBytes.byteLength),
+          'Cache-Control': 'public, max-age=31536000, immutable',
+        },
+      });
+    }
+
     const record = ShareStoreService.get(token);
 
     if (!record) {
@@ -88,36 +119,6 @@ export async function GET(
       const targetChatId = (refData.chatId as string) || 'vault';
       const channelId = refData.channelId as string | undefined;
       const channelAccessHash = refData.channelAccessHash as string | undefined;
-      const hasLocalCredentials = Boolean(
-        (process.env.TELEGRAM_API_ID || process.env.TELEGRAM_APT_ID) &&
-        process.env.TELEGRAM_API_HASH &&
-        process.env.TELEGRAM_API_HASH !== 'your-telegram-api-hash'
-      );
-      const backendUrl =
-        process.env.BACKEND_API_URL ||
-        process.env.NEXT_PUBLIC_API_URL ||
-        'https://bucketspace-production.up.railway.app';
-
-      if (!hasLocalCredentials && backendUrl) {
-        console.log('[share-chunk] Proxying chunk download to cloud backend:', backendUrl);
-        const targetUrl = `${backendUrl.trim().replace(/\/+$/, '')}/api/v1/shares/${token}/chunks/${index}`;
-        const proxyRes = await fetch(targetUrl, {
-          method: 'GET',
-          headers: req.headers.get('x-share-passcode')
-            ? { 'x-share-passcode': req.headers.get('x-share-passcode')! }
-            : {},
-        });
-        const chunkBytes = await proxyRes.arrayBuffer();
-        return new NextResponse(new Uint8Array(chunkBytes), {
-          status: proxyRes.status,
-          headers: {
-            'Content-Type': 'application/octet-stream',
-            'Content-Length': String(chunkBytes.byteLength),
-            'Cache-Control': 'public, max-age=31536000, immutable',
-          },
-        });
-      }
-
       const buffer = await TelegramAuthService.downloadChunk({
         sessionString,
         messageId,
