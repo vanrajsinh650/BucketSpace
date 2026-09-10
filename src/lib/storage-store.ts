@@ -1417,7 +1417,7 @@ export class StorageStore {
       createdAt: new Date().toISOString(),
       expiresAt,
       passcode: options?.passcode,
-      ownerSessionString: telegramSession || undefined,
+      ownerProviderRef: telegramSession ? 'telegram-vault' : undefined,
     };
 
     if (typeof window !== 'undefined') {
@@ -1430,9 +1430,13 @@ export class StorageStore {
       }
 
       // Also publish share to API gateway for cross-browser, cross-device universal sharing
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (telegramSession) {
+        headers['x-telegram-session'] = telegramSession;
+      }
       fetch(`${this.apiBaseUrl}/api/v1/shares`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(shareRecord),
       }).catch(() => {
         // Background sync; local copy preserved

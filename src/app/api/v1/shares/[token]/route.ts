@@ -44,8 +44,9 @@ export async function GET(
       return NextResponse.json({ success: false, message: 'Share link not found or expired' }, { status: 404 });
     }
 
-    // Strip sensitive fields — never expose passcode or owner session
-    const { passcode: _passcode, ownerSessionString: _s, telegramSession: _t, ...safeRecord } = record;
+    // Strip sensitive and internal fields — never expose passcode or internal provider refs
+    const { passcode: _passcode, ownerProviderRef: _ref, ...safeRecord } = record;
+
     return NextResponse.json({
       ...safeRecord,
       hasPasscode: Boolean(record.passcode),
@@ -111,8 +112,9 @@ export async function POST(
       }
     }
 
-    // Authenticated — return full record without passcode or owner session
-    const { passcode: _passcode, ownerSessionString: _s, telegramSession: _t, ...safeRecord } = record;
+    // Authenticated — return full record without passcode or internal provider refs
+    const { passcode: _passcode, ownerProviderRef: _ref, ...safeRecord } = record;
+
     return NextResponse.json({ success: true, ...safeRecord });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: 'Verification failed' }, { status: 500 });

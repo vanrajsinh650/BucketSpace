@@ -1,10 +1,24 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { TelegramSessionRegistry } from './telegram-session-registry';
 
 export type InMemoryChunkData =
   | Uint8Array
   | number[]
   | Record<string, number>;
+
+export interface ShareChunkRef {
+  id?: string;
+  index?: number;
+  sizeBytes?: number;
+  size?: number;
+  hash?: string;
+  providerRef?: {
+    providerId?: string;
+    reference?: Record<string, unknown>;
+  };
+  [key: string]: unknown;
+}
 
 export interface ShareRecord {
   token: string;
@@ -12,12 +26,11 @@ export interface ShareRecord {
   fileName: string;
   fileSize: number;
   mimeType: string;
-  chunks: any[];
+  chunks: ShareChunkRef[];
   passcode?: string;
   expiresAt?: string;
   createdAt: string;
-  ownerSessionString?: string;
-  telegramSession?: string;
+  ownerProviderRef?: string;
   wholeFileHash?: string;
   /** Test/mock fallback: pre-buffered ciphertext chunks for automated tests */
   inMemoryChunks?: InMemoryChunkData[] | Record<string, InMemoryChunkData>;
@@ -45,17 +58,96 @@ function getContainer(): GlobalShareContainer {
   return globalForShares.__bucketspace_persistent_share_store;
 }
 
+/**
+ * Sanitizes a ShareRecord by whitelisting only known safe, non-credential fields.
+ * Guarantees that raw session strings, credentials, or arbitrary injected fields
+ * can NEVER be persisted to disk or leaked in memory.
+ */
+export function sanitizeRecord(record: ShareRecord | (Partial<ShareRecord> & { [key: string]: unknown })): ShareRecord {
+  const r = record as Record<string, unknown>;
+  const sanitized: ShareRecord = {
+    token: String(r.token || ''),
+    fileId: String(r.fileId || ''),
+    fileName: String(r.fileName || ''),
+    fileSize: Number(r.fileSize || 0),
+    mimeType: String(r.mimeType || 'application/octet-stream'),
+    chunks: Array.isArray(r.chunks) ? (r.chunks as ShareChunkRef[]) : [],
+    createdAt: String(r.createdAt || new Date().toISOString()),
+  };
+
+  if (r.passcode !== undefined && r.passcode !== null) {
+    sanitized.passcode = String(r.passcode);
+  }
+  if (r.expiresAt) {
+    sanitized.expiresAt = String(r.expiresAt);
+  }
+  if (r.wholeFileHash) {
+    sanitized.wholeFileHash = String(r.wholeFileHash);
+  }
+  if (r.ownerProviderRef) {
+    sanitized.ownerProviderRef = String(r.ownerProviderRef);
+  }
+  if (r.inMemoryChunks) {
+    sanitized.inMemoryChunks = r.inMemoryChunks as InMemoryChunkData[] | Record<string, InMemoryChunkData>;
+  }
+
+  return sanitized;
+}
+
+/**
+ * Processes a raw persisted item from disk.
+ * Detects legacy records with raw session fields and safely migrates them
+ * to the runtime TelegramSessionRegistry, or removes unsafe records.
+ */
+function processLoadedItem(rawItem: unknown, targetMap: Map<string, ShareRecord>): boolean {
+  if (!rawItem || typeof rawItem !== 'object') {
+    return false;
+  }
+  const item = rawItem as Record<string, unknown>;
+  if (!item.token || typeof item.token !== 'string') {
+    return false;
+  }
+
+  let hadLegacySession = false;
+  const legacySession = item.ownerSessionString || item.telegramSession;
+
+  if (legacySession) {
+    if (typeof legacySession === 'string' && legacySession.trim().length > 0) {
+      // Migrate to server runtime registry without persisting the raw credential
+      if (!item.ownerProviderRef || typeof item.ownerProviderRef !== 'string') {
+        item.ownerProviderRef = TelegramSessionRegistry.register(legacySession.trim());
+      }
+      hadLegacySession = true;
+    } else {
+      // Malformed or unusable legacy session — invalidate unsafe share rather than exposing it
+      delete item.ownerSessionString;
+      delete item.telegramSession;
+      return true;
+    }
+  }
+
+  // Strictly wipe any legacy credential fields from memory
+  delete item.ownerSessionString;
+  delete item.telegramSession;
+
+  const cleanRecord = sanitizeRecord(item);
+  targetMap.set(cleanRecord.token, cleanRecord);
+  return hadLegacySession;
+}
+
 function ensureLoaded(): Map<string, ShareRecord> {
   const container = getContainer();
   if (!container.loaded) {
+    let hadLegacySessions = false;
     try {
       if (fs.existsSync(SHARES_FILE)) {
         const raw = fs.readFileSync(SHARES_FILE, 'utf8');
         const data = JSON.parse(raw);
         if (Array.isArray(data)) {
           for (const item of data) {
-            if (item && item.token) {
-              container.map.set(item.token, item);
+            const migrated = processLoadedItem(item, container.map);
+            if (migrated) {
+              hadLegacySessions = true;
             }
           }
         }
@@ -64,6 +156,12 @@ function ensureLoaded(): Map<string, ShareRecord> {
       console.warn('[ShareStoreService] Could not load persisted shares from disk:', e);
     }
     container.loaded = true;
+
+    // If legacy records containing raw sessions were found, immediately rewrite the file
+    // so bucketspace_shares.json is cleansed of all raw credentials on disk.
+    if (hadLegacySessions) {
+      persistToDisk();
+    }
   }
   return container.map;
 }
@@ -71,7 +169,7 @@ function ensureLoaded(): Map<string, ShareRecord> {
 function persistToDisk(): void {
   const container = getContainer();
   try {
-    const list = Array.from(container.map.values());
+    const list = Array.from(container.map.values()).map(sanitizeRecord);
     fs.writeFileSync(SHARES_FILE, JSON.stringify(list, null, 2), 'utf8');
   } catch (e) {
     console.warn('[ShareStoreService] Could not persist shares to disk:', e);
@@ -89,10 +187,14 @@ export class ShareStoreService {
           const raw = fs.readFileSync(SHARES_FILE, 'utf8');
           const data = JSON.parse(raw);
           if (Array.isArray(data)) {
+            let hadLegacy = false;
             for (const item of data) {
-              if (item && item.token) {
-                map.set(item.token, item);
+              if (processLoadedItem(item, map)) {
+                hadLegacy = true;
               }
+            }
+            if (hadLegacy) {
+              persistToDisk();
             }
           }
         }
@@ -113,7 +215,20 @@ export class ShareStoreService {
 
   public static set(record: ShareRecord): void {
     const map = ensureLoaded();
-    map.set(record.token, record);
+    const rawRecord = record as unknown as Record<string, unknown>;
+
+    // In case callers pass legacy fields at runtime:
+    const legacySession = rawRecord.ownerSessionString || rawRecord.telegramSession;
+    if (typeof legacySession === 'string' && legacySession.trim().length > 0) {
+      if (!rawRecord.ownerProviderRef) {
+        rawRecord.ownerProviderRef = TelegramSessionRegistry.register(legacySession.trim());
+      }
+      delete rawRecord.ownerSessionString;
+      delete rawRecord.telegramSession;
+    }
+
+    const cleanRecord = sanitizeRecord(rawRecord);
+    map.set(cleanRecord.token, cleanRecord);
     persistToDisk();
   }
 
@@ -124,6 +239,22 @@ export class ShareStoreService {
       persistToDisk();
     }
     return deleted;
+  }
+
+  /**
+   * Clears all shares in memory and removes the persistence file from disk (for testing).
+   */
+  public static clear(): void {
+    const container = getContainer();
+    container.map.clear();
+    container.loaded = true;
+    try {
+      if (fs.existsSync(SHARES_FILE)) {
+        fs.unlinkSync(SHARES_FILE);
+      }
+    } catch {
+      // ignore
+    }
   }
 }
 

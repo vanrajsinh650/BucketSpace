@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TelegramAuthService } from '@/modules/storage';
 import { ShareStoreService, type InMemoryChunkData } from '@/modules/storage/share-store-service';
+import { TelegramSessionRegistry } from '@/modules/storage/telegram-session-registry';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -99,7 +100,9 @@ export async function GET(
     const providerId = chunk.providerRef?.providerId;
 
     if (providerId === 'telegram') {
-      const sessionString = record.ownerSessionString || record.telegramSession;
+      const sessionString = record.ownerProviderRef
+        ? TelegramSessionRegistry.resolve(record.ownerProviderRef)
+        : undefined;
       if (!sessionString) {
         return NextResponse.json(
           { success: false, message: 'Storage session is unavailable for this share' },

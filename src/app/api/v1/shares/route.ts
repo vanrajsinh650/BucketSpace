@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ShareStoreService } from '@/modules/storage/share-store-service';
+import { TelegramSessionRegistry } from '@/modules/storage/telegram-session-registry';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +10,24 @@ export async function POST(req: NextRequest) {
     if (!record || !record.token) {
       return NextResponse.json({ success: false, message: 'Invalid share record' }, { status: 400 });
     }
+
+    // Extract session from header or legacy body fields
+    const sessionFromHeader = req.headers.get('x-telegram-session');
+    const legacySession = record.ownerSessionString || record.telegramSession;
+    const sessionToRegister =
+      (sessionFromHeader && sessionFromHeader.trim()) ||
+      (typeof legacySession === 'string' && legacySession.trim()) ||
+      undefined;
+
+    if (sessionToRegister) {
+      const ref = TelegramSessionRegistry.register(sessionToRegister);
+      record.ownerProviderRef = ref;
+    }
+
+    // HARDENING: Strictly remove any legacy raw session fields
+    delete record.ownerSessionString;
+    delete record.telegramSession;
+
     const hasLocalCredentials = Boolean(
       (process.env.TELEGRAM_API_ID || process.env.TELEGRAM_APT_ID) &&
       process.env.TELEGRAM_API_HASH &&
@@ -21,9 +40,13 @@ export async function POST(req: NextRequest) {
 
     if (!hasLocalCredentials && backendUrl && process.env.NODE_ENV !== 'test') {
       const targetUrl = `${backendUrl.trim().replace(/\/+$/, '')}/api/v1/shares`;
+      const proxyHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (sessionToRegister) {
+        proxyHeaders['x-telegram-session'] = sessionToRegister;
+      }
       const proxyRes = await fetch(targetUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: proxyHeaders,
         body: JSON.stringify(record),
       });
       const rawText = await proxyRes.text();
@@ -42,3 +65,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, message: err?.message || 'Failed to save share' }, { status: 500 });
   }
 }
+

@@ -1,6 +1,8 @@
 process.env.NODE_ENV = 'test';
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
+import fs from 'node:fs';
+import path from 'node:path';
 import { NextRequest } from 'next/server';
 import { ClientEncryptionService } from '../src/modules/security/client-encryption';
 import { calculateSha256 } from '../src/lib/storage-store';
@@ -9,6 +11,8 @@ import { POST as saveShareRoute } from '../src/app/api/v1/shares/route';
 import { GET as getShareRoute, POST as verifySharePasscodeRoute } from '../src/app/api/v1/shares/[token]/route';
 import { GET as getShareChunkRoute } from '../src/app/api/v1/shares/[token]/chunks/[index]/route';
 import { concatByteArrays } from '../src/shared';
+import { TelegramSessionRegistry } from '../src/modules/storage/telegram-session-registry';
+import { ShareStoreService } from '../src/modules/storage/share-store-service';
 
 describe('Public File Sharing End-to-End Regression Suite', () => {
   // Test master encryption key
@@ -369,6 +373,309 @@ describe('Public File Sharing End-to-End Regression Suite', () => {
       /Client decryption failed|AuthenticationError/i,
       'Tampered ciphertext must be cryptographically rejected'
     );
+  });
+
+  // ─── GitHub Issue #1 Security Regression Suite (Tests A - H) ───
+
+  // A. Creating a share does NOT persist a raw Telegram session
+  it('A. Creating a share does NOT persist a raw Telegram session', async () => {
+    const rawSession = '1BVtsSession_Test_A_' + Date.now();
+    const token = `tok_sec_test_a_${Date.now()}`;
+    const req = new NextRequest('http://localhost:3000/api/v1/shares', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-telegram-session': rawSession,
+      },
+      body: JSON.stringify({
+        token,
+        fileId: 'file_sec_a',
+        fileName: 'confidential_a.pdf',
+        fileSize: 1024,
+        mimeType: 'application/pdf',
+        chunks: [],
+      }),
+    });
+
+    const res = await saveShareRoute(req);
+    assert.strictEqual(res.status, 200);
+
+    const record = ShareStoreService.get(token);
+    assert.ok(record, 'Share record must exist');
+    assert.strictEqual((record as unknown as Record<string, unknown>).ownerSessionString, undefined, 'ownerSessionString must not exist on record');
+    assert.strictEqual((record as unknown as Record<string, unknown>).telegramSession, undefined, 'telegramSession must not exist on record');
+    assert.ok(record.ownerProviderRef, 'ownerProviderRef must be assigned');
+    assert.notStrictEqual(record.ownerProviderRef, rawSession, 'ownerProviderRef must not be raw session');
+    assert.strictEqual(record.ownerProviderRef.startsWith('tgsref_'), true, 'ownerProviderRef must be opaque ref');
+  });
+
+  // B. Persisted bucketspace_shares.json contains no ownerSessionString or telegramSession
+  it('B. Persisted bucketspace_shares.json contains no ownerSessionString or telegramSession', async () => {
+    const DATA_DIR = process.env.DATA_DIR || (process.platform === 'win32' ? process.env.TEMP : '/tmp') || '/tmp';
+    const SHARES_FILE = path.join(DATA_DIR, 'bucketspace_shares.json');
+
+    assert.ok(fs.existsSync(SHARES_FILE), 'bucketspace_shares.json file must exist on disk');
+    const rawContent = fs.readFileSync(SHARES_FILE, 'utf8');
+
+    assert.strictEqual(rawContent.includes('ownerSessionString'), false, 'Persisted JSON must never contain ownerSessionString');
+    assert.strictEqual(rawContent.includes('telegramSession'), false, 'Persisted JSON must never contain telegramSession');
+  });
+
+  // C. Public share retrieval can resolve the owner session through the runtime registry
+  it('C. Public share retrieval can resolve the owner session through the runtime registry', async () => {
+    const rawSession = '1BVtsSession_Test_C_' + Date.now();
+    const token = `tok_sec_test_c_${Date.now()}`;
+    const req = new NextRequest('http://localhost:3000/api/v1/shares', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-telegram-session': rawSession,
+      },
+      body: JSON.stringify({
+        token,
+        fileId: 'file_sec_c',
+        fileName: 'doc_c.pdf',
+        fileSize: 2048,
+        mimeType: 'application/pdf',
+        chunks: [],
+      }),
+    });
+    await saveShareRoute(req);
+
+    const record = ShareStoreService.get(token);
+    assert.ok(record);
+    assert.ok(record.ownerProviderRef);
+
+    // Resolve through runtime registry
+    const resolvedSession = TelegramSessionRegistry.resolve(record.ownerProviderRef);
+    assert.strictEqual(resolvedSession, rawSession, 'Runtime registry must resolve correct owner session');
+  });
+
+  // D. Removing the runtime Telegram session causes share retrieval to fail safely
+  it('D. Removing the runtime Telegram session causes share retrieval to fail safely', async () => {
+    const rawSession = '1BVtsSession_Test_D_' + Date.now();
+    const token = `tok_sec_test_d_${Date.now()}`;
+    const ref = TelegramSessionRegistry.register(rawSession);
+
+    // Save record with ownerProviderRef and a mock telegram chunk
+    ShareStoreService.set({
+      token,
+      fileId: 'file_sec_d',
+      fileName: 'test_d.bin',
+      fileSize: 512,
+      mimeType: 'application/octet-stream',
+      ownerProviderRef: ref,
+      createdAt: new Date().toISOString(),
+      chunks: [
+        {
+          id: 'chunk_0',
+          index: 0,
+          providerRef: {
+            providerId: 'telegram',
+            reference: { messageId: 101, chatId: 'vault' },
+          },
+        },
+      ],
+    });
+
+    // Remove the session from runtime registry
+    const removed = TelegramSessionRegistry.remove(ref);
+    assert.strictEqual(removed, true, 'Session must be removed from registry');
+
+    // Attempt to download chunk
+    const reqChunk = new NextRequest(`http://localhost:3000/api/v1/shares/${token}/chunks/0`);
+    const resChunk = await getShareChunkRoute(reqChunk, { params: Promise.resolve({ token, index: '0' }) });
+
+    assert.strictEqual(resChunk.status, 500);
+    const json = await resChunk.json();
+    assert.strictEqual(json.success, false);
+    assert.strictEqual(json.message, 'Storage session is unavailable for this share');
+  });
+
+  // E. A public share token alone cannot expose the Telegram session
+  it('E. A public share token alone cannot expose the Telegram session', async () => {
+    const rawSession = '1BVtsSession_Test_E_SUPER_SECRET';
+    const token = `tok_sec_test_e_${Date.now()}`;
+    const reqSave = new NextRequest('http://localhost:3000/api/v1/shares', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-telegram-session': rawSession,
+      },
+      body: JSON.stringify({
+        token,
+        fileId: 'file_sec_e',
+        fileName: 'top_secret.docx',
+        fileSize: 5000,
+        mimeType: 'application/msword',
+        chunks: [],
+      }),
+    });
+    await saveShareRoute(reqSave);
+
+    // GET /api/v1/shares/[token]
+    const reqGet = new NextRequest(`http://localhost:3000/api/v1/shares/${token}`);
+    const resGet = await getShareRoute(reqGet, { params: Promise.resolve({ token }) });
+    const textGet = await resGet.text();
+    assert.strictEqual(textGet.includes(rawSession), false, 'GET response must not contain raw session');
+    assert.strictEqual(textGet.includes('ownerSessionString'), false);
+    assert.strictEqual(textGet.includes('telegramSession'), false);
+    assert.strictEqual(textGet.includes('ownerProviderRef'), false, 'GET response must not expose internal provider ref');
+
+    // POST /api/v1/shares/[token]
+    const reqPost = new NextRequest(`http://localhost:3000/api/v1/shares/${token}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    const resPost = await verifySharePasscodeRoute(reqPost, { params: Promise.resolve({ token }) });
+    const textPost = await resPost.text();
+    assert.strictEqual(textPost.includes(rawSession), false, 'POST response must not contain raw session');
+    assert.strictEqual(textPost.includes('ownerSessionString'), false);
+    assert.strictEqual(textPost.includes('telegramSession'), false);
+    assert.strictEqual(textPost.includes('ownerProviderRef'), false, 'POST response must not expose internal provider ref');
+  });
+
+  // F. Share metadata responses contain no Telegram credential
+  it('F. Share metadata responses contain no Telegram credential', async () => {
+    const rawSession = '1BVtsSession_Test_F_CREDENTIAL';
+    const token = `tok_sec_test_f_${Date.now()}`;
+    const reqSave = new NextRequest('http://localhost:3000/api/v1/shares', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-telegram-session': rawSession,
+      },
+      body: JSON.stringify({
+        token,
+        fileId: 'file_sec_f',
+        fileName: 'passwords.txt',
+        fileSize: 42,
+        mimeType: 'text/plain',
+        passcode: 'SecretPass123',
+        chunks: [],
+      }),
+    });
+    await saveShareRoute(reqSave);
+
+    const reqGet = new NextRequest(`http://localhost:3000/api/v1/shares/${token}`);
+    const resGet = await getShareRoute(reqGet, { params: Promise.resolve({ token }) });
+    const jsonGet = await resGet.json();
+
+    assert.strictEqual(JSON.stringify(jsonGet).includes(rawSession), false);
+    assert.strictEqual((jsonGet as Record<string, unknown>).ownerSessionString, undefined);
+    assert.strictEqual((jsonGet as Record<string, unknown>).telegramSession, undefined);
+    assert.strictEqual((jsonGet as Record<string, unknown>).ownerProviderRef, undefined);
+    assert.strictEqual((jsonGet as Record<string, unknown>).passcode, undefined);
+  });
+
+  // G. Existing share encryption/key behavior remains unchanged
+  it('G. Existing share encryption/key behavior remains unchanged', async () => {
+    const testSecretData = new TextEncoder().encode('Zero-Knowledge E2E Verification Payload 2026');
+    const wholeFileHash = await calculateSha256(testSecretData);
+    const encryptedChunk = await ClientEncryptionService.encryptChunk(testSecretData, masterKey);
+    const chunkPlaintextHash = await calculateSha256(testSecretData);
+
+    const token = `tok_sec_test_g_${Date.now()}`;
+    const reqSave = new NextRequest('http://localhost:3000/api/v1/shares', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token,
+        fileId: 'file_sec_g',
+        fileName: 'e2e_verify.dat',
+        fileSize: testSecretData.byteLength,
+        mimeType: 'application/octet-stream',
+        wholeFileHash,
+        chunks: [
+          {
+            id: 'chunk_0',
+            index: 0,
+            sizeBytes: encryptedChunk.byteLength,
+            hash: chunkPlaintextHash,
+            providerRef: { providerId: 'in-memory', reference: { key: 'mock' } },
+          },
+        ],
+        inMemoryChunks: [encryptedChunk],
+      }),
+    });
+    await saveShareRoute(reqSave);
+
+    // Fetch chunk
+    const reqChunk = new NextRequest(`http://localhost:3000/api/v1/shares/${token}/chunks/0`);
+    const resChunk = await getShareChunkRoute(reqChunk, { params: Promise.resolve({ token, index: '0' }) });
+    assert.strictEqual(resChunk.status, 200);
+
+    const receivedBytes = new Uint8Array(await resChunk.arrayBuffer());
+    assert.deepStrictEqual(receivedBytes, encryptedChunk);
+
+    // Decrypt using client-side master key
+    const decryptedBytes = await ClientEncryptionService.decryptChunk(receivedBytes, masterKey);
+    assert.deepStrictEqual(decryptedBytes, testSecretData);
+    const decryptedHash = await calculateSha256(decryptedBytes);
+    assert.strictEqual(decryptedHash, wholeFileHash);
+  });
+
+  // H. Legacy persisted records containing raw session fields are never returned to clients and are never re-persisted with the raw credentials
+  it('H. Legacy persisted records containing raw session fields are never returned to clients and are never re-persisted with the raw credentials', async () => {
+    const DATA_DIR = process.env.DATA_DIR || (process.platform === 'win32' ? process.env.TEMP : '/tmp') || '/tmp';
+    const SHARES_FILE = path.join(DATA_DIR, 'bucketspace_shares.json');
+
+    const legacySession = '1BVtsLegacyRawSessionSecret999';
+    const legacyToken = `tok_legacy_test_${Date.now()}`;
+
+    // Read current shares from file
+    let currentShares: unknown[] = [];
+    try {
+      if (fs.existsSync(SHARES_FILE)) {
+        currentShares = JSON.parse(fs.readFileSync(SHARES_FILE, 'utf8'));
+      }
+    } catch {
+      currentShares = [];
+    }
+
+    // Infiltrate a legacy share record with raw session fields onto disk
+    const legacyRecord = {
+      token: legacyToken,
+      fileId: 'file_legacy_001',
+      fileName: 'legacy_archive.tar',
+      fileSize: 9999,
+      mimeType: 'application/x-tar',
+      chunks: [],
+      createdAt: '2026-01-01T00:00:00.000Z',
+      ownerSessionString: legacySession,
+      telegramSession: legacySession,
+    };
+    currentShares.push(legacyRecord);
+    fs.writeFileSync(SHARES_FILE, JSON.stringify(currentShares, null, 2), 'utf8');
+
+    // Force re-read from disk
+    const record = ShareStoreService.get(legacyToken);
+    assert.ok(record, 'Legacy record should be loaded and migrated');
+
+    // In-memory checks:
+    assert.strictEqual((record as unknown as Record<string, unknown>).ownerSessionString, undefined, 'ownerSessionString must be deleted from loaded record');
+    assert.strictEqual((record as unknown as Record<string, unknown>).telegramSession, undefined, 'telegramSession must be deleted from loaded record');
+    assert.ok(record.ownerProviderRef, 'ownerProviderRef must be generated for legacy record');
+
+    // Runtime registry check: session is available in server memory
+    const runtimeSession = TelegramSessionRegistry.resolve(record.ownerProviderRef);
+    assert.strictEqual(runtimeSession, legacySession, 'Legacy session must be safely migrated to TelegramSessionRegistry');
+
+    // Disk re-read check: file on disk must be sanitized and contain NO legacy credentials
+    const fileContentAfterLoad = fs.readFileSync(SHARES_FILE, 'utf8');
+    assert.strictEqual(fileContentAfterLoad.includes(legacySession), false, 'Disk file must NOT contain raw legacy session string after load');
+    assert.strictEqual(fileContentAfterLoad.includes('ownerSessionString'), false, 'Disk file must NOT contain ownerSessionString');
+    assert.strictEqual(fileContentAfterLoad.includes('telegramSession'), false, 'Disk file must NOT contain telegramSession');
+
+    // API response check:
+    const reqGet = new NextRequest(`http://localhost:3000/api/v1/shares/${legacyToken}`);
+    const resGet = await getShareRoute(reqGet, { params: Promise.resolve({ token: legacyToken }) });
+    const jsonGet = await resGet.json();
+    assert.strictEqual((jsonGet as Record<string, unknown>).ownerSessionString, undefined);
+    assert.strictEqual((jsonGet as Record<string, unknown>).telegramSession, undefined);
+    assert.strictEqual((jsonGet as Record<string, unknown>).ownerProviderRef, undefined);
+    assert.strictEqual(JSON.stringify(jsonGet).includes(legacySession), false);
   });
 });
 
